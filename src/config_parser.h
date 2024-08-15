@@ -10,7 +10,7 @@
 #include "datatypes.h"
 #include "mpi_wrapper.h"
 
-#define HBT_VERSION "1.17.1.MPI-G4"
+#define HBT_VERSION "1.18.1.MPI-G4"
 
 namespace PhysicalConst
 {//initialized after reading parameter file.
@@ -36,6 +36,7 @@ public:
   /*optional*/
   string SnapshotFormat;
   string GroupFileFormat;
+  int ParticleExchangerBufferSize; //maximum number of particles to be exchanged each time; reduce this number if prog runs out of memory during particle exchange
   int MaxConcurrentIO;
   int MinSnapshotIndex;
   int MinNumPartOfSub;
@@ -78,6 +79,7 @@ public:
   {
 	SnapshotFormat="gadget"; //see example config file for alternative formats
 	GroupFileFormat="gadget3_int";
+    ParticleExchangerBufferSize=1000000;
 	MaxConcurrentIO=10;
 	MinSnapshotIndex=0;
 	MinNumPartOfSub=20;

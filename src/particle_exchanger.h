@@ -86,6 +86,70 @@ namespace ParticleExchangeComp
 
 extern void create_Mpi_RemoteParticleType(MPI_Datatype& dtype);
 
+struct HaloSlicer_t
+{
+    HBTInt ihalo_begin, ihalo_back, ipart_begin, ipart_end, np;//range of exchanging halos and particles in halos
+    int BufferSize;//max number of particles to slice
+    HaloSlicer_t(int buffersize):ihalo_begin(0), ihalo_back(0), ipart_begin(0), ipart_end(0), np(0), BufferSize(buffersize)
+    {
+      if(BufferSize==0) BufferSize=HBTConfig.ParticleExchangerBufferSize;
+    }
+    template <class Halo_T>
+    int NextBuffer(const vector <Halo_T> &InHalos)
+    {//select halo range to fill into buffer. return tot number of selected particles.
+        np=0;
+        ihalo_begin=ihalo_back;
+        ipart_begin=ipart_end;
+        if(ihalo_begin>=InHalos.size())
+          return 0;
+        if(ipart_begin>=InHalos[ihalo_begin].Particles.size())//overflow
+        {
+          ihalo_begin++;
+          if(ihalo_begin>=InHalos.size())//end
+            return 0;
+          ipart_begin=0;
+        }
+        HBTInt ihalo=ihalo_begin;
+        while(true)
+        {
+            HBTInt n_this=InHalos[ihalo].Particles.size();
+            if(ihalo==ihalo_begin) n_this-=ipart_begin;
+            np+=n_this;
+            if(np>=BufferSize)//buffer full
+            {
+                HBTInt np_excess=np-BufferSize;
+                ihalo_back=ihalo;
+                ipart_end=InHalos[ihalo].Particles.size()-np_excess;
+                np=BufferSize;
+                break;
+            }
+            ihalo++;
+            if(ihalo>=InHalos.size())//exceed
+            {
+              ihalo_back=InHalos.size()-1;
+              ipart_end=InHalos.back().Particles.size();
+              break;
+            }
+        }
+        return np;
+    }
+    template <class Halo_T>
+    void GetPartRange(const vector <Halo_T> &InHalos, HBTInt ihalo, HBTInt &i_begin, HBTInt &i_end)
+    {//get particle range for ihalo
+      i_begin=0;
+      if(ihalo==ihalo_begin)
+        i_begin=ipart_begin;
+      if(ihalo>=InHalos.size())
+        i_end=0;
+      else
+      {
+        i_end=InHalos[ihalo].Particles.size();
+        if(ihalo==ihalo_back)
+          i_end=ipart_end;
+      }
+    }
+};
+
 template <class Halo_T>
 class ParticleExchanger_t
 {
@@ -93,8 +157,7 @@ class ParticleExchanger_t
   MpiWorker_t &world;
   const ParticleSnapshot_t &snap;
   vector <Halo_T> &InHalos;
-
-  vector <HBTInt> HaloSizes, HaloOffsets;
+  HaloSlicer_t Slicer;
 
   vector <RemoteParticle_t> LocalParticles;
   vector <OrderedParticle_t> RoamParticles;
@@ -104,13 +167,13 @@ class ParticleExchanger_t
   vector <RoamParticleIterator_t> RoamIterators;
   vector <HBTInt> LocalSizes, RoamSizes;
 
-  void CollectParticles();
+  int CollectParticles();
   void SendParticles();
   void QueryParticles();
   void RecvParticles();
   void RestoreParticles();
 public:
-  ParticleExchanger_t(MpiWorker_t &world, const ParticleSnapshot_t &snap, vector <Halo_T> &InHalos);
+  ParticleExchanger_t(MpiWorker_t &world, const ParticleSnapshot_t &snap, vector <Halo_T> &InHalos, int buffer_size=0);//buffer_size=0 means using HBTConfig.ParticleExchangerBufferSize
   ~ParticleExchanger_t()
   {
 	My_Type_free(&MPI_HBTParticle_t);
@@ -119,34 +182,31 @@ public:
 };
 
 template <class Halo_T>
-ParticleExchanger_t<Halo_T>::ParticleExchanger_t(MpiWorker_t &world, const ParticleSnapshot_t &snap, vector <Halo_T> &InHalos): world(world),snap(snap), InHalos(InHalos), LocalParticles(), RoamParticles()
+ParticleExchanger_t<Halo_T>::ParticleExchanger_t(MpiWorker_t &world, const ParticleSnapshot_t &snap, vector <Halo_T> &InHalos, int buffer_size): world(world),snap(snap), InHalos(InHalos), Slicer(buffer_size), LocalParticles(), RoamParticles()
 {
   Particle_t().create_MPI_type(MPI_HBTParticle_t);
 }
 
 template <class Halo_T>
-void ParticleExchanger_t<Halo_T>::CollectParticles()
+int ParticleExchanger_t<Halo_T>::CollectParticles()
 {
-  HaloSizes.reserve(InHalos.size());
-//   HaloOffsets.reserve(InHalos.size());
-  HBTInt np=0;
-  for(auto &&h: InHalos)
-  {
-// 	HaloOffsets.push_back(np);
-	HBTInt n=h.Particles.size();
-	HaloSizes.push_back(n);
-	np+=n;
-  }
+  int np=Slicer.NextBuffer(InHalos);
+  if(0==np)
+    return 0;
+  LocalParticles.clear();//not necessary since LocalParticles has been cleared during RestoreParticles.
   LocalParticles.reserve(np);
-  np=0;
-  for(auto &&h: InHalos)
+  int n=0;
+  for(HBTInt ihalo=Slicer.ihalo_begin;ihalo<=Slicer.ihalo_back;ihalo++)
   {
-	for(auto &&p: h.Particles)
-	{
-	  LocalParticles.emplace_back(move(p), np++);
-	}
-	h.Particles.clear();//or hard clear to save memory?
+    auto &h=InHalos[ihalo];
+    HBTInt ipart, ipart_end;
+    Slicer.GetPartRange(InHalos, ihalo, ipart, ipart_end);
+    for(;ipart<ipart_end;ipart++)
+      LocalParticles.emplace_back(h.Particles[ipart], n++);
+//     h.Particles.clear();//do not clear since we will need to know the particle sizes later
   }
+  assert(n==np);
+  return np;
 }
 
 template <class Halo_T>
@@ -226,28 +286,43 @@ void ParticleExchanger_t<Halo_T>::RecvParticles()
 template <class Halo_T>
 void ParticleExchanger_t<Halo_T>::RestoreParticles()
 {
+  assert(LocalParticles.size()==Slicer.np);
   auto it=LocalParticles.begin();
-  for(HBTInt ihalo=0;ihalo<InHalos.size();ihalo++)
+  for(HBTInt ihalo=Slicer.ihalo_begin;ihalo<=Slicer.ihalo_back;ihalo++)
   {
-	auto it_end=it+HaloSizes[ihalo];
-	InHalos[ihalo].Particles.assign(it, it_end);
-	it=it_end;
+    HBTInt ipart, ipart_end;
+    Slicer.GetPartRange(InHalos, ihalo, ipart, ipart_end);
+    for(;ipart<ipart_end;ipart++)
+      InHalos[ihalo].Particles[ipart]=*it++;
   }
   assert(it==LocalParticles.end());
-  vector <RemoteParticle_t>().swap(LocalParticles);
-
-  for(auto &&h: InHalos)
-    h.KickNullParticles();
+  //vector <RemoteParticle_t>().swap(LocalParticles);
+  LocalParticles.clear();
 }
 
 template <class Halo_T>
 void ParticleExchanger_t<Halo_T>::Exchange()
 {
-  CollectParticles();
-  SendParticles();
-  QueryParticles();
-  RecvParticles();
-  RestoreParticles();
+/*  HBTInt ntot=0, ntot2=0;
+#pragma omp parallel for reduction(+:ntot)
+  for(HBTInt i=0;i<InHalos.size();i++)
+    ntot+=InHalos[i].Particles.size();
+*/
+  while(true)
+  {
+    int npmax=0, np=CollectParticles();
+//     ntot2+=np;
+    MPI_Allreduce(&np, &npmax, 1, MPI_INT, MPI_MAX, world.Communicator);
+    if(0==npmax) break; //loop till no particles to collect in all threads.
+    SendParticles();
+    QueryParticles();
+    RecvParticles();
+    RestoreParticles();
+  }
+//   assert(ntot==ntot2);
+
+  for(auto &&h: InHalos)
+    h.KickNullParticles();
 }
 
 template <class Halo_T>
