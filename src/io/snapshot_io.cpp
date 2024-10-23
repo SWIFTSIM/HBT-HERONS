@@ -42,6 +42,10 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_
     }
 #endif
   }
+  else if (HBTConfig.SnapshotFormat == "BOOMPJE")
+  {
+    SwiftSimReader_t().LoadSnapshot(world, SnapshotId, Particles, Cosmology);
+  }
   else if (HBTConfig.SnapshotFormat == "mysnapshot")
   { /*insert your snapshot reader here, and include relevant header in the header if necessary
      you need to fill up Particles vector, and set the cosmology, e.g.,
