@@ -685,6 +685,13 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
     43.0071 * (HBTConfig.MassInMsunh / 1e10) / HBTConfig.VelInKmS / HBTConfig.VelInKmS / HBTConfig.LengthInMpch;
   PhysicalConst::H0 = 100. * (1. / HBTConfig.VelInKmS) / (1. / HBTConfig.LengthInMpch);
 
+  /* FOR BOOMPJE: make the gravitational constant equal 1, as the units 
+   * are virial */
+  if(HBTConfig.SnapshotFormat == "BOOMPJE")
+  {
+    PhysicalConst::G = 1;
+  }
+
   /* This will be used to determine which particles are hostless when
    * constraining subhaloes to their assigned hosts. */
   HBTConfig.ParticleNullGroupId = Header.NullGroupId;
