@@ -78,4 +78,5 @@ public:
 };
 
 extern bool IsSwiftSimGroup(const string &GroupFileFormat);
+extern bool IsBOOMPJESimGroup(const string &GroupFileFormat);
 #endif

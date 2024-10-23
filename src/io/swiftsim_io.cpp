@@ -1040,6 +1040,11 @@ bool IsSwiftSimGroup(const string &GroupFileFormat)
   return GroupFileFormat.substr(0, 8) == "swiftsim";
 }
 
+bool IsBOOMPJESimGroup(const string &GroupFileFormat)
+{
+  return GroupFileFormat.substr(0, 7) == "BOOMPJE";
+}
+
 /* Returns the path to the file containing information about which
  * particles have split between the current and previous output. */
 void SwiftSimReader_t::GetParticleSplitFileName(int snapshotId, string &filename)
