@@ -143,7 +143,12 @@ inline void Snapshot_t::RelativeVelocity(const HBTxyz &targetPos, const HBTxyz &
     if (HBTConfig.PeriodicBoundaryOn)
       dx[j] = NEAREST(dx[j]);
     dv[j] = targetVel[j] - refVel[j];
-    dv[j] += Cosmology.Hz * Cosmology.ScaleFactor * dx[j];
+
+    /* Only add Hubble flow for cosmological simulations */
+    if (HBTConfig.SnapshotFormat != "BOOMPJE")
+    {
+      dv[j] += Cosmology.Hz * Cosmology.ScaleFactor * dx[j];
+    }
   }
 }
 
