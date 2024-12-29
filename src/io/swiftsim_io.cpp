@@ -692,7 +692,7 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
 
   /* FOR BOOMPJE: make the gravitational constant equal 1, as the units
    * are virial */
-  if(HBTConfig.SnapshotFormat == "BOOMPJE")
+  if(HBTConfig.SnapshotFormat == "Bonsai")
   {
     PhysicalConst::G = 1;
   }
@@ -1040,9 +1040,9 @@ bool IsSwiftSimGroup(const string &GroupFileFormat)
   return GroupFileFormat.substr(0, 8) == "swiftsim";
 }
 
-bool IsBOOMPJESimGroup(const string &GroupFileFormat)
+bool IsBonsaiSimGroup(const string &GroupFileFormat)
 {
-  return GroupFileFormat.substr(0, 7) == "BOOMPJE";
+  return GroupFileFormat.substr(0, 7) == "Bonsai";
 }
 
 /* Returns the path to the file containing information about which

@@ -29,7 +29,7 @@ void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
     ApostleReader_t().LoadGroups(world, SnapshotId, Halos);
   else if (IsSwiftSimGroup(GroupFileFormat))
     SwiftSimReader_t().LoadGroups(world, SnapshotId, Halos);
-  else if (IsBOOMPJESimGroup(GroupFileFormat))
+  else if (IsBonsaiSimGroup(GroupFileFormat))
     SwiftSimReader_t().LoadGroups(world, SnapshotId, Halos);
   else if (GroupFileFormat == "my_group_format")
   { /*extend your own group reader here, input SnapshotId and output filled Halo list, e.g.:

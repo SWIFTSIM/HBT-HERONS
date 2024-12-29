@@ -42,7 +42,7 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_
     }
 #endif
   }
-  else if (HBTConfig.SnapshotFormat == "BOOMPJE")
+  else if (HBTConfig.SnapshotFormat == "Bonsai")
   {
     SwiftSimReader_t().LoadSnapshot(world, SnapshotId, Particles, Cosmology);
   }

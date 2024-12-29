@@ -145,7 +145,7 @@ inline void Snapshot_t::RelativeVelocity(const HBTxyz &targetPos, const HBTxyz &
     dv[j] = targetVel[j] - refVel[j];
 
     /* Only add Hubble flow for cosmological simulations */
-    if (HBTConfig.SnapshotFormat != "BOOMPJE")
+    if (HBTConfig.SnapshotFormat != "Bonsai")
     {
       dv[j] += Cosmology.Hz * Cosmology.ScaleFactor * dx[j];
     }
