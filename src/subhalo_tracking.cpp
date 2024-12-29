@@ -755,26 +755,37 @@ void SubhaloSnapshot_t::DecideCentrals(const HaloSnapshot_t &halo_snap)
     MemberShipTable_t::MemberList_t &List = MemberTable.SubGroups[hostid];
     if (List.size() > 1)
     {
-      int n_major;
-      HBTReal MassLimit = Subhalos[List[0]].Mbound * HBTConfig.MajorProgenitorMassRatio;
-      for (n_major = 1; n_major < List.size(); n_major++)
-        if (Subhalos[List[n_major]].Mbound < MassLimit)
-          break;
-      if (n_major > 1)
+      /* In BOOMPJE, we force the first TrackID to always be the central. In the
+       * setup we use, it will always correspond to the primary. */
+      if(HBTConfig.SnapshotFormat == "BOOMPJE")
       {
-        HBTReal dmin = Subhalos[List[0]].KineticDistance(halo_snap.Halos[hostid], *this);
-        int icenter = 0;
-        for (int i = 1; i < n_major; i++)
+        bool needs_swap = Subhalos[List[0]].TrackId > Subhalos[List[1]].TrackId;
+        if(needs_swap)
+          swap(List[1], List[0]);
+      }
+      else
+      {
+        int n_major;
+        HBTReal MassLimit = Subhalos[List[0]].Mbound * HBTConfig.MajorProgenitorMassRatio;
+        for (n_major = 1; n_major < List.size(); n_major++)
+          if (Subhalos[List[n_major]].Mbound < MassLimit)
+            break;
+        if (n_major > 1)
         {
-          HBTReal d = Subhalos[List[i]].KineticDistance(halo_snap.Halos[hostid], *this);
-          if (dmin > d)
+          HBTReal dmin = Subhalos[List[0]].KineticDistance(halo_snap.Halos[hostid], *this);
+          int icenter = 0;
+          for (int i = 1; i < n_major; i++)
           {
-            dmin = d;
-            icenter = i;
+            HBTReal d = Subhalos[List[i]].KineticDistance(halo_snap.Halos[hostid], *this);
+            if (dmin > d)
+            {
+              dmin = d;
+              icenter = i;
+            }
           }
+          if (icenter)
+            swap(List[0], List[icenter]);
         }
-        if (icenter)
-          swap(List[0], List[icenter]);
       }
     }
   }
