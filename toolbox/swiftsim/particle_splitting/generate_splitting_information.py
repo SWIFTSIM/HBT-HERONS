@@ -268,7 +268,7 @@ def get_corrected_split_trees(split_data, overflow_data):
             # Shift overflow splits
             trees[idx] = trees[idx] << tree_size
             # Add pre-overflow split
-            trees[idx] += overflow_data[key]["tree"]
+            trees[idx] += int(overflow_data[key]["tree"])
         n_overflow -= 1
 
     return progenitor_ids, trees
