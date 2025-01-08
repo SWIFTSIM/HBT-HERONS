@@ -16,15 +16,35 @@
 #include "apostle_io.h"
 #include "gadget_group_io.h"
 #include "swiftsim_io.h"
+#include "gadget4_io.h"
 
 void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
+{ // compatibility interface
+  if (Gadget4Reader::IsGadget4Group(HBTConfig.GroupFileFormat))
+  {
+    throw(runtime_error("reading gadget4 group requires preloaded snapshot\n"));
+    exit(1);
+  }
+
+  ParticleSnapshot_t partsnap;
+  partsnap.SetSnapshotIndex(snapshot_index);
+  Load(world, partsnap);
+}
+
+void HaloSnapshot_t::Load(MpiWorker_t &world, const ParticleSnapshot_t &partsnap)
 {
+  int snapshot_index = partsnap.GetSnapshotIndex();
   SetSnapshotIndex(snapshot_index);
 
   string GroupFileFormat = HBTConfig.GroupFileFormat;
 
   if (GadgetGroup::IsGadgetGroup(GroupFileFormat))
-    GadgetGroup::Load(world, SnapshotId, Halos);
+  {
+    if (Gadget4Reader::IsGadget4Group(GroupFileFormat))
+      Gadget4Reader::Gadget4Reader_t().LoadGroups(world, partsnap, Halos); // only this needs partsnap
+    else
+      GadgetGroup::Load(world, SnapshotId, Halos);
+  }
   else if (IsApostleGroup(GroupFileFormat))
     ApostleReader_t().LoadGroups(world, SnapshotId, Halos);
   else if (IsSwiftSimGroup(GroupFileFormat))

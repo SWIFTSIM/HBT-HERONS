@@ -364,11 +364,13 @@ void GadgetReader_t::ReadGadgetFile(int iFile)
 
   if (RealTypeSize == 4)
   {
-    ReadXYZBlock(float, ComovingPosition) ReadXYZBlock(float, PhysicalVelocity)
+    ReadXYZBlock(float, ComovingPosition);
+    ReadXYZBlock(float, PhysicalVelocity);
   }
   else
   {
-    ReadXYZBlock(double, ComovingPosition) ReadXYZBlock(double, PhysicalVelocity)
+    ReadXYZBlock(double, ComovingPosition);
+    ReadXYZBlock(double, PhysicalVelocity);
   }
 
   if (HBTConfig.PeriodicBoundaryOn) // regularize coord
@@ -389,10 +391,16 @@ void GadgetReader_t::ReadGadgetFile(int iFile)
     if (IntTypeSize == 4)
     {
       if (HBTConfig.SnapshotIdUnsigned) // unsigned int
-        ReadScalarBlock(unsigned, Id) else ReadScalarBlock(int, Id)
+      {
+        ReadScalarBlock(unsigned, Id);
+      }
+      else
+      {
+        ReadScalarBlock(int, Id);
+      }
     }
     else
-      ReadScalarBlock(long, Id)
+      ReadScalarBlock(long, Id);
   }
   else
   {
@@ -403,20 +411,29 @@ void GadgetReader_t::ReadGadgetFile(int iFile)
 
 #define MassDataPresent(i) ((0 == header.mass[i]) && (header.npartTotal[i]))
   if (RealTypeSize == 4)
-    ReadMassBlock(float) else ReadMassBlock(double)
+  {
+    ReadMassBlock(float);
+  }
+  else
+  {
+    ReadMassBlock(double);
+  }
 #undef MassDataPresent
 
 #ifndef DM_ONLY
 #ifdef HAS_THERMAL_ENERGY
-      if (RealTypeSize == 4) ReadEnergyBlock(float) else ReadEnergyBlock(double)
+  if (RealTypeSize == 4)
+    ReadEnergyBlock(float);
+  else
+    ReadEnergyBlock(double);
 #endif
 
-        for (int itype = 0; itype < TypeMax; ++itype)
-    {
-      auto p = NewParticles + offset[itype];
-      for (HBTInt i = 0; i < header.npart[itype]; i++)
-        p[i].Type = static_cast<ParticleType_t>(itype);
-    }
+  for (int itype = 0; itype < TypeMax; ++itype)
+  {
+    auto p = NewParticles + offset[itype];
+    for (HBTInt i = 0; i < header.npart[itype]; i++)
+      p[i].Type = static_cast<ParticleType_t>(itype);
+  }
 #endif
 
   if (feof(fp))
