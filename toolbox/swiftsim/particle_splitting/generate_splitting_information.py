@@ -69,7 +69,7 @@ def load_hbt_config(config_path):
 
     return config
 
-def load_overflow_data(path_to_split_log_files):
+def load_overflow_data(path_to_split_log_files, tree_size):
     '''
     Loads particle splitting information for particles which
     split enough times to overflow the SplitTrees dataset.
@@ -98,6 +98,10 @@ def load_overflow_data(path_to_split_log_files):
             file_data = np.loadtxt(f'{path_to_split_log_files}/{filename}', dtype=np.int64)
         for row in file_data:
             _, new_prog_id, old_prog_id, count, tree = row
+            # Handle negative numbers
+            tree = int(tree)
+            if tree < 0:
+                tree = (1 << tree_size) + tree
             overflow_data[(count, new_prog_id)] = {
                     'progenitor_id': old_prog_id,
                     'tree': tree,
@@ -107,7 +111,7 @@ def load_overflow_data(path_to_split_log_files):
 
 def generate_path_to_snapshot(config, snapshot_index):
     '''
-    Returns the path to the virtual file of a snapshot to analyse.
+    Returns the path of the snapshots files to analyse.
 
     Parameters
     ----------
@@ -121,7 +125,7 @@ def generate_path_to_snapshot(config, snapshot_index):
     Returns
     -------
     str
-        Path to the virtual file of the snapshot.
+        Path to the snapshot files.
     '''
     if 'SnapshotDirBase' in config: 
         subdirectory = f"{config['SnapshotDirBase']}_{config['SnapshotIdList'][snapshot_index]:04d}"
@@ -248,14 +252,15 @@ def get_corrected_split_trees(split_data, overflow_data):
     # Create copy of arrays to be updated
     progenitor_ids = split_data["progenitor_ids"].copy()
     # Set datatype as object so we can have arbitrarily large values
+    tree_size = split_data["trees"].itemsize * 8
     trees = split_data["trees"].astype('object')
+    trees[trees < 0] = (1 << tree_size) + trees[trees < 0]
 
     # Return if the rank has no data
     if (split_data["counts"].shape[0] == 0) or (overflow_data is None):
         return progenitor_ids, trees
 
     # Calculate the maximum number of times a particle has overflowed
-    tree_size = split_data["trees"].itemsize * 8
     n_overflow = np.max((split_data["counts"] - 1) // tree_size)
 
     while n_overflow > 0:
@@ -268,7 +273,7 @@ def get_corrected_split_trees(split_data, overflow_data):
             # Shift overflow splits
             trees[idx] = trees[idx] << tree_size
             # Add pre-overflow split
-            trees[idx] += int(overflow_data[key]["tree"])
+            trees[idx] += overflow_data[key]["tree"]
         n_overflow -= 1
 
     return progenitor_ids, trees
@@ -303,7 +308,9 @@ def update_overflow_split_trees(split_data, overflow_data=None):
             split_data['trees'] = split_data['trees'].astype('object')
             return split_data
         print(f'{np.sum(invalid_trees)} particles with invalid trees skipped on rank {comm_rank}')
-        split_data['trees'] = split_data['trees'][~invalid_trees].astype('object')
+        trees = split_data['trees'][~invalid_trees].astype('object')
+        trees[trees < 0] = (1 << tree_size) + trees[trees < 0]
+        split_data['trees'] = trees
         split_data['counts'] = split_data['counts'][~invalid_trees]
         split_data['progenitor_ids'] = split_data['progenitor_ids'][~invalid_trees]
         split_data['particle_ids'] = split_data['particle_ids'][~invalid_trees]
@@ -311,6 +318,8 @@ def update_overflow_split_trees(split_data, overflow_data=None):
         progenitor_ids, trees = get_corrected_split_trees(split_data, overflow_data)
         split_data['trees'] = trees
         split_data['progenitor_ids'] = progenitor_ids
+
+    assert np.min(split_data['trees']) >= 0
 
     return split_data
 
@@ -406,26 +415,10 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
 
             # If we have a new tree, all new particle IDs have as their progenitor the
             # particle ID that originated this unique tree.
-            # NOTE: Disabled because SWIFT runs had incorrect ParticleProgenitorIDs
-            # progenitor_id_old = tree_progenitor_ID
+            progenitor_id = tree_progenitor_ID
 
+            # Remove the progenitor particle from the list of IDs to prevent infinite loop
             new_ids = new_snapshot_data['particle_ids'][tree_index]
-
-            # We get the ID that has all 0s in its split tree (it retained the ID of
-            # the original particle)
-            progenitor_id = new_ids[new_snapshot_data["trees"][tree_index] == 0]
-
-            # We should have either 1 or 0 progenitor ids.
-            assert(len(progenitor_id) < 2)
-
-            # Print out a warning if no progenitor ID was found... We cannot do much more
-            # than that.
-            if len(progenitor_id) == 0:
-                local_no_progenitors_found += 1
-                continue
-
-            progenitor_id = progenitor_id[0]
-
             new_ids = new_ids[new_ids != progenitor_id]
 
             # We could encounter cases where a particle has split and its descendants
@@ -444,10 +437,6 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
                                                           old_snapshot_data['counts'][tree_index_old],
                                                           new_snapshot_data['particle_ids'][tree_index],
                                                           new_snapshot_data['trees'][tree_index]))
-    global_no_progenitors_found = comm.allreduce(local_no_progenitors_found)
-    if global_no_progenitors_found > 0:
-        if comm_rank == 0:
-            print(f"We could not find progenitors for {global_no_progenitors_found} new split trees.")
 
     return new_splits
 
@@ -647,7 +636,10 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
     #==========================================================================
     overflow_data = None
     if comm_rank == 0:
-        overflow_data = load_overflow_data(path_to_split_log_files)
+        ref_snapshot_path = generate_path_to_snapshot(config, snapshot_index)
+        with h5py.File(ref_snapshot_path.format(file_nr=0), 'r') as file:
+            tree_size = file['PartType0/SplitTrees'].dtype.itemsize * 8
+        overflow_data = load_overflow_data(path_to_split_log_files, tree_size)
     overflow_data = comm.bcast(overflow_data, root=0)
 
     #==========================================================================
@@ -727,6 +719,9 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
         print (f"Done!")
 
 if __name__ == "__main__":
+
+    if comm_rank == 0:
+        print(f"Running generate_particle_splitting_information.py with {comm_size} ranks")
 
     from virgo.mpi.util import MPIArgumentParser
 
