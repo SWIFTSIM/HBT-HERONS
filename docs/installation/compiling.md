@@ -31,14 +31,16 @@ is analysed.
 
     Using `ccmake` instead of `cmake` opens an interactive terminal view showing
     the all the relevant compile-time options and allows the user to change their
-    value more easily. 
+    value more easily. If you are doing this for the first time, the cache will 
+    be empty. You need to press `c` (configure) to display the options. After you enable/disable
+    the options relevant to your setup, press `c` (configure) again and then `g` (generate).
 
 ### Type of simulation
 
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :-----------------------------------------------  | :----------------------------------------------- |
 | `HBT_DM_ONLY`                    | `Off`| Enable if the simulation is dark matter only.                   |
-| `HBT_UNBIND_WITH_THERMAL_ENERGY` | `Off`| Enable to include thermal energy of gas when calculating its binding energy. If enabled, the dataset needs to be loaded from the particle outpouts. |
+| `HBT_UNBIND_WITH_THERMAL_ENERGY` | `Off`| Enable to include thermal energy of gas when calculating its binding energy. If enabled, the dataset needs to be loaded from the particle outputs. |
 
 
 ### Internal precision
