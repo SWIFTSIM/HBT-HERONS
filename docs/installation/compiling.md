@@ -5,7 +5,7 @@ To get a local copy of the master branch, run:
 git clone https://github.com/SWIFTSIM/HBT-HERONS.git && cd HBT-HERONS
 ```
 
-As HBT-HERONS saves the commit hash and its status when the code is compiled, it is 
+As HBT-HERONS saves the commit hash and whether the code has been modified before compiling, it is 
 recommended to compile it from its own separate `build` folder. This prevents `git` 
 from identifying changes to the files it tracks.
 ```bash 
@@ -48,3 +48,29 @@ is analysed.
 These flags are used to determine the internal dtypes used by HBT-HERONS, which always
 default to using the maximum precision possible. If you would like to reduce the memory footprint
 of the code, you can do so using these flags.
+
+| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| :-------------------------------------- | :-----------------------------------------------  | :----------------------------------------------- |
+| `HBT_INT8`                     | `Off`| Represent integers using 8 (`On`) or 4  (`Off`) bytes. |
+| `HBT_REAL8`                    | `Off`| Represent floats using 8 (`On`) or 4  (`Off`) bytes. |
+| `HBT_REAL4_VEL`                    | `Off`| Make the code use 4 bytes for velocities, superseeding the choice made in `HBT_REAL8` if `On`. If `Off`, velocities are represented using the same precision specified by `HBT_REAL8`. |
+| `HBT_REAL4_MASS`                    | `Off`| Make the code use 4 bytes for masses, superseeding the choice made in `HBT_REAL8` if `On`. If `Off`, masses are represented using the same precision specified by `HBT_REAL8`.  |
+| `HBT_INPUT_INT8`                    | `Off`| Represent particle IDs using 8 (`On`) or 4 (`Off`) bytes. **DEPRECATED**: the code always uses the value specified by `HBT_INT8`. |
+<!-- HBT_UNSIGNED_LONG_ID_OUTPUT      ON -->
+
+### Miscellaneous
+
+| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| :-------------------------------------- | :-----------------------------------------------  | :----------------------------------------------- |
+| `HBT_USE_OPENMP`                     | `On`| Whether to enable OMP parallelism within the main code. |
+| `HBT_USE_GSL`                     | `OFF`| Whether to include the GSL library, which is required to calculate the inertia tensor eigenvalues of each self-bound subhalo. |
+
+### Debugging and testing
+
+Options specifiying parallelism within the unit tests, as well as sanity checks throughout the main code. 
+
+| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| :-------------------------------------- | :-----------------------------------------------  | :----------------------------------------------- |
+| `HBT_TEST_MPI_NPROCS`                     | `4`| How many MPI ranks to use within the unit tests. |
+| `HBT_TEST_OMP_NUM_THREADS`                    | `4`| How many OMP threads to use within the unit tests. |
+| `HBT_CHECK_TRACER_INDEX`                    | `Off`| Explictly do a sanity check to see if the Subhalo.TracerIndex points to the correct particle, which is checked by comparing the number of particles. Important to enable when testing changes that modify the vector of subhalo particles at some point, since the ordering of particles can change and hence TracerIndex be incorrect. |
