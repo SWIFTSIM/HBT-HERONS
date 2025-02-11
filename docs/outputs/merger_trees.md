@@ -8,7 +8,7 @@ Since HBT-HERONS analyses a simulation from early to late times, the information
 * **It remains self-bound**. The subhalo with the same `TrackId`, which is unique and time-persistent for each subhalo, is its descendant.
 * **It merges with another subhalo**. Depending on the way in which this happened, i.e. through disruption or because their cores overlapped in phase-space, the `DescendantTrackId` or `SinkTrackId` values identify which subhalo it merged with.
 
-We provide examples on how to use these datasets to follow the [complete evolution of a subhalo of interest](#evolution-of-a-single-subhalo), and to [identify subhaloes that merged with it](#secondary-progenitors).
+We provide examples on how to use these datasets to follow the [complete evolution of a subhalo of interest](#evolution-of-a-single-subhalo), and to [identify subhaloes that merged with it](#identifying-subhalo-mergers).
 
 ## Evolution of a single subhalo
 
