@@ -89,25 +89,18 @@ Quantities used for more detailed tracking, restarting runs or debugging.
 
 ### Evolutionary milestones
 
-The second type of property corresponds to the peak values of a small subset of
-properties, which can be useful to have when selecting subhaloes based on their
-past evolution.
+The second type of property corresponds to key events in the evolution of a subhalo, such as when it was first identified or when and if it disrupted. It also includes the peak values of a small subset of properties, which can be useful to have when selecting subhaloes based on their past evolution.
 
 !!! warning
 
-    The milestones get updated as the simulaton is analysed from early to
-    late times. This entails that information from earliest outputs are not
-    reflective of the whole evolution of the subhalo. For
-    example, a subhalo that continously grows in mass will keep updating its
-    `LastMaxMass`. Therefore, the only values that one should use are those
-    stored in the last output of the simulation that you intend to analyse.
+    The milestones get updated as the simulaton is analysed from early to late times. This entails that information from earliest outputs are not reflective of the whole evolution of the subhalo. For example, a subhalo that continously grows in mass will keep updating its `LastMaxMass`. Therefore, the only values that one should use are those stored in the last output of the simulation that you intend to analyse.
 
 | <div style="width:220px">Property</div> | <div style="width:827px">Description</div>                             |
 | :-------------------------------------  | :--------------------------------------------------------------------- |
 |         `SnapshotIndexOfBirth`          | The output when the subhalo was first identified.                      |
 |          `SnapshotIndexOfSink`          | If the subhalo has merged, the output when that happened.              |
 |         `SnapshotIndexOfDeath`          | If the subhalo has merged or disrupted, the output when that happened  |
-|     `SnapshotIndexOfLastIsolation`      | If the subhalo has been a satellite, when it was last isolated.        |
+|     `SnapshotIndexOfLastIsolation`      | If the subhalo has ever been a satellite, the output before it ever became a satellite for the first time.    |
 |      `SnapshotIndexOfLastMaxVmax`       | The output when the subhalo reached its maximum value of VmaxPhysical. |
 |      `SnapshotIndexOfLastMaxMass`       | The output when the subhalo reached its maximum value of Mbound        |
 |              `LastMaxMass`              | The maximum mass that the subhalo has reached so far.                  |
