@@ -40,12 +40,12 @@ We assume the simulation has 64 outputs throughout this example.
     output_end = output_end if output_end != -1 else max_output_number
 
     # Create an array to hold values we are interested in tracking (number of bound particles)
-    mass_evolution = - np.ones(output_end - output_start + 1)
+    Nbound_evolution = - np.ones(output_end - output_start + 1)
 
     # Iterate over catalogues to obtain Nbound value of the entry with the TrackId we want to follow. 
     for i, output_number in enumerate(range(output_start, output_end + 1)):
         with h5py.File(catalogue_path.format(output_number = output_number)) as catalogue:
-          mass_evolution[i] = catalogue['Subhalo/Nbound'][TrackId_to_follow]
+          Nbound_evolution[i] = catalogue['Subhalo/Nbound'][TrackId_to_follow]
     ```
 
 === "Without running `toolbox/SortCatalogues.py`"
