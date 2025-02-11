@@ -137,42 +137,17 @@ TreeAllocFactor 0.8
 
 ### Tracking
 
-| <div style="width:260px">Property</div> | <div style="width:787px">Description</div>       |
-| :-------------------------------------- | :----------------------------------------------- |
-| `TracerParticleTypes`                   | Particle types that can be used as subhalo tracers. Tracers are used to identify which FoF group hosts a given subhalo, the offsets in phase-space between subhaloes, and the position/velocity of orphan (disrupted) subhaloes. We recommend using time-persistent, collisionless particles (e.g. DM & stars).                   |
-| `MinNumPartOfSub`                           | Minimum number of bound particles required for a subhalo to be resolved, regardless of their particle type. |
-| `NumTracerHostFinding`                           |  How many tracer particles are used to identify the host FoF group of subhaloes. The weighting of each particle reflects their binding energy ordering in the previous output. |
-| `NumTracersForDescendants`                           | How many tracer particles are used to identify which subhalo has accreted the core of subhaloes that have disrupted in the current snapshot. |
-| `MergeTrappedSubhalos`                           | Whether to manually merge resolved subhaloes that overlap in phase-space. Recommended to always leave on. |
-| `MajorProgenitorMassRatio`                           | The threshold used to identify which subhaloes are central candidates within a FoF. Expressed relative to the most massive subhalo in said host FoF group. |
+Parameters relating to the tracking and merging of subhaloes, as well as the criteria used to determine if a subhalo is self-bound or not. Specifying the value of the parameters is optional, in which case the defaults given below are used.
 
-<!-- # 
- 1 4
-
-# 
- 20
-
-# 
- 10
-
-#
- 10
-
-# 
- 10
-
-# 
- 1
-
-# 
- 0.8
-
-# Keeping here as a reference as it is defined, but it is not used internally at
-# the moment. It will be good to add as an additional option when computing the
-# phase-space distance between overlapping subhaloes. The current behaviour is
-# equivalent to SubCoreSizeMin = 10 and SubCoreSizeFactor=0.
-# SubCoreSizeMin 20
-# SubCoreSizeFactor 0.25 -->
+| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
+| `TracerParticleTypes`                   | 1 4 | Particle types that can be used as subhalo tracers, given as a space-separated list of particle type numbers. Tracers are used to identify which FoF group hosts a given subhalo, the offsets in phase-space between subhaloes, and the position/velocity of orphan (disrupted) subhaloes. We recommend using time-persistent, collisionless particles (e.g. DM & stars).                   |
+| `MinNumPartOfSub`                       | 20 | Minimum number of bound particles required for a subhalo to be resolved, regardless of their particle type.        |  
+| `MinNumTracerPartOfSub`                  | 10 |   Minimum number of bound particles required for a subhalo to be resolved, regardless of their particle type. |
+| `NumTracerHostFinding`                  | `MinNumTracerPartOfSub` |   How many tracer particles are used to identify the host FoF group of subhaloes. The weighting of each particle reflects their binding energy ordering in the previous output. |
+| `NumTracersForDescendants`              | 10 |  How many tracer particles are used to identify which subhalo has accreted the core of subhaloes that have disrupted in the current snapshot. |
+| `MergeTrappedSubhalos`                  | 1 |  Whether to manually merge resolved subhaloes that overlap in phase-space. Recommended to always leave on. |
+| `MajorProgenitorMassRatio`              | 0.8 |  The threshold used to identify which subhaloes are central candidates within a Friends of Friends group. Expressed relative to the previous bound mass of the most massive subhalo in said host FoF group. |
 
 ## Miscellaneous
 
