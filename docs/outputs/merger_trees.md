@@ -74,7 +74,7 @@ plt.show()
 The catalogues also provide sufficient infomation to identify which subhaloes merged together, helping to establish links between different evolutionary branches through so-called secondary progenitors. Obtaining the secondary progenitors of a given subhalo is more involved that following its main branch. One complication is that subhaloes disappear from the HBT-HERONS catalogues in two different ways:
 
 * [Subhalo disruption](#subhalo-disruption) as a consequence of subhaloes no longer being self-bound. 
-* [Subhalo sinking](#subhalo-sinking) when the subhalo is still self-bound but its core coalesces in phase-space with that of another subhalo. 
+* [Subhalo sinking](#subhalo-sinking) when the subhalo is still self-bound but its core coalesces in phase-space with the core of another subhalo. 
 
 HBT-HERONS provides different information depending on which of the two processes led to the removal of a subhalo from the simulation. Commonly used merger trees do not provide this two-category classification, as following the entire process of 
 subhalo sinking is difficult and is inadecuately followed in traditional subhalo finders. 
