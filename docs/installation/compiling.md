@@ -5,7 +5,7 @@ To get a local copy of the master branch, run:
 git clone https://github.com/SWIFTSIM/HBT-HERONS.git && cd HBT-HERONS
 ```
 
-As HBT-HERONS saves the commit hash and whether the code has been modified before compiling, it is 
+As HBT-HERONS saves the commit hash and whether the code has been modified (see [version tracking](../running/diagnostics.md/#version)) before compiling, it is 
 recommended to compile it from its own separate `build` folder. This prevents `git` 
 from identifying changes to the files it tracks.
 ```bash 
