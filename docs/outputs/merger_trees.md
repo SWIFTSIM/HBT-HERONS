@@ -163,3 +163,5 @@ Here we show how to identify all subhaloes that directly sunk with the most mass
     ``` python
     # TODO: finish writing.
     ```
+
+The `sink_progenitors` array contains a `TrackID` for each subhalo that sunk with the example subhalo (`TrackId_to_follow`). If you want to find *every* subhalo that is connected to the example subhalo through sinking, e.g. to build its full merger tree, you will need to repeat the above code for each of the `sink_progenitors` until a complete list is built. The evolution of each subhalo prior to sinking can be followed in the same way as for an [individual subhalo](#evolution-of-a-single-subhalo).
