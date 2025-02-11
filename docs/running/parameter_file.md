@@ -25,6 +25,11 @@ Some of these parameters are **mandatory**, which means that the code will not w
 
 ### File I/O
 
+!!! warning
+
+    File formats that are not based on Swift outputs have not been explicitly tested using HBT-HERONS. Compatibility with
+    alternative formats are there based on what was implemented at the time of forking HBT+. We do not expect the changes that HBT-HERONS makes will affect I/O significantly, but tread carefully.
+
 | <div style="width:260px">Property</div> | <div style="width:787px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- |
 | `SnapshotFormat`                   | The format used by files containing the particle information.                   |
