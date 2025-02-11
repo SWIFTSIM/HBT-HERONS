@@ -28,7 +28,6 @@ nav:
     - ./installation/compiling.md
   - Running: 
     - ./running/start.md
-    - ./running/restart.md
     - ./running/parameter_file.md
     - ./running/diagnostics.md
   - Outputs: 
