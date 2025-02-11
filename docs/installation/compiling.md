@@ -18,7 +18,7 @@ The relevant libraries used to compile the code are found through CMake. Then it
 cmake ../ && make -j 4
 ```
 
-Note that there are several important [compile-time options](#compile-time-flags) that can be specified using CMake. Compiling
+Note that there are several important [compile-time options](#compile-time-options) that can be specified using CMake. Compiling
 without specifying their values, as we have just done, uses their default values.
 
 
