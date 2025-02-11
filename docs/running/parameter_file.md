@@ -2,7 +2,7 @@
 
 HBT-HERONS accepts several parameters, which tells the code about the simulation [format and file structure](#file-io), how subhaloes are [tracked and unbound](#subhaloes), the gravity [tree and softening](#gravity), the [unit system](#units) and whether the box is [cosmological](#simulation-box). There are also [miscellaneous](#miscellaneous) options provided for very specific simulation setups.
 
-Some of these parameters are **mandatory**, which means that the code will not work if no information is provided. Other parameters are optional either because they are not used depending on the simulation setup, or because they default to given value. The default values are specified in [`src/config_parser.h`](https://github.com/SWIFTSIM/HBT-HERONS/blob/master/src/config_parser.h) and we provide them when relevant in the tables below.
+Some of these parameters are **mandatory**, which means that the code will not work if no information is provided. Other parameters are optional, either because they are not used depending on the simulation setup, or because they default to predefined value. The default values are specified in [`src/config_parser.h`](https://github.com/SWIFTSIM/HBT-HERONS/blob/master/src/config_parser.h) and we provide them when relevant in the tables below.
 
 !!! tip
 
