@@ -70,12 +70,13 @@ they are set using the snapshot metadata.
 
 ### Tree
 
-| <div style="width:260px">Property</div> | <div style="width:787px">Description</div>       |
-| :-------------------------------------- | :----------------------------------------------- |
-| `TreeNodeOpenAngle`                   | Geometric criteria to determine whether a tree node should be opened or can be used as is.                   |
-| `TreeAllocFactor`                           | The maximum number of cells used in the gravity tree, relative to the number of particles. |
-| `TreeMinNumOfCells`                           | Minimum number of tree cells to use. |
+These options specify how the tree is built and the geometric condition used to open a tree node.
 
+| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
+| `TreeNodeOpenAngle`                   | 0.45 | Geometric criterion used to determine whether a tree node should be opened or can be used as is. Smaller values make the code slower but more accurate.             |
+| `TreeAllocFactor`                           | 0.8 | The maximum number of cells used in the gravity tree, relative to the number of particles. |
+| `TreeMinNumOfCells`                           | 10 | Minimum number of tree cells to use. |
 
 ### Softening
 
