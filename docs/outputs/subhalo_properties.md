@@ -26,7 +26,7 @@ We describe what each property means below.
 
 Different ways to quantify how massive a subhalo is.
 
-| <div style="width:220px">Property</div> | <div style="width:827px">Description</div>                                                                                                          |
+| <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
 |                `Nbound`                 | The total number of particles bound to the subhalo.                                                                                                 |
 |                `Mbound`                 | The total mass of particles bound to the subhalo.                                                                                                   |
@@ -39,7 +39,7 @@ Different ways to quantify how massive a subhalo is.
 
 Different ways to quantify the size of a subhalo.
 
-| <div style="width:220px">Property</div> | <div style="width:827px">Description</div>                                                                                                                 |
+| <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------  | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |             `RmaxComoving`              | The radius at which the circularised rotation curve of the subhalo reaches its maximum value (`VmaxPhysical`).                                                                             |
 |             `RHalfComoving`             | The smallest radius that encloses 50% of the total bound mass.                                                                                                     |
@@ -50,7 +50,7 @@ Different ways to quantify the size of a subhalo.
 
 Different ways to locate the subhalo in 6D phase-space.
 
-| <div style="width:220px">Property</div> | <div style="width:827px">Description</div>             |
+| <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------  | :----------------------------------------------------- |
 |        `ComovingAveragePosition`        | Mass-weighted average position of all bound particles. |
 |        `PhysicalAverageVelocity`        | Mass-weighted average velocity of all bound particles. |
@@ -61,7 +61,7 @@ Different ways to locate the subhalo in 6D phase-space.
 
 Different ways to measure the shape of the subhalo.
 
-| <div style="width:220px">Property</div> | <div style="width:827px">Description</div>        |
+| <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------- | :------------------------------------------------ |
 | `InertialEigenVector`                   | Only computed if GSL was enabled at compile time. |
 | `InertialEigenVectorWeighted`           | Only computed if GSL was enabled at compile time. |
@@ -72,7 +72,7 @@ Different ways to measure the shape of the subhalo.
 
 Estimates of the internal dynamics and energetics of the subhalo.
 
-| <div style="width:220px">Property</div> | <div style="width:827px">Description</div>                                                                      |
+| <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
 | `SpecificSelfPotentialEnergy`           | Mass-weighted average potential energy of bound particles.                                                      |
 | `SpecificSelfKineticEnergy`             | Mass-weighted average kinetic energy of bound particles in the centre of mass reference frame of the subhalo.   |
@@ -82,7 +82,7 @@ Estimates of the internal dynamics and energetics of the subhalo.
 
 Quantities used for more detailed tracking, restarting runs or debugging.
 
-| <div style="width:220px">Property</div> | <div style="width:827px">Description</div>       |
+| <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------- | :----------------------------------------------- |
 | `TracerIndex`                           | Bound ranking of the most bound tracer particle. |
 | `MostBoundParticleId`                   | ID of the most bound particle.                   |
@@ -95,7 +95,7 @@ The second type of property corresponds to key events in the evolution of a subh
 
     The milestones get updated as the simulaton is analysed from early to late times. This entails that information from earliest outputs are not reflective of the whole evolution of the subhalo. For example, a subhalo that continously grows in mass will keep updating its `LastMaxMass`. Therefore, the only values that one should use are those stored in the last output of the simulation that you intend to analyse.
 
-| <div style="width:220px">Property</div> | <div style="width:827px">Description</div>                             |
+| <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------  | :--------------------------------------------------------------------- |
 |         `SnapshotIndexOfBirth`          | The output when the subhalo was first identified.                      |
 |          `SnapshotIndexOfSink`          | If the subhalo has merged, the output when that happened.              |
@@ -111,7 +111,7 @@ The second type of property corresponds to key events in the evolution of a subh
 The last type of property that is saved corresponds ot. This helps analyse which
 FoF groups, which subhalo is the central, etc.
 
-| <div style="width:220px">Property</div> | <div style="width:827px">Description</div>                             |
+| <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------  | :--------------------------------------------------------------------- |
 |                `TrackId`                | Unique identifier for the subhalo, which persists across time.                      |
 |              `SinkTrackId`              | If the subhalo has merged, the `TrackId` of the subhalo that accreted it.              |
