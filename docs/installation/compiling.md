@@ -47,7 +47,7 @@ the thermal energy of gas during subhalo unbinding.
 
 ### Internal precision
 
-These options are used to determine the internal dtypes used by HBT-HERONS, which always
+These options are used to determine the internal data types used by HBT-HERONS, which always
 default to using the maximum precision possible. If you would like to reduce the memory footprint
 of the code, you can do so using these flags.
 
