@@ -77,7 +77,7 @@ The catalogues also provide sufficient infomation to identify which subhaloes me
 * [Subhalo sinking](#subhalo-sinking) when the subhalo is still self-bound but its core coalesces in phase-space with that of another subhalo. 
 
 HBT-HERONS provides different information depending on which of the two processes led to the removal of a subhalo from the simulation. Commonly used merger trees do not provide this two-category classification, as following the entire process of 
-subhalo merging is difficult and is inadecuately followed in traditional subhalo finders. 
+subhalo sinking is difficult and is inadecuately followed in traditional subhalo finders. 
 
 ### Subhalo disruption
 
