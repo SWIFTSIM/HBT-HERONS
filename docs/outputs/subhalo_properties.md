@@ -27,10 +27,10 @@ We describe what each property means below.
 Different ways to quantify how massive a subhalo is.
 
 | <div style="width:220px">Property</div> | <div style="width:827px">Description</div>                                                                                                          |
-| :-------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
+| :------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
 |                `Nbound`                 | The total number of particles bound to the subhalo.                                                                                                 |
-|              `NboundType`               | The total number of particles bound to the subhalo, classifed according to their particle type.                                                     |
 |                `Mbound`                 | The total mass of particles bound to the subhalo.                                                                                                   |
+|              `NboundType`               | The total number of particles bound to the subhalo, classifed according to their particle type.                                                     |
 |              `MboundType`               | The total mass of particles bound to the subhalo, classifed according to their particle type.                                                       |
 |             `VmaxPhysical`              | The maximum value of the circularised rotation curve of the subhalo.                                                                             |
 |             `BoundM200Crit`             | Mass of a region with a spherical overdensity of 200 times the critical density of the universe. Only bound mass is included and only for centrals. |
@@ -40,7 +40,7 @@ Different ways to quantify how massive a subhalo is.
 Different ways to quantify the size of a subhalo.
 
 | <div style="width:220px">Property</div> | <div style="width:827px">Description</div>                                                                                                                 |
-| :-------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| :-------------------------------------  | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |             `RmaxComoving`              | The radius at which the circularised rotation curve of the subhalo reaches its maximum value (`VmaxPhysical`).                                                                             |
 |             `RHalfComoving`             | The smallest radius that encloses 50% of the total bound mass.                                                                                                     |
 |           `REncloseComoving`            | The smallest radius that encloses 100% of the total bound mass. Useful when interested in doing spatial masking.                                                               |
@@ -51,7 +51,7 @@ Different ways to quantify the size of a subhalo.
 Different ways to locate the subhalo in 6D phase-space.
 
 | <div style="width:220px">Property</div> | <div style="width:827px">Description</div>             |
-| :-------------------------------------: | :----------------------------------------------------- |
+| :-------------------------------------  | :----------------------------------------------------- |
 |        `ComovingAveragePosition`        | Mass-weighted average position of all bound particles. |
 |        `PhysicalAverageVelocity`        | Mass-weighted average velocity of all bound particles. |
 |       `ComovingMostBoundPosition`       | Position of the most bound particle.                   |
@@ -84,8 +84,8 @@ Quantities used for more detailed tracking, restarting runs or debugging.
 
 | <div style="width:220px">Property</div> | <div style="width:827px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- |
-| `MostBoundParticleId`                   | ID of the most bound particle.                   |
 | `TracerIndex`                           | Bound ranking of the most bound tracer particle. |
+| `MostBoundParticleId`                   | ID of the most bound particle.                   |
 
 ### Evolutionary milestones
 
@@ -103,7 +103,7 @@ past evolution.
     stored in the last output of the simulation that you intend to analyse.
 
 | <div style="width:220px">Property</div> | <div style="width:827px">Description</div>                             |
-| :-------------------------------------: | :--------------------------------------------------------------------- |
+| :-------------------------------------  | :--------------------------------------------------------------------- |
 |         `SnapshotIndexOfBirth`          | The output when the subhalo was first identified.                      |
 |          `SnapshotIndexOfSink`          | If the subhalo has merged, the output when that happened.              |
 |         `SnapshotIndexOfDeath`          | If the subhalo has merged or disrupted, the output when that happened  |
