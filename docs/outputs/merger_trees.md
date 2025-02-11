@@ -1,57 +1,51 @@
-# Merger trees
+# Time evolution
 
-The history-based approach of HBT-HERONS means that self-consistent
-merger trees are constructed simultaneously when finding subhaloes. No additional algorithm is
-therefore required to link subhaloes across time, as the catalogues already contain all
-the information required to traverse the merger trees.
+The history-based approach of HBT-HERONS means that the evolution of subhaloes is tracked
+simultaneously with their identication in each simulation output. No additional algorithm is therefore required to link subhaloes forward in time, so the information required to build merger trees is already contained within the catalogues.
 
-The merger tree of a single subhalo is traditionally visualised as being made up of 
-distinct branches. There are two types of branches:
+Since HBT-HERONS analyses a simulation from early to late times, the information used to follow the evolution of subhaloes is primarely represented through the notion of descendant subhaloes. There are two types of fate a given subhalo can have at the following output, and the dataset used to find the descendant of a subhalo varies depending on which of the two it experienced:
 
-* [Main progenitor branch](#main-progenitor), which is the subhalo structure
-* [Secondary progenitor branches](#secondary-progenitors), which are subhaloes that grew independently from the main progenitor but subsequently merged with it. 
+* **It remains self-bound**. The subhalo with the same `TrackId`, which is unique and time-persistent for each subhalo, is its descendant.
+* **It merges with another subhalo**. Depending on the way in which this happened, i.e. through disruption or because their cores overlapped in phase-space, the `DescendantTrackId` or `SinkTrackId` values identify which subhalo it merged with.
 
-We explain below how to use the information saved by HBT-HERONS to follow the evolution of main progenitors, as  
-well as to identify their secondary progenitors. Example code is also provided for this purpose.
+We provide examples on how to use these datasets to follow the [complete evolution of a subhalo of interest](#evolution-of-a-single-subhalo), and to [identify subhaloes that merged with it](#secondary-progenitors).
 
-## Main progenitor
+## Evolution of a single subhalo
 
-The `TrackId` of a subhalo is a unique identifier that persists in time throughout
-the simulation. This means that following the main progenitor branch of a given
-subhalo simply relies on obtaining the properties of the entry with the same `TrackId` 
-that we are interested in tracking.
+The `TrackId` of a subhalo is a unique identifier that persists in time throughout the simulation. Thus, following the evolution of a subhalo from the first output when it is found in the simulation (`SnapshotIndexOfBirth`) until the last output when it is resolved as self-bound (`SnapshotIndexOfDeath`) only requires knowing its `TrackId`. In fact, the subhalo can still be tracked as an orphan subhalo after its "death", but only a subset of properties are computed in that case. 
 
 <h4>Code example</h4>
 
-In this snipet we show how to follow the mass time evolution for a subhalo that has piked our interest. 
-Its `TrackId` equals `23`, which we will use to find the relevant information across different outputs.
+Here we show how to follow the mass evolution of the most massive subhalo identified in the last output of a simulation.
+We assume the simulation has 64 outputs throughout this example.
 
 === "After running `toolbox/SortCatalogues.py`"
 
     ```python
     import h5py
 
-    # Identifier for the subhalo whose evolution we want to follow.
-    TrackId_to_follow = 23
+    # Path to where the sorted catalogues are located.
+    catalogue_path = "<SORTED_CATALOGUE_BASE_PATH>/SortedOutput_{output_number:03d}.hdf5"
 
-    # We get the times at which the subhalo was identified and disrupted/merged.
-    with h5py.File(<PATH_TO_CATALOGUE>) as catalogue:
+    # Maximum output number for this example (64 outputs but SnapshotIndex uses 0-indexing)
+    max_output_number = 63
+
+    # Get the TrackId of the most massive subhalo, when it was first identified and when it disrupted/merged.
+    with h5py.File(catalogue_path.format(output_number = max_output_number)) as catalogue:
+        TrackId_to_follow = catalogue['Subhalos']['Mbound'].argmax()
         output_start = catalogue['Subhalos']['SnapshotIndexOfBirth'][TrackId_to_follow]
         output_end   = catalogue['Subhalos']['SnapshotIndexOfDeath'][TrackId_to_follow]
 
-    # If output_end is equal to -1, that means it is still resolved by the output 
-    # we just opened.
-    output_end = output_end if output_end != -1 else <MAX_SNAPSHOT>
+    # If output_end is equal to -1, that means it is still resolved at the time when the output was saved. 
+    output_end = output_end if output_end != -1 else max_output_number
 
-    # Create an array to hold values we are interested in tracking (Mass vs Time)
-    mass_evolution     = - np.ones(output_end - output_start)
-    redshift_evolution = - np.ones(output_end - output_start)
+    # Create an array to hold values we are interested in tracking (number of bound particles)
+    mass_evolution = - np.ones(output_end - output_start + 1)
 
-    # Iterate over catalogues to obtain Mbound value of the entry with the TrackId we want to follow
+    # Iterate over catalogues to obtain Nbound value of the entry with the TrackId we want to follow. 
     for i, output_number in enumerate(range(output_start, output_end + 1)):
-        with h5py.File(f"<PATH_TO_CATALOGUE>/SortedOutput_{output_number:03d}") as catalogue:
-          mass_evolution    [i] = catalogue['Subhalo/Mbound'][TrackId_to_follow]
-          redshift_evolution[i] = catalogue['Subhalo/Mbound'][TrackId_to_follow]
+        with h5py.File(catalogue_path.format(output_number = output_number)) as catalogue:
+          mass_evolution[i] = catalogue['Subhalo/Nbound'][TrackId_to_follow]
     ```
 
 === "Without running `toolbox/SortCatalogues.py`"
@@ -61,18 +55,29 @@ Its `TrackId` equals `23`, which we will use to find the relevant information ac
     # TODO: finish writing.
     ```
 
-## Secondary progenitors
+We now have an array that contains the number of bound particles for that subhalo across time. We can plot it using
+the code below:
 
-The catalogues also provide sufficient infomation to identify the secondary merger tree branches
-of a given subhalo, although it is somewhat more involved that following the main branch. One 
-complication is that subhaloes disappear from the HBT-HERONS catalogues in two different ways:
+```bash
+import matplotlib.pyplot as plt
 
-* [Subhalo disruptions](#subhalo-disruption) as a consequence of subhaloes no longer being self-bound. 
-* [Subhalo mergers](#subhalo-mergers) when the subhalo is still self-bound but coalesces in phase-space with another subhalo. 
+fig, ax1 = plt.subplots(1)
+ax1.plot(np.arange(output_start, output_end + 1), mass_evolution, 'k-')
+ax1.set_xlabel('Output Number')
+ax1.set_ylabel('Total number of bound particles')
+ax1.set_yscale('log')
+plt.show()
+```
 
-Commonly used merger trees do not provide this two-category classification, as following the entire process of 
-subhalo merging is difficult and is inadecuately followed in traditional subhalo finders. HBT-HERONS provides 
-different information depending on which process led to the removal of a subhalo from the simulation.
+## Identifying subhalo mergers
+
+The catalogues also provide sufficient infomation to identify which subhaloes merged together, helping to establish links between different evolutionary branches through so-called secondary progenitors. Obtaining the secondary progenitors of a given subhalo is more involved that following its main branch. One complication is that subhaloes disappear from the HBT-HERONS catalogues in two different ways:
+
+* [Subhalo disruption](#subhalo-disruption) as a consequence of subhaloes no longer being self-bound. 
+* [Subhalo sinking](#subhalo-sinking) when the subhalo is still self-bound but its core coalesces in phase-space with that of another subhalo. 
+
+HBT-HERONS provides different information depending on which of the two processes led to the removal of a subhalo from the simulation. Commonly used merger trees do not provide this two-category classification, as following the entire process of 
+subhalo merging is difficult and is inadecuately followed in traditional subhalo finders. 
 
 ### Subhalo disruption
 
@@ -125,42 +130,31 @@ tracer particles end up primarly bound to the same subhalo of the previous examp
     # TODO: finish writing.
     ```
 
-### Subhalo mergers
+### Subhalo sinking
 
-Mergers differ from disruptions in the sense that they are driven by the effects of dynamical friction 
-instead of tidal stripping. As dynamical friction becomes more efficient as the mass ratio of the two objects becomes
-more comparable, this process generally happens between subhaloes with comparable mass ratios.
+The sinking of a subhalo refers to process of its core becoming indistinguishable in phase-space from the core of another subhalo. The coalescence occurs as dynamical friction makes the core of the least massive of the pair to "sink" towards the core of more massive one. As the efficiency of dynamical friction increases when the masses of both subhaloes becomes comparable, sinking only happens for non-negligible mass ratios.
 
-Formally, the phase-space offset is the distance between the centre of mass 
-position and velocity of the 10 most bound particles of two subhaloes. The offset is normalised 
-by the position and velocity dispersion of the 10 most bound particles of the most massive subhalo of the two.
-If the check is triggered, the most massive subhalo of the two accretes all of the particles of the least massive one.
-The merger gets registered through the `SinkTrackId`.
+Formally, HBT-HERONS checks the phase-space offset between the cores of subhaloes that have a hierarchical connection. If it identifies them to be within a threshold distance, HBT-HERONS flags the least massive of the two as being sunk and removes it from the simulation. The `TrackId` of the most massive of the two is assigned as the `SinkTrackId` of the subhalo that sunk.
 
 <h4>Code example</h4>
 
-In this snipet we identify all of the subhaloes whose cores physically overlapped in phase-space
-with the same subhalo of the previous example (`TrackId = 23`). 
+Here we show how to identify all subhaloes that directly sunk with the most massive subhalo identified in the last output of a simulation. We assume the simulation has 64 outputs throughout this example.
 
 === "After running `toolbox/SortCatalogues.py`"
 
     ```python
     import h5py
 
-    # Subhalo whose (merged) secondary progenitors we want to identify.
-    TrackId_to_follow = 23
+    # Path to where the sorted catalogues are located.
+    catalogue_path = "<SORTED_CATALOGUE_BASE_PATH>/SortedOutput_{output_number:03d}.hdf5"
 
-    # We get the time when the subhalo was last identified as self-bound.
-    with h5py.File(<PATH_TO_CATALOGUE>) as catalogue:
-        output_end   = catalogue['Subhalos']['SnapshotIndexOfDeath'][TrackId_to_follow]
+    # Maximum output number for this example (64 outputs but SnapshotIndex uses 0-indexing)
+    max_output_number = 63
 
-    # Open that output, since it contains the most up to date information for its merger tree.
-    with h5py.File(f"<PATH_TO_CATALOGUE>/SortedOutput_{output_end:03d}") as catalogue:
-        merger_progenitors = np.where(catalogue["Subhalos/SinkTrackId"][()] == TrackId_to_follow)[0]
-
-    # All the TrackIds that merged directly with TrackId_to_follow are now in merger_progenitors. If you also require
-    # knowing which subhaloes merged before with those that merged with TrackId_to_follow, the above process should
-    # be recursively done for each TrackId in merger_progenitor.
+    # Get the TrackId of the most massive subhalo, and use it to find the TrackIds that directly sunk to it.
+    with h5py.File(catalogue_path.format(output_number = max_output_number)) as catalogue:
+        TrackId_to_follow = catalogue['Subhalos']['Mbound'].argmax()
+        sink_progenitors  = np.where(catalogue["Subhalos/SinkTrackId"][()] == TrackId_to_follow)[0]
     ```
 
 === "Without running `toolbox/SortCatalogues.py`"
