@@ -119,7 +119,7 @@ The last type of property that is saved corresponds ot. This helps analyse which
 FoF groups, which subhalo is the central, etc.
 
 | <div style="width:220px">Property</div> | <div style="width:827px">Description</div>                             |
-| :-------------------------------------: | :--------------------------------------------------------------------- |
+| :-------------------------------------  | :--------------------------------------------------------------------- |
 |                `TrackId`                | Unique identifier for the subhalo, which persists across time.                      |
 |              `SinkTrackId`              | If the subhalo has merged, the `TrackId` of the subhalo that accreted it.              |
 |           `DescendantTrackId`           | If the subhalo has merged or disrupted, the `TrackId` of the subhalo that accreted its most bound particles.  |
