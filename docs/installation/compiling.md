@@ -33,19 +33,21 @@ is analysed.
     the all the relevant compile-time options and allows the user to change their
     value more easily. If you are doing this for the first time, the cache will 
     be empty. You need to press `c` (configure) to display the options. After you enable/disable
-    the options relevant to your setup, press `c` (configure) again and then `g` (generate).
+    the options relevant to your setup, press `c` again and then `g` (generate).
 
 ### Type of simulation
+
+Options relating to whether the simulation is hydrodynamical, and whether to include 
+the thermal energy of gas during subhalo unbinding.
 
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :-----------------------------------------------  | :----------------------------------------------- |
 | `HBT_DM_ONLY`                    | `Off`| Enable if the simulation is dark matter only.                   |
 | `HBT_UNBIND_WITH_THERMAL_ENERGY` | `Off`| Enable to include thermal energy of gas when calculating its binding energy. If enabled, the dataset needs to be loaded from the particle outputs. |
 
-
 ### Internal precision
 
-These flags are used to determine the internal dtypes used by HBT-HERONS, which always
+These options are used to determine the internal dtypes used by HBT-HERONS, which always
 default to using the maximum precision possible. If you would like to reduce the memory footprint
 of the code, you can do so using these flags.
 
@@ -56,9 +58,11 @@ of the code, you can do so using these flags.
 | `HBT_REAL4_VEL`                    | `Off`| Make the code use 4 bytes for velocities, superseeding the choice made in `HBT_REAL8` if `On`. If `Off`, velocities are represented using the same precision specified by `HBT_REAL8`. |
 | `HBT_REAL4_MASS`                    | `Off`| Make the code use 4 bytes for masses, superseeding the choice made in `HBT_REAL8` if `On`. If `Off`, masses are represented using the same precision specified by `HBT_REAL8`.  |
 | `HBT_INPUT_INT8`                    | `Off`| Represent particle IDs using 8 (`On`) or 4 (`Off`) bytes. **DEPRECATED**: the code always uses the value specified by `HBT_INT8`. |
-<!-- HBT_UNSIGNED_LONG_ID_OUTPUT      ON -->
 
 ### Miscellaneous
+
+Options relating to parallelism and whether to compute the eigenvalues of the 
+inertia tensors of each subhalo. Recommended to leave as is.
 
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :-----------------------------------------------  | :----------------------------------------------- |
