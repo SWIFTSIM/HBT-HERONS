@@ -43,7 +43,7 @@ Different ways to quantify the size of a subhalo.
 | :-------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |             `RmaxComoving`              | The radius at which the circularised rotation curve of the subhalo reaches its maximum value (`VmaxPhysical`).                                                                             |
 |             `RHalfComoving`             | The smallest radius that encloses 50% of the total bound mass.                                                                                                     |
-|           `REncloseComoving`            | The smallest radius that encloses 100% of the total bound mass.                                                                  |
+|           `REncloseComoving`            | The smallest radius that encloses 100% of the total bound mass. Useful when interested in doing spatial masking.                                                               |
 |         `BoundR200CritComoving`         | The radius of a sphere enclosing a mean density that is 200 times the critical density of the Universe. Only bound mass is included and only for centrals. |
 
 #### Position metrics
