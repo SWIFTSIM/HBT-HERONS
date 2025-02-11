@@ -87,40 +87,48 @@ Disruption occurs when the subhalo is no longer considered to be self-bound. The
 * The total number of bound tracer particles has to be equal or greater than `MinNumTracerPartOfSub`.
 
 If either of these conditions is not satisfied, the subhalo is considered as disrupted (`Nbound = 0`) and is 
-subsequently tracked as an orphan subhalo. HBT-HERONS uses the `NumTracersForDescendants` most bound tracer particles identified when the subhalo was last self-bound. The descendant subhalo of the disrupted subhalo is the one that is self-bound and contains the majority of particles used. The `TrackId` of the descendant subhalo is saved in `DescendantTrackId`.
+subsequently tracked as an orphan subhalo. 
+
+To identify the descendant of a disrupted subhalo, HBT-HERONS uses the `NumTracersForDescendants` most bound tracer particles when the subhalo was last self-bound. The descendant subhalo (`DescendantTrackId`) is the one that is self-bound and contains the majority of the aforementioned particles.
 
 <h4>Code example</h4>
 
-In this snipet we identify all of the subhaloes that disrupted and whose most bound
-tracer particles end up primarly bound to the same subhalo of the previous example (`TrackId = 23`).
+Here we show how to identify all subhaloes that disrupted by merging with the most massive subhalo identified in the last output of a simulation. We assume the simulation has 64 outputs throughout this example.
+
+!!! note
+
+    At the moment, `DescendantTrackId` always equals -1 for every subhalo, except for the output when a subhalo disrupts. This means that we need to iterate over every output to which subhaloes merged with another subhalo by disrupting. We are likely to change this in the future so that the information is available after the disruption takes place, to remove the requirement to load every output. 
 
 === "After running `toolbox/SortCatalogues.py`"
 
     ```python
     import h5py
 
-    # Subhalo whose (disrupted) secondary progenitors we want to identify.
-    TrackId_to_follow = 23
+    # Path to where the sorted catalogues are located.
+    catalogue_path = "<SORTED_CATALOGUE_BASE_PATH>/SortedOutput_{output_number:03d}.hdf5"
 
-    # We get the time when the subhalo was last identified as self-bound.
-    with h5py.File(<PATH_TO_CATALOGUE>) as catalogue:
+    # Maximum output number for this example (64 outputs but SnapshotIndex uses 0-indexing)
+    max_output_number = 63
+
+    # Get the TrackId of the most massive subhalo, when it was first identified and when it disrupted/merged.
+    with h5py.File(catalogue_path.format(output_number = max_output_number)) as catalogue:
+        TrackId_to_follow = catalogue['Subhalos']['Mbound'].argmax()
+        output_start = catalogue['Subhalos']['SnapshotIndexOfBirth'][TrackId_to_follow]
         output_end   = catalogue['Subhalos']['SnapshotIndexOfDeath'][TrackId_to_follow]
 
-    # The disrupted subhalo is done 
-    # Open that output, since it contains the most up to date information for its merger tree.
-    with h5py.File(f"<PATH_TO_CATALOGUE>/SortedOutput_{output_end:03d}") as catalogue:
-        merger_progenitors = np.where(catalogue["Subhalos/SinkTrackId"][()] == TrackId_to_follow)[0]
+    # If output_end is equal to -1, that means it is still resolved at the time when the output was saved. 
+    output_end = output_end if output_end != -1 else max_output_number
 
-    # We iterate over all outputs and find subhaloes who are connected to 
-    secondary_progenitor_trackids = []
+    # Create an array to hold values we are interested in tracking (number of bound particles)
+    Nbound_evolution = - np.ones(output_end - output_start + 1)
+
+    # Iterate over catalogues to obtain which subhaloes disrupted and merged with TrackId_to_follow. 
+    disruption_progenitors = []
     for i, output_number in enumerate(range(output_start, output_end + 1)):
-        with h5py.File(f"<PATH_TO_CATALOGUE>/SortedOutput_{output_number:03d}") as catalogue:
-          mass_evolution    [i] = catalogue['Subhalo/Mbound'][TrackId_to_follow]
-          redshift_evolution[i] = catalogue['Subhalo/Mbound'][TrackId_to_follow]
+        with h5py.File(catalogue_path.format(output_number = output_number)) as catalogue:
+            disruption_progenitors.append(np.where(catalogue["Subhalos/DescendantTrackId"][()] == TrackId_to_follow)[0])
 
-    # All the TrackIds that merged directly with TrackId_to_follow are now in merger_progenitors. If you also require
-    # knowing which subhaloes merged before with those that merged with TrackId_to_follow, the above process should
-    # be recursively done for each TrackId in merger_progenitor.
+    disruption_progenitors = np.asarray(disruption_progenitors)
     ```
 
 === "Without running `toolbox/SortCatalogues.py`"
@@ -129,6 +137,8 @@ tracer particles end up primarly bound to the same subhalo of the previous examp
     ``` python
     EXAMPLE INCOMING SOON!
     ```
+
+The `disruption_progenitors` array contains a `TrackID` for each subhalo that disrupted and whose core ended bound to the example subhalo (`TrackId_to_follow`). If you want to find *every* subhalo that is connected to the example subhalo through disruption, e.g. to build its full merger tree, you will need to repeat the above code for each of the `disruption_progenitors` until a complete list is built. The evolution of each subhalo prior to disrupting can be followed in the same way as for an [individual subhalo](#evolution-of-a-single-subhalo).
 
 ### Subhalo sinking
 
