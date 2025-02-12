@@ -29,7 +29,7 @@ HBT_FOLDER=$2
 
 # Parse the SWIFT config file
 if [ ! -f $BASE_PATH/used_parameters.yml ]; then
-   echo "Cannot find used_parameters.yml in $1"
+   echo "Cannot find used_parameters.yml in $BASE_PATH"
 fi
 parameters=($(parse_yaml $BASE_PATH/used_parameters.yml))
 
@@ -53,10 +53,10 @@ do
    fi
 done
 
-# Snapshots are distributed. Each snapshot subfile is contained in its own directory,
-# which has the same base name.
+# Snapshots are, in principle, distributed. Each snapshot subfile is contained in its own directory,
+# which has the same base name as the snapshot.
 if [ $SNAPSHOTS_ARE_DISTRIBUTED == 1 ] ; then
-      SNAPSHOT_BASEDIR=$SNAPSHOT_BASENAME
+   SNAPSHOT_BASEDIR=$SNAPSHOT_BASENAME
 else
    $SNAPSHOT_BASEDIR=""
 fi
@@ -71,6 +71,15 @@ if [ $SNAPSHOT_DIRECTORY == "." ]; then
    # parameter file option
    if [ -d $BASE_PATH/snapshots ]; then
       SNAPSHOT_DIRECTORY="snapshots"
+   fi
+fi
+
+# Snapshots that should be distributed are not, if one MPI rank was used. We defer this correction
+# to be done here since we first needed to set SNAPSHOT_DIRECTORY
+if [ $SNAPSHOTS_ARE_DISTRIBUTED == 1 ] ; then
+   NUMBER_SUBDIR=$(find $BASE_PATH/$SNAPSHOT_DIRECTORY -maxdepth 1 -name "${SNAPSHOT_BASEDIR}_????" | wc -l)
+   if [ $NUMBER_SUBDIR -eq 0 ]; then
+      SNAPSHOT_BASEDIR=""
    fi
 fi
 
