@@ -56,15 +56,7 @@ done
 # Snapshots are, in principle, distributed. Each snapshot subfile is contained in its own directory,
 # which has the same base name as the snapshot.
 if [ $SNAPSHOTS_ARE_DISTRIBUTED == 1 ] ; then
-
    SNAPSHOT_BASEDIR=$SNAPSHOT_BASENAME
-
-   # We do this check because runs where SNAPSHOTS_ARE_DISTRIBUTED == 1 can still just use a single
-   # file per snapshot (if one MPI rank was used).
-   NUMBER_SUBDIR=$(find $BASE_PATH -maxdepth 1 -name "${SNAPSHOT_BASEDIR}_????" | wc -l)
-   if [ $NUMBER_SUBDIR -eq 0 ]; then
-      SNAPSHOT_BASEDIR=""
-   fi
 else
    $SNAPSHOT_BASEDIR=""
 fi
@@ -79,6 +71,15 @@ if [ $SNAPSHOT_DIRECTORY == "." ]; then
    # parameter file option
    if [ -d $BASE_PATH/snapshots ]; then
       SNAPSHOT_DIRECTORY="snapshots"
+   fi
+fi
+
+# Snapshots that should be distributed are not, if one MPI rank was used. We defer this correction
+# to be done here since we first needed to set SNAPSHOT_DIRECTORY
+if [ $SNAPSHOTS_ARE_DISTRIBUTED == 1 ] ; then
+   NUMBER_SUBDIR=$(find $BASE_PATH/$SNAPSHOT_DIRECTORY -maxdepth 1 -name "${SNAPSHOT_BASEDIR}_????" | wc -l)
+   if [ $NUMBER_SUBDIR -eq 0 ]; then
+      SNAPSHOT_BASEDIR=""
    fi
 fi
 
