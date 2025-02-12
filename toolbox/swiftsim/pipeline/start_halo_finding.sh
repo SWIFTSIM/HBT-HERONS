@@ -40,7 +40,8 @@ SNAPSHOT_BASENAME=$(grep 'SnapshotFileBase' $HBT_FOLDER/config.txt | awk '{print
 
 # We now check how many COLIBRE snapshots have been done at the time of submission
 MIN_SNAPSHOT=0
-MAX_SNAPSHOT=$(find $SNAPSHOT_FOLDER -maxdepth 1 -name "${SNAPSHOT_BASENAME}_????" | wc -l)
+LATEST_SNAPSHOT=$(find $SNAPSHOT_FOLDER -maxdepth 2 -name "${SNAPSHOT_BASENAME}_????.hdf5" | sort -V | tail -n 1)
+MAX_SNAPSHOT=$(echo "${LATEST_SNAPSHOT: -9:4}" | sed 's/^0*//')
 
 # Abort if no snapshots are found
 if [ $MAX_SNAPSHOT -eq  0 ]; then
