@@ -1400,8 +1400,8 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
         Subhalos[i].HostHaloId = halo_snap.Halos[HostId].HaloId; // restore global haloid
     }
     GlobalizeTrackReferences();
-    SetNestedParentIds();
   }
+  SetNestedParentIds();
 #pragma omp parallel for if (ParallelizeHaloes)
   for (HBTInt i = 0; i < Subhalos.size(); i++)
   {
