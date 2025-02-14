@@ -319,7 +319,8 @@ def update_overflow_split_trees(split_data, overflow_data=None):
         split_data['trees'] = trees
         split_data['progenitor_ids'] = progenitor_ids
 
-    assert np.min(split_data['trees']) >= 0
+    if split_data['trees'].shape[0] > 0:
+        assert np.min(split_data['trees']) >= 0
 
     return split_data
 
