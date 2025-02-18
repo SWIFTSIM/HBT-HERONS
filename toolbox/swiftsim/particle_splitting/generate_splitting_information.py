@@ -500,9 +500,13 @@ def save(split_dictionary, file_path):
     if comm_rank == 0:
         with h5py.File(file_path, 'r') as file:
             keys = file['SplitInformation/Keys'][:]
-            assert np.unique(keys).shape[0] == keys.shape[0]
+            keys_unique = np.unique(keys).shape[0] == keys.shape[0]
             values = file['SplitInformation/Values'][:]
-            assert np.unique(values).shape[0] == values.shape[0]
+            values_unique = np.unique(values).shape[0] == values.shape[0]
+        if not (keys_unique and values_unique):
+            os.remove(file_path)
+            # Not need for MPI_ABORT since other ranks are finished anyway
+            raise RuntimeError('Keys/Values were not unique')
 
 def assign_task_based_on_id(ids):
     """
