@@ -41,25 +41,25 @@ def load_hbt_config(config_path):
     with open(config_path) as file:
         for line in file:
             if 'MinSnapshotIndex' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['MinSnapshotIndex'] = int(line.split()[-1])
             if 'MaxSnapshotIndex' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['MaxSnapshotIndex'] = int(line.split()[-1])
             if 'SnapshotIdList' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['SnapshotIdList'] = np.array(line.split()[1:]).astype(int)
             if 'SnapshotPath' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['SnapshotPath'] = line.split()[-1]
             if 'SnapshotFileBase' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['SnapshotFileBase'] = line.split()[-1]
             if 'SnapshotDirBase' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['SnapshotDirBase'] = line.split()[-1]
             if 'SubhaloPath' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['SubhaloPath'] = line.split()[-1]
 
     # If we have no SnapshotIdList, this means all snapshots are
@@ -460,8 +460,8 @@ def save(split_dictionary, file_path):
     global_total_splits = comm.allreduce(local_total_splits)
 
     # For completeness purposes, save an empty hdf5 even when we have no splits
-    if(global_total_splits == 0):
-        if(comm_rank == 0):
+    if (global_total_splits == 0):
+        if (comm_rank == 0):
             with h5py.File(file_path, 'w') as file:
                 file.create_dataset("SplitInformation/Keys", data = h5py.Empty("int"))
                 file.create_dataset("SplitInformation/Values", data = h5py.Empty("int"))
@@ -608,9 +608,9 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
     #==========================================================================
     # Check that we are analysing a valid snapshot index
     #==========================================================================
-    if(snapshot_index > config['MaxSnapshotIndex']):
+    if (snapshot_index > config['MaxSnapshotIndex']):
         raise ValueError(f"Chosen snapshot index {snapshot_index} is larger than the one specified in the config ({config['MaxSnapshotIndex']}).")
-    if(snapshot_index < config['MinSnapshotIndex']):
+    if (snapshot_index < config['MinSnapshotIndex']):
         raise ValueError(f"Chosen snapshot index {snapshot_index} is smaller than the one specified in the config ({config['MinSnapshotIndex']}).")
 
     #==========================================================================
@@ -626,7 +626,7 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
     # There will be no splits for snapshot 0, so we can skip its analysis
     #==========================================================================
     if snapshot_index == 0:
-        if(comm_rank == 0):
+        if (comm_rank == 0):
             print(f"Skipping snapshot index {snapshot_index}")
 
         save({},output_file_name)
@@ -656,7 +656,7 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
     # Get how many particles that have been split exist in current snapshot
     total_number_splits = comm.allreduce(len(new_data["counts"]))
 
-    if(total_number_splits) == 0:
+    if total_number_splits == 0:
         if comm_rank == 0:
             print (f"No splits at snapshot index {snapshot_index}. Skipping...")
 
