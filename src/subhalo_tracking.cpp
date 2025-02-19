@@ -8,6 +8,7 @@
 #include "datatypes.h"
 #include "snapshot_number.h"
 #include "subhalo.h"
+#include "config_parser.h"
 
 void Subhalo_t::UpdateTrack(const Snapshot_t &epoch)
 {
@@ -1383,6 +1384,11 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
 #pragma omp parallel
   {
     MemberTable.SortMemberLists(Subhalos); // reorder, so the central might change if necessary
+#pragma omp single
+    {
+      // Not parallelized for now
+      IdentifyNewlyNestedSubhalos(halo_snap); // Identify subhalo-subhalo mergers and update nests
+    }
     ExtendCentralNest();
     MemberTable.AssignRanks(Subhalos);
     FillDepth();
@@ -1415,4 +1421,95 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
       Subhalos[i].ComovingAveragePosition[j] =
         position_modulus(Subhalos[i].ComovingAveragePosition[j], HBTConfig.BoxSize);
   }
+}
+
+/*
+  Find subhalos which are spatially within another, more massive, halo but
+  have not been identified as a subhalo yet.
+
+  This is called from UpdateTracks() after the subhalos have been sorted
+  by mass. At this point we know which particles belong to which halo but
+  not all properties have been computed.
+
+  Modifies Subhalo_t::NestedSubhalos.
+
+  Since we're only interested in subhalos and not centrals (which might
+  have just formed) we could maybe use the half mass radius from the
+  previous snapshot as the extent?
+*/
+void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_snap) {
+
+  // Here we convert the NestedSubhalo arrays of child subhalos into a single array
+  // with the index of the parent for each subhalo. We can then modify this array
+  // and reconstruct the NestedSubhalos afterwards
+  std::vector<HBTInt> parent_index(Subhalos.size(), -1);
+  for(HBTInt i=0; i<Subhalos.size(); i+=1) {
+    for(auto j : Subhalos[i].NestedSubhalos) {
+      parent_index[j] = i;
+    }
+  }
+
+  // Loop over all local halos
+  for (HBTInt hostid = 0; hostid < halo_snap.Halos.size(); hostid++)
+  {
+    // Get list of indexes of subhalos in this halo (already sorted in descending mass order)
+    MemberShipTable_t::MemberList_t &List = MemberTable.SubGroups[hostid]; // List is view of HBTInt vector with subhalo indexes
+    HBTInt nr_subhalos = List.size();
+
+    // Loop over subhalos in the halo in descending order of mass, excluding
+    // the main subhalo because anything not already nested will be added to
+    // the main subhalo by ExtendCentralNests() anyway.
+    for(HBTInt i=1; i<nr_subhalos; i+=1) {
+
+      // We're going to check if any of the less massive subhalos in this halo
+      // should be nested inside this subhalo.
+      HBTInt new_parent_index = List[i];
+      Subhalo_t new_parent = Subhalos[new_parent_index];
+      if(new_parent.Nbound <= 1)continue; // Orphans have no extent so can't contain any other subhalo
+
+      // Loop over subhalos which could be enclosed by this subhalo
+      for(HBTInt j=i+1; i<nr_subhalos; j+=1) {
+        HBTInt child_index = List[j];
+        Subhalo_t child = Subhalos[List[j]];
+
+        // Check that the child is not already a subhalo (or sub-sub,
+        // sub-sub-sub halo etc) of the possible new parent.
+        bool is_subhalo = false;
+        HBTInt parent_of_child = child_index;
+        while(parent_of_child >= 0) {
+          if(parent_of_child == new_parent_index)is_subhalo = true;
+          parent_of_child = parent_index[parent_of_child];
+        }
+        if(is_subhalo)continue;
+
+        // Check if child subhalo is enclosed by parent subhalo
+        HBTxyz new_parent_pos = new_parent.ComovingMostBoundPosition;
+        HBTReal new_parent_radius = 2*new_parent.RHalfComoving;
+        assert(new_parent_radius > 0.0);
+        HBTxyz child_pos = child.ComovingMostBoundPosition;
+        HBTReal separation = PeriodicDistance(new_parent_pos, child_pos) / new_parent_radius;
+        if(separation < 1.0) {
+          // In this case child is spatially within new_parent but is not considered
+          // a subhalo. If new_parent is a subhalo of the child's original parent
+          // (or the child has no parent assigned yet) then we can safely reassign
+          // child to be a subhalo of new_parent.
+          bool can_reassign = false;
+          if(parent_index[child_index] < 0) {
+            can_reassign = true;
+          } else {
+            HBTInt parent_of_new_parent = new_parent_index;
+            while(parent_of_new_parent >= 0) {
+              if(parent_of_child == new_parent_index)is_subhalo = true;
+              parent_of_child = parent_index[parent_of_child];
+
+              // For now we'll just record the parent TrackId without modifying the nesting
+              //child.NewParentTrackId = parent.TrackId;
+            }
+          }
+        }
+      } // Next possible child halo
+    } // Next possible parent halo
+  } // Next FoF halo
+
+  // TODO: Reconstruct nesting arrays
 }
