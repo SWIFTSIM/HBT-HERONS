@@ -1431,7 +1431,7 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
   by mass. At this point we know which particles belong to which halo but
   not all properties have been computed.
 
-  Modifies Subhalo_t::NestedSubhalos.
+  Modifies Subhalo_t::NestedSubhalos (TODO!)
 
   Since we're only interested in subhalos and not centrals (which might
   have just formed) we could maybe use the half mass radius from the
@@ -1445,6 +1445,8 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
   std::vector<HBTInt> parent_index(Subhalos.size(), -1);
   for(HBTInt i=0; i<Subhalos.size(); i+=1) {
     for(auto j : Subhalos[i].NestedSubhalos) {
+      assert(j >= 0);
+      assert(j < parent_index.size());
       parent_index[j] = i;
     }
   }
@@ -1472,6 +1474,12 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
         HBTInt child_index = List[j];
         Subhalo_t child = Subhalos[List[j]];
 
+        // Subhalos should be in the same host halo
+        assert(new_parent.HostHaloId == child.HostHaloId);
+
+        // Child subhalo should be less massive than the parent
+        assert(child.Mbound <= new_parent.Mbound);
+
         // Check that the child is not already a subhalo (or sub-sub,
         // sub-sub-sub halo etc) of the possible new parent.
         bool is_subhalo = false;
@@ -1491,8 +1499,8 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
         if(separation < 1.0) {
           // In this case child is spatially within new_parent but is not considered
           // a subhalo. If new_parent is a subhalo of the child's original parent
-          // (or the child has no parent assigned yet) then we can safely reassign
-          // child to be a subhalo of new_parent.
+          // (or the child has no parent assigned yet) then we can reassign child to
+          // be a subhalo of new_parent without preventing any merger checks.
           bool can_reassign = false;
           if(parent_index[child_index] < 0) {
             can_reassign = true;
@@ -1503,7 +1511,7 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
               parent_of_child = parent_index[parent_of_child];
 
               // For now we'll just record the parent TrackId without modifying the nesting
-              //child.NewParentTrackId = parent.TrackId;
+              child.NewParentTrackId = new_parent.TrackId;
             }
           }
         }
