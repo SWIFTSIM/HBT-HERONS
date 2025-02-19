@@ -1466,13 +1466,13 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
       // We're going to check if any of the less massive subhalos in this halo
       // should be nested inside this subhalo.
       HBTInt new_parent_index = List[i];
-      Subhalo_t new_parent = Subhalos[new_parent_index];
+      Subhalo_t &new_parent = Subhalos[new_parent_index];
       if(new_parent.Nbound <= 1)continue; // Orphans have no extent so can't contain any other subhalo
 
       // Loop over subhalos which could be enclosed by this subhalo
-      for(HBTInt j=i+1; i<nr_subhalos; j+=1) {
+      for(HBTInt j=i+1; j<nr_subhalos; j+=1) {
         HBTInt child_index = List[j];
-        Subhalo_t child = Subhalos[List[j]];
+        Subhalo_t &child = Subhalos[List[j]];
 
         // Subhalos should be in the same host halo
         assert(new_parent.HostHaloId == child.HostHaloId);
@@ -1503,16 +1503,21 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
           // be a subhalo of new_parent without preventing any merger checks.
           bool can_reassign = false;
           if(parent_index[child_index] < 0) {
+            // Child subhalo has no parent so we're free to reassign it
             can_reassign = true;
           } else {
+            // Check that new parent is somewhere nested within the old parent
             HBTInt parent_of_new_parent = new_parent_index;
             while(parent_of_new_parent >= 0) {
-              if(parent_of_child == new_parent_index)is_subhalo = true;
-              parent_of_child = parent_index[parent_of_child];
-
-              // For now we'll just record the parent TrackId without modifying the nesting
-              child.NewParentTrackId = new_parent.TrackId;
+              if(parent_of_new_parent == parent_index[child_index])can_reassign = true;
+              parent_of_new_parent = parent_index[parent_of_new_parent];
             }
+          }
+          if(can_reassign) {
+            // Child subhalo can be assigned a new parent.
+            // For now we'll just record the parent TrackId without modifying the nesting
+            assert(child.TrackId != new_parent.TrackId);
+            child.NewParentTrackId = new_parent.TrackId;
           }
         }
       } // Next possible child halo
