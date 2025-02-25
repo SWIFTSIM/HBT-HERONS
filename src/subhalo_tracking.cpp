@@ -1480,17 +1480,30 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
         // Child subhalo should be less massive than the parent
         assert(child.Mbound <= new_parent.Mbound);
 
-        // Check that the child is not already a subhalo (or sub-sub,
-        // sub-sub-sub halo etc) of the possible new parent.
-        bool is_subhalo = false;
-        HBTInt parent_of_child = child_index;
-        while(parent_of_child >= 0) {
-          if(parent_of_child == new_parent_index)is_subhalo = true;
-          parent_of_child = parent_index[parent_of_child];
+        // Check that we don't already have any hierarchical relation between
+        // the two subhalos in either direction. If new_parent is already a
+        // parent of child there's nothing to do.
+        bool connected = false;
+        HBTInt sub_index = child_index;
+        while(sub_index >= 0) {
+          if(sub_index == new_parent_index){
+            connected = true;
+            break;
+          }
+          sub_index = parent_index[sub_index];
         }
-        if(is_subhalo)continue;
+        // Don't try to nest a subhalo inside itself or any of its sub-subhalos etc
+        sub_index = new_parent_index;
+        while(sub_index >= 0) {
+          if(sub_index == child_index) {
+            connected = true;
+            break;
+          }
+          sub_index = parent_index[sub_index];
+        }
+        if(connected)continue;
 
-        // Check if child subhalo is enclosed by parent subhalo
+        // Check if child subhalo is enclosed by possible new parent subhalo
         HBTxyz new_parent_pos = new_parent.ComovingMostBoundPosition;
         HBTReal new_parent_radius = 2*new_parent.RHalfComoving;
         assert(new_parent_radius > 0.0);
