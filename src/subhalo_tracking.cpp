@@ -1528,14 +1528,25 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
           }
           if(can_reassign) {
             // Child subhalo can be assigned a new parent.
-            // For now we'll just record the parent TrackId without modifying the nesting
             assert(child.TrackId != new_parent.TrackId);
             child.NewParentTrackId = new_parent.TrackId;
+            parent_index[child_index] = new_parent_index;
           }
         }
       } // Next possible child halo
     } // Next possible parent halo
   } // Next FoF halo
 
-  // TODO: Reconstruct nesting arrays
+  // Now reconstruct the nests for subhalos in this FoF group.
+  // First clear all nest arrays.
+  for(auto subhalo : Subhalos) {
+    subhalo.NestedSubhalos.clear();
+  }
+
+  // Then add all nested subhalos back to the nest arrays
+  for(HBTInt i=0; i<Subhalos.size(); i+=1) {
+    if(parent_index[i] >= 0) {
+      Subhalos[parent_index[i]].NestedSubhalos.push_back(i);
+    }
+  }
 }
