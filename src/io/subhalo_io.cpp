@@ -82,6 +82,7 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(SinkTrackId, H5T_HBTInt);
   InsertMember(DescendantTrackId, H5T_HBTInt);
   InsertMember(NestedParentTrackId, H5T_HBTInt);
+  InsertMember(NewParentTrackId, H5T_HBTInt);
 #undef InsertMember
   H5T_SubhaloInDisk = H5Tcopy(H5T_SubhaloInMem);
   H5Tpack(H5T_SubhaloInDisk); // clear fields not added.
