@@ -102,6 +102,13 @@ int main(int argc, char **argv)
     // Don't need the particle data after this point, so save memory
     partsnap.ClearParticles();
 
+    // In order to determine how subhalos are nested we need a position and
+    // radius for each one. We can use the half mass radius from the previous
+    // snapshot, but we need to evaluate the new position now before we modify
+    // the subhalo membership in CleanTracks().
+    for(auto subhalo : subsnap.Subhalos)
+      subhalo.AverageCoordinates();
+
     /* Clean up the source subhaloes from duplicate particles originating from the
      * previous snapshot. We need to do it here so that any removed bound particles
      * contribute to the estimate of the subgroup CoM position and velocity (used in
