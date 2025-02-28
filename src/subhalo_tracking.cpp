@@ -1426,17 +1426,17 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
 
 /*
   Find subhalos which are spatially within another, more massive, halo but
-  have not been identified as a subhalo yet.
+  have not been identified as a subhalo yet. Modifies Subhalo_t::NestedSubhalos.
 
-  This is called from UpdateTracks() after the subhalos have been sorted
-  by mass. At this point we know which particles belong to which halo but
-  not all properties have been computed.
+  It is assumed that the subhalo comoving most bound position is up to date
+  and that we can use twice the half mass radius from the previous snapshot
+  as the extent of each subhalo. Newly formed FoF groups will not have RHalf
+  computed, but since they only contain a single subhalo there's nothing to
+  do and we can skip them.
 
-  Modifies Subhalo_t::NestedSubhalos (TODO!)
-
-  Since we're only interested in subhalos and not centrals (which might
-  have just formed) we could maybe use the half mass radius from the
-  previous snapshot as the extent?
+  We also assume that LocalizeNestedIds() has been called so that the
+  NestedSubhalos arrays contain indexes into the Subhalos array and not
+  global IDs.
 */
 void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_snap) {
 
@@ -1455,9 +1455,19 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
   // Loop over all local halos
   for (HBTInt hostid = 0; hostid < halo_snap.Halos.size(); hostid++)
   {
-    // Get list of indexes of subhalos in this halo (already sorted in descending mass order)
+    // Get list of indexes of subhalos in this halo
     MemberShipTable_t::MemberList_t &List = MemberTable.SubGroups[hostid]; // List is view of HBTInt vector with subhalo indexes
     HBTInt nr_subhalos = List.size();
+
+    // Skip halos with only one subhalo (e.g. new FoF groups)
+    if(nr_subhalos < 2)continue;
+
+    // Make a copy of the subhalo indexes sorted in descending mass order
+    std::vector<HBTInt> ordered_list(nr_subhalos);
+    for(HBTInt i=0; i<nr_subhalos; i+=1)
+      ordered_list[i] = List[i];
+    CompareMass_t compare_mass(Subhalos);
+    std::sort(ordered_list.begin(), ordered_list.end(), compare_mass);
 
     // Loop over subhalos in the halo in descending order of mass, excluding
     // the main subhalo because anything not already nested will be added to
@@ -1466,19 +1476,19 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
 
       // We're going to check if any of the less massive subhalos in this halo
       // should be nested inside this subhalo.
-      HBTInt new_parent_index = List[i];
+      HBTInt new_parent_index = ordered_list[i];
       Subhalo_t &new_parent = Subhalos[new_parent_index];
       if(new_parent.Nbound <= 1)continue; // Orphans have no extent so can't contain any other subhalo
 
       // Loop over subhalos which could be enclosed by this subhalo
       for(HBTInt j=i+1; j<nr_subhalos; j+=1) {
-        HBTInt child_index = List[j];
-        Subhalo_t &child = Subhalos[List[j]];
+        HBTInt child_index = ordered_list[j];
+        Subhalo_t &child = Subhalos[ordered_list[j]];
 
         // Subhalos should be in the same host halo
         assert(new_parent.HostHaloId == child.HostHaloId);
 
-        // Child subhalo should be less massive than the parent
+        // Child subhalo should be no more massive than the parent
         assert(child.Mbound <= new_parent.Mbound);
 
         // Check that we don't already have any hierarchical relation between
