@@ -274,7 +274,7 @@ private:
   void ExtendCentralNest();
   void LocalizeNestedIds(MpiWorker_t &world);
   void GlobalizeTrackReferences();
-  void NestSubhalos(MpiWorker_t &world);
+  void NestSubhalos(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
   void MaskSubhalos();
   vector<int> RootNestSize; // buffer variable for temporary use.
   void FillDepthRecursive(HBTInt subid, int depth);

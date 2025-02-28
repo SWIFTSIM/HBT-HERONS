@@ -834,7 +834,7 @@ void SubhaloSnapshot_t::PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo
     DecideCentrals(halo_snap);
     FeedCentrals(halo_snap);
   }
-  NestSubhalos(world);
+  NestSubhalos(world, halo_snap);
 #ifndef INCLUSIVE_MASS
   MaskSubhalos();
 #endif
@@ -997,10 +997,16 @@ void SubhaloSnapshot_t::GlobalizeTrackReferences()
   }
 }
 
-void SubhaloSnapshot_t::NestSubhalos(MpiWorker_t &world)
+void SubhaloSnapshot_t::NestSubhalos(MpiWorker_t &world, const HaloSnapshot_t &halo_snap)
 {
   LocalizeNestedIds(world);
   LevelUpDetachedSubhalos();
+
+  /* Update subhalo nesting where necessary. This will identify cases where a
+     subhalo is within the spatial extent of another subhalo but has not been
+     identified as a sub-subhalo. */
+  IdentifyNewlyNestedSubhalos(halo_snap);
+
 // collect detached(head) subhalos
 #pragma omp single
   MemberTable.SubGroupsOfHeads.clear();
@@ -1384,11 +1390,6 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
 #pragma omp parallel
   {
     MemberTable.SortMemberLists(Subhalos); // reorder, so the central might change if necessary
-#pragma omp single
-    {
-      // Not parallelized for now
-      IdentifyNewlyNestedSubhalos(halo_snap); // Identify subhalo-subhalo mergers and update nests
-    }
     ExtendCentralNest();
     MemberTable.AssignRanks(Subhalos);
     FillDepth();
