@@ -17,7 +17,17 @@ float Subhalo_t::PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo)
 {
   float position_offset = PeriodicDistance(ReferenceSubhalo.CoreComovingPosition, CoreComovingPosition);
   float velocity_offset = Distance(ReferenceSubhalo.CorePhysicalVelocity, CorePhysicalVelocity);
-  return position_offset / ReferenceSubhalo.CoreComovingSigmaR + velocity_offset / ReferenceSubhalo.CorePhysicalSigmaV;
+  float distance = position_offset / ReferenceSubhalo.CoreComovingSigmaR + velocity_offset / ReferenceSubhalo.CorePhysicalSigmaV;
+
+  // Force the merging criterion to be symmetric where possible. Here we
+  // compute the distance if we reverse this subhalo and the reference subhalo
+  // and use the smaller value to decide if we have a merger. Orphans don't
+  // have a dispersion so can't be handled this way.
+  if(Nbound > 1) {
+    float reverse_distance = position_offset / CoreComovingSigmaR + velocity_offset / CorePhysicalSigmaV;
+    distance = std::min(distance, reverse_distance);
+  }
+  return distance;
 }
 
 /* Check if the current subhalo satisfies merger criterion with a reference one. */
