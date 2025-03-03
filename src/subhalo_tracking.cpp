@@ -1425,19 +1425,19 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
 }
 
 /*
-  Find subhalos which are spatially within another, more massive, halo but
-  have not been identified as a subhalo yet. Modifies Subhalo_t::NestedSubhalos.
-
-  It is assumed that the subhalo comoving most bound position is up to date
-  and that we can use twice the half mass radius from the previous snapshot
-  as the extent of each subhalo. Newly formed FoF groups will not have RHalf
-  computed, but since they only contain a single subhalo there's nothing to
-  do and we can skip them.
-
-  We also assume that LocalizeNestedIds() has been called so that the
-  NestedSubhalos arrays contain indexes into the Subhalos array and not
-  global IDs.
-*/
+ * Find subhalos which are spatially within another, more massive, halo but
+ * have not been identified as a subhalo yet. Modifies Subhalo_t::NestedSubhalos.
+ *
+ * It is assumed that the subhalo comoving most bound position is up to date
+ * and that we can use twice the half mass radius from the previous snapshot
+ * as the extent of each subhalo. Newly formed FoF groups will not have RHalf
+ * computed, but since they only contain a single subhalo there's nothing to
+ * do and we can skip them.
+ *
+ * We also assume that LocalizeNestedIds() has been called so that the
+ * NestedSubhalos arrays contain indexes into the Subhalos array and not
+ * global IDs.
+ */
 void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_snap) {
 
   // Here we convert the NestedSubhalo arrays of child subhalos into a single array
@@ -1447,7 +1447,9 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
   for(HBTInt i=0; i<Subhalos.size(); i+=1) {
     for(auto j : Subhalos[i].NestedSubhalos) {
       assert(j >= 0);
-      assert(j < parent_index.size());
+      assert(j < parent_index.size()); // NestedSubhalos should contain local subhalo array indexes
+      assert(Subhalos[j].HostHaloId==Subhalos[i].HostHaloId); // Subhalos not in the same FoF should have been removed from nests
+      assert(Subhalos[j].Rank != 0); // Subhalos with Rank=0 should not be nested
       parent_index[j] = i;
     }
   }
@@ -1462,12 +1464,14 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
     // Skip halos with only one subhalo (e.g. new FoF groups)
     if(nr_subhalos < 2)continue;
 
-    // Make a copy of the subhalo indexes sorted in descending mass order
+    // Make a copy of the subhalo indexes sorted in descending mass order,
+    // except that we want to keep the central chosen by DecideCentrals at
+    // the start so that we avoid nesting it inside any other subhalo.
     std::vector<HBTInt> ordered_list(nr_subhalos);
     for(HBTInt i=0; i<nr_subhalos; i+=1)
       ordered_list[i] = List[i];
     CompareMass_t compare_mass(Subhalos);
-    std::sort(ordered_list.begin(), ordered_list.end(), compare_mass);
+    std::sort(ordered_list.begin()+1, ordered_list.end(), compare_mass);
 
     // Loop over subhalos in the halo in descending order of mass, excluding
     // the main subhalo because anything not already nested will be added to
@@ -1542,14 +1546,14 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
             assert(child.TrackId != new_parent.TrackId);
             child.NewParentTrackId = new_parent.TrackId;
             parent_index[child_index] = new_parent_index;
+            child.Rank = j; // Must have Rank>0 if we have a parent subhalo
           }
         }
       } // Next possible child halo
     } // Next possible parent halo
   } // Next FoF halo
 
-  // Now reconstruct the nests for subhalos in this FoF group.
-  // First clear all nest arrays.
+  // Now reconstruct the nests. First clear all nest arrays.
   for(auto subhalo : Subhalos) {
     subhalo.NestedSubhalos.clear();
   }
