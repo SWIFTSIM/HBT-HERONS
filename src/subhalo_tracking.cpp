@@ -1450,6 +1450,7 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
       assert(j < parent_index.size()); // NestedSubhalos should contain local subhalo array indexes
       assert(Subhalos[j].HostHaloId==Subhalos[i].HostHaloId); // Subhalos not in the same FoF should have been removed from nests
       assert(Subhalos[j].Rank != 0); // Subhalos with Rank=0 should not be nested
+      assert(parent_index[j] == -1); // Subhalos can only have one parent
       parent_index[j] = i;
     }
   }
@@ -1554,7 +1555,7 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
   } // Next FoF halo
 
   // Now reconstruct the nests. First clear all nest arrays.
-  for(auto subhalo : Subhalos) {
+  for(auto &subhalo : Subhalos) {
     subhalo.NestedSubhalos.clear();
   }
 
