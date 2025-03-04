@@ -95,6 +95,8 @@ public:
   HBTInt DescendantTrackId;   // the trackId containing a subset of the particles most bound to this object in the
                               // previous output
   HBTInt NestedParentTrackId; // the trackID of the subhalo containing this subhalo, or -1 for top level subhalos
+  HBTInt SpatialNestingTrackId; // the trackID of the subhalo spatially containing this subhalo if not already identified from merger history
+  HBTInt SnapshotIndexOfSpatialNesting; // the last snapshot at which the nesting of this subhalo was modified
 
   ParticleList_t Particles;
 
@@ -137,6 +139,8 @@ public:
     DescendantTrackId = SpecialConst::NullTrackId;
     MostBoundParticleId = SpecialConst::NullParticleId;
     TracerIndex = -1;
+    SpatialNestingTrackId = -1;
+    SnapshotIndexOfSpatialNesting = -1;
   }
   void Unbind(const Snapshot_t &epoch);
   void RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap);
@@ -273,7 +277,7 @@ private:
   void ExtendCentralNest();
   void LocalizeNestedIds(MpiWorker_t &world);
   void GlobalizeTrackReferences();
-  void NestSubhalos(MpiWorker_t &world);
+  void NestSubhalos(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
   void MaskSubhalos();
   vector<int> RootNestSize; // buffer variable for temporary use.
   void FillDepthRecursive(HBTInt subid, int depth);
@@ -324,6 +328,7 @@ public:
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void RefineParticles();
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
+  void IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
 
   /* To remove duplicate particles from the source subgroup. */
   void CleanTracks();
