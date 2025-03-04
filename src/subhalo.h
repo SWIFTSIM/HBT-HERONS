@@ -325,8 +325,8 @@ public:
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void RefineParticles();
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
-  void IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_snap);
-  
+  void IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
+
   /* To remove duplicate particles from the source subgroup. */
   void CleanTracks();
 

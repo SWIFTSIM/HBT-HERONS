@@ -1005,7 +1005,7 @@ void SubhaloSnapshot_t::NestSubhalos(MpiWorker_t &world, const HaloSnapshot_t &h
   /* Update subhalo nesting where necessary. This will identify cases where a
      subhalo is within the spatial extent of another subhalo but has not been
      identified as a sub-subhalo. */
-  IdentifyNewlyNestedSubhalos(halo_snap);
+  IdentifyNewlyNestedSubhalos(world, halo_snap);
 
 // collect detached(head) subhalos
 #pragma omp single
@@ -1438,7 +1438,7 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
  * NestedSubhalos arrays contain indexes into the Subhalos array and not
  * global IDs.
  */
-void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_snap) {
+void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const HaloSnapshot_t &halo_snap) {
 
   // Here we convert the NestedSubhalo arrays of child subhalos into a single array
   // with the index of the parent for each subhalo. We can then modify this array
@@ -1454,6 +1454,9 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
       parent_index[j] = i;
     }
   }
+
+  // Count how many subhalos we re-nested
+  HBTInt nr_modified = 0;
 
   // Loop over all local halos
   for (HBTInt hostid = 0; hostid < halo_snap.Halos.size(); hostid++)
@@ -1548,6 +1551,7 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
             child.NewParentTrackId = new_parent.TrackId;
             parent_index[child_index] = new_parent_index;
             child.Rank = j; // Must have Rank>0 if we have a parent subhalo
+            nr_modified += 1;
           }
         }
       } // Next possible child halo
@@ -1564,5 +1568,12 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(const HaloSnapshot_t &halo_s
     if(parent_index[i] >= 0) {
       Subhalos[parent_index[i]].NestedSubhalos.push_back(i);
     }
+  }
+
+  // Report how many changes we made
+  HBTInt nr_total;
+  MPI_Allreduce(&nr_modified, &nr_total, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  if(world.rank() == 0) {
+    std::cout << "Modified nesting of " << nr_total << " subhalos" << std::endl;
   }
 }
