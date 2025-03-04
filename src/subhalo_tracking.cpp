@@ -1548,7 +1548,8 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const Ha
           if(can_reassign) {
             // Child subhalo can be assigned a new parent.
             assert(child.TrackId != new_parent.TrackId);
-            child.NewParentTrackId = new_parent.TrackId;
+            child.SpatialNestingTrackId = new_parent.TrackId;
+            child.SnapshotIndexOfSpatialNesting = GetSnapshotIndex();
             parent_index[child_index] = new_parent_index;
             child.Rank = j; // Must have Rank>0 if we have a parent subhalo
             nr_modified += 1;
