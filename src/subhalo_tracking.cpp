@@ -1005,7 +1005,7 @@ void SubhaloSnapshot_t::NestSubhalos(MpiWorker_t &world, const HaloSnapshot_t &h
   /* Update subhalo nesting where necessary. This will identify cases where a
      subhalo is within the spatial extent of another subhalo but has not been
      identified as a sub-subhalo. */
-  IdentifyNewlyNestedSubhalos(world, halo_snap);
+  if(HBTConfig.SpatialNesting)IdentifyNewlyNestedSubhalos(world, halo_snap);
 
 // collect detached(head) subhalos
 #pragma omp single

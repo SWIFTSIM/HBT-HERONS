@@ -81,6 +81,9 @@ public:
   int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
   int ParticlesSplit;        /* Whether baryonic particles are able to split. Relevant to swift simulations */
 
+  bool SymmetricMerging; // Also merge subhalos if they satisfy the merging criterion with host and subhalo reversed
+  bool SpatialNesting;   // Try to detect spatially nested subhalos which have not been linked by HBT
+
   /*derived parameters; do not require user input*/
   HBTReal TreeNodeOpenAngleSquare;
   HBTReal TreeNodeResolution;
@@ -140,6 +143,11 @@ public:
      * we will default to a value of 1 if this is a swift HYDRO run. This way we reminder the
      * user to pre-process snapshots (toolbox/swiftsim/generate_splitting_information.py) */
     ParticlesSplit = -1;
+
+    /* Modifications to subhalo nesting and merging */
+    SymmetricMerging = true;
+    SpatialNesting = true;
+
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);
