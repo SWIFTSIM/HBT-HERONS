@@ -89,7 +89,7 @@ def check_interhost_subhaloes(basedir, hbt_nr, snap_nr, snapshot_file):
     # Get the number of files...
     if comm_rank == 0:
         with h5py.File(filenames.format(file_nr=0), "r") as infile:
-            nr_files = int(infile["NumberOfFiles"][...])
+            nr_files = int(infile["NumberOfFiles"][0])
     else:
         nr_files = None
     nr_files = comm.bcast(nr_files)
