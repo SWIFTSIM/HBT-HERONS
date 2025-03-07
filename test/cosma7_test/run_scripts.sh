@@ -44,7 +44,7 @@ fi
 
 # Load the modules. We assume we have created the relevant virtual enviroment in COSMA
 module purge
-module load gnu_comp/13.1.0 hdf5/1.12.2 openmpi/4.1.4
+module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
 source ../../toolbox/swiftsim/openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 # Location of the snapshot
