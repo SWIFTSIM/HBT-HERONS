@@ -82,18 +82,19 @@ def check_consistency_orphan_tracers(basedir, hbt_nr):
 
     # We need to check if we have any subhaloes remaining. If we have no orphans, then we cannot
     # test them (Exit).
-    global_number_orphans = comm.allreduce(len(subhalos_after))
+    local_number_orphans  = len(subhalos_after)
+    global_number_orphans = comm.allreduce(local_number_orphans)
     if global_number_orphans == 0:
         if comm_rank == 0:
             print("There are no orphans. Exiting now.")
         return
 
-    field_names = list(subhalos_after.dtype.fields)
 
     # Convert array of structs to dict of arrays
     data_after = {}
-    for name in field_names:
-        data_after[name] = np.ascontiguousarray(subhalos_after[name])
+    for name in ["TrackId","MostBoundParticleId"]:
+        data_after[name] = np.ascontiguousarray(subhalos_after[name]) if local_number_orphans != 0 else np.empty(0)
+
     del subhalos_after
 
     if comm_rank == 0:
