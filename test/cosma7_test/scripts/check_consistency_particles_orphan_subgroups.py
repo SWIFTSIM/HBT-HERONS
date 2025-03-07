@@ -80,6 +80,14 @@ def check_consistency_orphan_tracers(basedir, hbt_nr):
     subhalos_after = np.array([sub for sub in subhalos_after \
                                if (sub['Nbound'] <= 1) & (sub['SnapshotIndexOfSink'] != (hbt_nr+1))]) 
 
+    # We need to check if we have any subhaloes remaining. If we have no orphans, then we cannot
+    # test them (Exit).
+    global_number_orphans = comm.allreduce(len(subhalos_after))
+    if global_number_orphans == 0:
+        if comm_rank == 0:
+            print("There are no orphans. Exiting now.")
+        return
+
     field_names = list(subhalos_after.dtype.fields)
 
     # Convert array of structs to dict of arrays
