@@ -97,7 +97,7 @@ def load_overflow_data(path_to_split_log_files, tree_size):
             warnings.simplefilter('ignore')
             file_data = np.loadtxt(f'{path_to_split_log_files}/{filename}', dtype=np.int64)
             # We need to reshape if there is only one row in the splits file
-            if len(file_data.shape) == 1:
+            if (len(file_data.shape) == 1) and (file_data.shape[0] != 0):
                 file_data = file_data.reshape(1, -1)
         for row in file_data:
             _, new_prog_id, old_prog_id, count, tree = row
