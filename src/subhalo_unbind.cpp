@@ -109,8 +109,8 @@ public:
   }
   HBTReal GetInternalEnergy(HBTInt i) const
   {
-#if !defined(DM_ONLY) && defined(UNBIND_WITH_THERMAL_ENERGY)
-    return Particles[index].InternalEnergy;
+#if !defined(DM_ONLY) && defined(HAS_THERMAL_ENERGY)
+    return Particles[GetParticle(i)].InternalEnergy;
 #else
     return 0.;
 #endif
