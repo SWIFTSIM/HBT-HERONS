@@ -107,6 +107,34 @@ public:
   {
     return Particles[GetParticle(i)].Mass * MassFactor;
   }
+  HBTReal GetInternalEnergy(HBTInt i) const
+  {
+#if !defined(DM_ONLY) && defined(UNBIND_WITH_THERMAL_ENERGY)
+    return Particles[index].InternalEnergy;
+#else
+    return 0.;
+#endif
+  }
+  HBTReal GetPotentialEnergy(HBTInt i, const HBTxyz &refPos, const HBTxyz &refVel) const
+  {
+    HBTReal E = Elist[i].E;
+#ifdef UNBIND_WITH_THERMAL_ENERGY
+    E -= GetInternalEnergy(i);
+#endif
+    const HBTxyz &x = GetComovingPosition(i);
+    const HBTxyz v = GetPhysicalVelocity(i);
+    double dx[3], dv[3];
+    for (int j = 0; j < 3; j++)
+    {
+      dx[j] = x[j] - refPos[j];
+      if (HBTConfig.PeriodicBoundaryOn)
+        dx[j] = NEAREST(dx[j]);
+      dx[j] *= Cosmology.ScaleFactor; // physical
+      dv[j] = v[j] - refVel[j] + Cosmology.Hz * dx[j];
+      E -= dv[j] * dv[j];
+    }
+    return E;
+  }
   const HBTxyz GetPhysicalVelocity(HBTInt i) const
   {
     return Particles[GetParticle(i)].GetPhysicalVelocity();
@@ -222,6 +250,9 @@ public:
     {
       HBTReal m = GetMass(i);
       E += Elist[i].E * m;
+#ifdef UNBIND_WITH_THERMAL_ENERGY
+      E -= GetInternalEnergy(i) * m;
+#endif
       const HBTxyz &x = GetComovingPosition(i);
       const HBTxyz v = GetPhysicalVelocity(i);
       double dx[3], dv[3];
@@ -289,9 +320,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     CountParticles();
     GetCorePhaseSpaceProperties();
 
-    /* No bound particles, hence zero binding energies will be saved */
+    /* No bound particles, hence zero binding/potential energies will be saved */
     if (HBTConfig.SaveBoundParticleBindingEnergies)
       ParticleBindingEnergies.clear();
+    if (HBTConfig.SaveBoundParticlePotentialEnergies)
+      ParticlePotentialEnergies.clear();
 
     return;
   }
@@ -504,6 +537,15 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 #pragma omp parallel for if (Nbound > 100)
     for (HBTInt i = 0; i < Nbound; i++)
       ParticleBindingEnergies[i] = Elist[i].E;
+  }
+
+  /* Store the potential energy information to save later */
+  if (HBTConfig.SaveBoundParticlePotentialEnergies)
+  {
+    ParticlePotentialEnergies.resize(Nbound);
+#pragma omp parallel for if (Nbound > 100)
+    for (HBTInt i = 0; i < Nbound; i++)
+      ParticlePotentialEnergies[i] = ESnap.GetPotentialEnergy(i, RefPos, RefVel);
   }
 }
 void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)

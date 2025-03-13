@@ -26,4 +26,4 @@ TracerParticleTypes 1 4
 MinNumTracerPartOfSub 10
 
 [Additional information]
-SaveBoundParticleBindingEnergies 1
+SaveBoundParticlePotentialEnergies 1

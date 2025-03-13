@@ -439,6 +439,21 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
     H5Tclose(H5T_FloatArr);
   }
 
+  if (HBTConfig.SaveBoundParticlePotentialEnergies)
+  {
+    hid_t H5T_FloatArr = H5Tvlen_create(H5T_NATIVE_FLOAT);
+    for (HBTInt i = 0; i < vl.size(); i++)
+    {
+      vl[i].len = Subhalos[i].Nbound;
+      vl[i].p = Subhalos[i].ParticlePotentialEnergies.data();
+
+      /* Clear the vector to reduce memory footprint and because it will be overwritten anyway. */
+      Subhalos[i].ParticlePotentialEnergies.clear();
+    }
+    writeHDFmatrix(file, vl.data(), "PotentialEnergies", ndim, dim_sub, H5T_FloatArr);
+    H5Tclose(H5T_FloatArr);
+  }
+
   vector<HBTInt> IdBuffer;
   {
     HBTInt NumberOfParticles = 0;
