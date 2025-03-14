@@ -161,6 +161,7 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(SnapshotIndexOfDeath, MPI_INT, 1);
   RegisterAttr(SnapshotIndexOfSink, MPI_INT, 1);
   RegisterAttr(RmaxComoving, MPI_FLOAT, 1);
+  RegisterAttr(RmaxComovingOfLastMaxVmax, MPI_FLOAT, 1);
   RegisterAttr(VmaxPhysical, MPI_FLOAT, 1);
   RegisterAttr(LastMaxVmaxPhysical, MPI_FLOAT, 1);
   RegisterAttr(SnapshotIndexOfLastMaxVmax, MPI_INT, 1);
@@ -271,8 +272,9 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   /* to calculate the following density-profile related properties
    *
   HBTReal RmaxComoving;
+  HBTReal RmaxComovingOfLastMaxVmax;
   HBTReal VmaxPhysical;
-  HBTReal LastMaxVmax;
+  HBTReal LastMaxVmaxPhysical;
   HBTInt SnapshotIndexOfLastMaxVmax; //the snapshot when it has the maximum Vmax, only considering past snapshots.
 
   HBTReal REncloseComoving;
@@ -343,6 +345,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   {
     SnapshotIndexOfLastMaxVmax = epoch.GetSnapshotIndex();
     LastMaxVmaxPhysical = VmaxPhysical;
+    RmaxComovingOfLastMaxVmax = RmaxComoving;
   }
 }
 

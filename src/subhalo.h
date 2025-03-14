@@ -54,6 +54,7 @@ public:
 
   // profile properties
   float RmaxComoving;
+  float RmaxComovingOfLastMaxVmax;
   float VmaxPhysical;
   float LastMaxVmaxPhysical;
   int SnapshotIndexOfLastMaxVmax; // the snapshot when it has the maximum Vmax, only considering past snapshots.
@@ -129,6 +130,7 @@ public:
     SnapshotIndexOfLastIsolation = SpecialConst::NullSnapshotId;
     SnapshotIndexOfLastMaxMass = SpecialConst::NullSnapshotId;
     LastMaxMass = 0.;
+    RmaxComovingOfLastMaxVmax = 0.;
     LastMaxVmaxPhysical = 0.;
     SnapshotIndexOfLastMaxVmax = SpecialConst::NullSnapshotId;
     SnapshotIndexOfBirth = SpecialConst::NullSnapshotId;
