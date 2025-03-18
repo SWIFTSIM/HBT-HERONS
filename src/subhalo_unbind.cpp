@@ -109,7 +109,7 @@ public:
   }
   HBTReal GetInternalEnergy(HBTInt i) const
   {
-#if !defined(DM_ONLY) && defined(HAS_THERMAL_ENERGY)
+#ifdef HAS_THERMAL_ENERGY
     return Particles[GetParticle(i)].InternalEnergy;
 #else
     return 0.;
@@ -131,7 +131,7 @@ public:
         dx[j] = NEAREST(dx[j]);
       dx[j] *= Cosmology.ScaleFactor; // physical
       dv[j] = v[j] - refVel[j] + Cosmology.Hz * dx[j];
-      E -= dv[j] * dv[j];
+      E -= 0.5 * dv[j] * dv[j];
     }
     return E;
   }
