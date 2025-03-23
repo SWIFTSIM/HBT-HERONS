@@ -392,6 +392,10 @@ void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Pa
 
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
 
+  /* Assign the box size read in from the Header */
+  HBTConfig.BoxSize = Header.BoxSize;
+  HBTConfig.BoxHalf = HBTConfig.BoxSize / 2;
+
   /* Update the units */
   HBTConfig.MassInMsunh = Header.MassInMsunh;
   HBTConfig.LengthInMpch = Header.LengthInMpch;
