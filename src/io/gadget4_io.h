@@ -35,6 +35,9 @@ struct Gadget4Header_t
   double MassInMsunh;
   double LengthInMpch;
   double VelInKmS;
+
+  double DM_comoving_softening;
+  double DM_maximum_physical_softening;
 };
 
 void create_Gadget4Header_MPI_type(MPI_Datatype &dtype);

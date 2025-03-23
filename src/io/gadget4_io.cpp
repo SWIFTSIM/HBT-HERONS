@@ -61,6 +61,9 @@ void create_Gadget4Header_MPI_type(MPI_Datatype &dtype)
   RegisterAttr(LengthInMpch, MPI_DOUBLE, 1);
   RegisterAttr(VelInKmS, MPI_DOUBLE, 1);
 
+  RegisterAttr(DM_comoving_softening, MPI_DOUBLE, 1);
+  RegisterAttr(DM_maximum_physical_softening, MPI_DOUBLE, 1);
+
 #undef RegisterAttr
           assert(i <= NumAttr);
 
@@ -156,6 +159,19 @@ void Gadget4Reader_t::ReadHeader(int ifile, Gadget4Header_t &header)
   Header.MassInMsunh  = mass_cgs / 1.98841e33;
   Header.LengthInMpch = length_cgs / 3.08567758e24;
   Header.VelInKmS = velocity_cgs / 1e5;
+
+  /* For now we assume that all particles have the same softening as PartType1. */
+  // TODO: generalise to allow for different softenings per particle type.
+  int DM_softening_class;
+  ReadAttribute(file, "Parameters", "SofteningClassOfPartType1", H5T_NATIVE_INT, &DM_softening_class);
+
+  stringstream DM_comoving_softening_dataset;
+  DM_comoving_softening_dataset << "SofteningComovingClass" << DM_softening_class;
+  ReadAttribute(file, "Parameters", DM_comoving_softening_dataset.str().c_str(), H5T_NATIVE_DOUBLE, &Header.DM_comoving_softening);
+
+  stringstream DM_max_softening_dataset;
+  DM_max_softening_dataset << "SofteningComovingClass" << DM_softening_class;
+  ReadAttribute(file, "Parameters", DM_max_softening_dataset.str().c_str(), H5T_NATIVE_DOUBLE, &Header.DM_maximum_physical_softening);
 
   H5Fclose(file);
 }
@@ -396,11 +412,18 @@ void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Pa
   HBTConfig.BoxSize = Header.BoxSize;
   HBTConfig.BoxHalf = HBTConfig.BoxSize / 2;
 
+  /* Use the softening values we read in from the Header */
+  HBTConfig.SofteningHalo = Header.DM_comoving_softening;
+  HBTConfig.MaxPhysicalSofteningHalo = Header.DM_maximum_physical_softening;
+
+  /* Update the tree parameters based on the softenings */
+  HBTConfig.TreeNodeResolution = HBTConfig.SofteningHalo * 0.1;
+  HBTConfig.TreeNodeResolutionHalf = HBTConfig.TreeNodeResolution / 2.;
+
   /* Update the units */
   HBTConfig.MassInMsunh = Header.MassInMsunh;
   HBTConfig.LengthInMpch = Header.LengthInMpch;
   HBTConfig.VelInKmS = Header.VelInKmS;
-
 
   HBTInt nfiles_skip, nfiles_end;
   AssignTasks(world.rank(), world.size(), Header.NumberOfFiles, nfiles_skip, nfiles_end);
