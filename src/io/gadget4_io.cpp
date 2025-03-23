@@ -425,6 +425,12 @@ void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Pa
   HBTConfig.LengthInMpch = Header.LengthInMpch;
   HBTConfig.VelInKmS = Header.VelInKmS;
 
+  /* Update the gravitational constant and H based on the units loaded from
+   * GADGET-4 */
+  PhysicalConst::G =
+    43.0071 * (HBTConfig.MassInMsunh / 1e10) / HBTConfig.VelInKmS / HBTConfig.VelInKmS / HBTConfig.LengthInMpch;
+  PhysicalConst::H0 = 100. * (1. / HBTConfig.VelInKmS) / (1. / HBTConfig.LengthInMpch);
+
   HBTInt nfiles_skip, nfiles_end;
   AssignTasks(world.rank(), world.size(), Header.NumberOfFiles, nfiles_skip, nfiles_end);
   {
