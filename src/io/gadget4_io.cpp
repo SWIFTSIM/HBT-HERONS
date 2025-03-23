@@ -18,6 +18,12 @@ using namespace std;
 #include "gadget4_io.h"
 #include "halo_patch_exchanger.h"
 
+/* Checks whether a file is accessible. */
+inline bool is_it_valid(const std::string& name) {
+  struct stat buffer;   
+  return (stat (name.c_str(), &buffer) == 0); 
+}
+
 namespace Gadget4Reader
 {
 void create_Gadget4Header_MPI_type(MPI_Datatype &dtype)
@@ -80,9 +86,22 @@ void Gadget4Reader_t::GetGroupFileName(int ifile, string &filename)
 {
   string snap_idname = SnapshotName.substr(SnapshotName.size() - 3); // last 3 chars
   stringstream formatter;
-  formatter << HBTConfig.HaloPath << "/groups_" << snap_idname << "/fof_subhalo_tab_" << snap_idname << "." << ifile
-            << ".hdf5";
+
+  /* We try two possible combinations, since the name of the FoF catalogue 
+   * depends on whether GADGET-4 only ran FoF or if it also did SUBFIND/SUBFIND-HBT. */
+  
+  /* If only FoF was run. */
+  formatter << HBTConfig.HaloPath << "/fof_tab_" << snap_idname << ".hdf5";
   filename = formatter.str();
+  bool is_valid_file = is_it_valid(filename);
+  
+  if(is_valid_file)
+    return;
+
+  /* Subfind or Subfind-HBT was also run. */
+  formatter << HBTConfig.HaloPath << "/fof_subhalo_tab_" << snap_idname << ".hdf5";
+  filename = formatter.str();
+  return; 
 }
 
 void Gadget4Reader_t::ReadHeader(int ifile, Gadget4Header_t &header)
