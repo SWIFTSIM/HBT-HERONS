@@ -71,7 +71,9 @@ void Gadget4Reader_t::SetSnapshot(int snapshotId)
   if (HBTConfig.SnapshotNameList.empty())
   {
     stringstream formatter;
-    formatter << "snapdir_" << setw(3) << setfill('0') << snapshotId;
+    if (HBTConfig.SnapshotDirBase.length() > 0)
+      formatter << HBTConfig.SnapshotDirBase << "_" << setw(3) << setfill('0') << snapshotId << "/";
+    formatter << HBTConfig.SnapshotFileBase << "_" << setw(3) << setfill('0') << snapshotId;
     SnapshotName = formatter.str();
   }
   else
