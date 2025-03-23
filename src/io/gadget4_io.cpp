@@ -89,10 +89,8 @@ void Gadget4Reader_t::SetSnapshot(int snapshotId)
 
 void Gadget4Reader_t::GetFileName(int ifile, string &filename)
 {
-  string snap_idname = SnapshotName.substr(SnapshotName.size() - 3); // last 3 chars
   stringstream formatter;
-  formatter << HBTConfig.SnapshotPath << "/" << SnapshotName << "/" << HBTConfig.SnapshotFileBase << "_" << snap_idname
-            << "." << ifile << ".hdf5";
+  formatter << HBTConfig.SnapshotPath << "/" << SnapshotName << "." << ifile << ".hdf5";
   filename = formatter.str();
 }
 
