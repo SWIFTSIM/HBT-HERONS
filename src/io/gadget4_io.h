@@ -31,6 +31,10 @@ struct Gadget4Header_t
   double mass[TypeMax];
   int npart[TypeMax];
   HBTInt npartTotal[TypeMax];
+
+  double MassInMsunh;
+  double LengthInMpch;
+  double VelInKmS;
 };
 
 void create_Gadget4Header_MPI_type(MPI_Datatype &dtype);

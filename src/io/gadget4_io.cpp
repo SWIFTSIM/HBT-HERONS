@@ -57,6 +57,10 @@ void create_Gadget4Header_MPI_type(MPI_Datatype &dtype)
   RegisterAttr(npart[0], MPI_INT, TypeMax);
   RegisterAttr(npartTotal[0], MPI_HBT_INT, TypeMax);
 
+  RegisterAttr(MassInMsunh, MPI_DOUBLE, 1);
+  RegisterAttr(LengthInMpch, MPI_DOUBLE, 1);
+  RegisterAttr(VelInKmS, MPI_DOUBLE, 1);
+
 #undef RegisterAttr
           assert(i <= NumAttr);
 
@@ -138,6 +142,21 @@ void Gadget4Reader_t::ReadHeader(int ifile, Gadget4Header_t &header)
   //   for(int i=0;i<TypeMax;i++)
   // 	header.npartTotal[i]=(((unsigned long)np_high[i])<<32)|np[i];
   //   cout<<"NumPart_Total: "<<header.npartTotal[0]<<","<<header.npartTotal[1]<<endl;
+
+  /* Read unit system used by GADGET-4 */
+  double length_cgs;
+  ReadAttribute(file, "Parameters", "UnitLength_in_cm", H5T_NATIVE_DOUBLE, &length_cgs);
+  double mass_cgs;
+  ReadAttribute(file, "Parameters", "UnitMass_in_g", H5T_NATIVE_DOUBLE, &mass_cgs);
+  double velocity_cgs;
+  ReadAttribute(file, "Parameters", "UnitVelocity_in_cm_per_s", H5T_NATIVE_DOUBLE, &velocity_cgs);
+  cout << length_cgs << " " << mass_cgs << " " << velocity_cgs << " " << endl;
+
+  /* To later tell HBT-HERONS the units of the snapshot */
+  Header.MassInMsunh  = mass_cgs / 1.98841e33;
+  Header.LengthInMpch = length_cgs / 3.08567758e24;
+  Header.VelInKmS = velocity_cgs / 1e5;
+
   H5Fclose(file);
 }
 
@@ -365,16 +384,19 @@ void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Pa
   {
     ReadHeader(0, Header);
     CompileFileOffsets(Header.NumberOfFiles);
-    //     cout<<"header loaded: "<<Header.npartTotal[0]<<","<<Header.npartTotal[1]<<endl;
   }
+
   MPI_Bcast(&Header, 1, MPI_Gadget4Header_t, root_node, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root_node);
   world.SyncContainer(offset_file, MPI_HBT_INT, root_node);
 
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
-#ifdef DM_ONLY
-//   Cosmology.ParticleMass=Header.mass[TypeDM];
-#endif
+
+  /* Update the units */
+  HBTConfig.MassInMsunh = Header.MassInMsunh;
+  HBTConfig.LengthInMpch = Header.LengthInMpch;
+  HBTConfig.VelInKmS = Header.VelInKmS;
+
 
   HBTInt nfiles_skip, nfiles_end;
   AssignTasks(world.rank(), world.size(), Header.NumberOfFiles, nfiles_skip, nfiles_end);
