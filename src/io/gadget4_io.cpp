@@ -121,6 +121,7 @@ void Gadget4Reader_t::ReadHeader(int ifile, Gadget4Header_t &header)
   string filename;
   GetFileName(ifile, filename);
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
   ReadAttribute(file, "Header", "NumFilesPerSnapshot", H5T_NATIVE_INT, &header.NumberOfFiles);
   ReadAttribute(file, "Header", "BoxSize", H5T_NATIVE_DOUBLE, &header.BoxSize);
   ReadAttribute(file, "Header", "Time", H5T_NATIVE_DOUBLE, &header.ScaleFactor);
@@ -133,15 +134,8 @@ void Gadget4Reader_t::ReadHeader(int ifile, Gadget4Header_t &header)
     header.npartTotal[i] = 0;
   }
   ReadAttribute(file, "Header", "MassTable", H5T_NATIVE_DOUBLE, header.mass);
-  cout << "mass table: " << header.mass[0] << "," << header.mass[1] << "," << header.mass[2] << endl;
   ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, header.npart);
-
-  //   unsigned np[TypeMax], np_high[TypeMax];
   ReadAttribute(file, "Header", "NumPart_Total", H5T_HBTInt, header.npartTotal);
-  //   ReadAttribute(file, "Header", "NumPart_Total_HighWord", H5T_NATIVE_UINT, np_high);
-  //   for(int i=0;i<TypeMax;i++)
-  // 	header.npartTotal[i]=(((unsigned long)np_high[i])<<32)|np[i];
-  //   cout<<"NumPart_Total: "<<header.npartTotal[0]<<","<<header.npartTotal[1]<<endl;
 
   /* Read unit system used by GADGET-4 */
   double length_cgs;
