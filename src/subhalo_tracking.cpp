@@ -1465,8 +1465,8 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const Ha
     MemberShipTable_t::MemberList_t &List = MemberTable.SubGroups[hostid]; // List is view of HBTInt vector with subhalo indexes
     HBTInt nr_subhalos = List.size();
 
-    // Skip halos with only one subhalo (e.g. new FoF groups)
-    if(nr_subhalos < 2)continue;
+    // If there are fewer than three subhalos, we have nothing to do.
+    if(nr_subhalos < 3)continue;
 
     // Make a copy of the subhalo indexes sorted in descending mass order,
     // except that we want to keep the central chosen by DecideCentrals at
@@ -1477,25 +1477,26 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const Ha
     CompareMass_t compare_mass(Subhalos);
     std::sort(ordered_list.begin()+1, ordered_list.end(), compare_mass);
 
-    // Loop over subhalos in the halo in descending order of mass, excluding
+    // Loop over subhalos in the halo in ascending order of mass, excluding
     // the main subhalo because anything not already nested will be added to
     // the main subhalo by ExtendCentralNests() anyway.
-    for(HBTInt i=1; i<nr_subhalos; i+=1) {
+    for(HBTInt i=nr_subhalos-1; i>0; i-=1) {
 
-      // We're going to check if any of the less massive subhalos in this halo
-      // should be nested inside this subhalo.
-      HBTInt new_parent_index = ordered_list[i];
-      Subhalo_t &new_parent = Subhalos[new_parent_index];
-      if(new_parent.Nbound <= 1)continue; // Orphans have no extent so can't contain any other subhalo
+      // We're going to check if this subhalo should be nested in any of the
+      // more massive subhalos other than the central. First, get a reference
+      // to the subhalo we're considering re-nesting.
+      HBTInt child_index = ordered_list[i];
+      Subhalo_t &child = Subhalos[ordered_list[i]];
 
-      // Loop over subhalos which could be enclosed by this subhalo
-      for(HBTInt j=i+1; j<nr_subhalos; j+=1) {
-        HBTInt child_index = ordered_list[j];
-        Subhalo_t &child = Subhalos[ordered_list[j]];
+      // Then, loop over possible new parent subhalos - i.e. all more massive subhalos
+      for(HBTInt j=i-1; j>0; j-=1) {
+
+        // Get a reference to the possible new parent
+        HBTInt new_parent_index = ordered_list[j];
+        Subhalo_t &new_parent = Subhalos[new_parent_index];
 
         // Subhalos should be in the same host halo
         assert(new_parent.HostHaloId == child.HostHaloId);
-
         // Child subhalo should be no more massive than the parent
         assert(child.Mbound <= new_parent.Mbound);
 
@@ -1528,6 +1529,7 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const Ha
         assert(new_parent_radius > 0.0);
         HBTxyz child_pos = child.ComovingMostBoundPosition;
         HBTReal separation = PeriodicDistance(new_parent_pos, child_pos) / new_parent_radius;
+        bool reassigned = false;
         if(separation < 1.0) {
           // In this case child is spatially within new_parent but is not considered
           // a subhalo. If new_parent is a subhalo of the child's original parent
@@ -1551,12 +1553,14 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const Ha
             child.SpatialNestingTrackId = new_parent.TrackId;
             child.SnapshotIndexOfSpatialNesting = GetSnapshotIndex();
             parent_index[child_index] = new_parent_index;
-            child.Rank = j; // Must have Rank>0 if we have a parent subhalo
+            child.Rank = i; // Must have Rank>0 if we have a parent subhalo
             nr_modified += 1;
           }
         }
-      } // Next possible child halo
-    } // Next possible parent halo
+        // If we renested this subhalo, don't need to check for any more possible parents
+        if(reassigned)break;
+      } // Next possible new parent
+    } // Next possible child halo
   } // Next FoF halo
 
   // Now reconstruct the nests. First clear all nest arrays.
