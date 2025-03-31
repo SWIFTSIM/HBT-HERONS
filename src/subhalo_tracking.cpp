@@ -1555,6 +1555,7 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const Ha
             parent_index[child_index] = new_parent_index;
             child.Rank = child_rank; // Must have Rank>0 if we have a parent subhalo
             nr_modified += 1;
+            reassigned = true;
           }
         }
         // If we renested this subhalo, don't need to check for any more possible parents
