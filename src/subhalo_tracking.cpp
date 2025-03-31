@@ -1537,10 +1537,16 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const Ha
           // be a subhalo of new_parent without preventing any merger checks.
           bool can_reassign = false;
           if(parent_index[child_index] < 0) {
-            // Child subhalo has no parent so we're free to reassign it
+            // Child subhalo has no parent, so we're free to reassign it a
+            // new parent.
+            can_reassign = true;
+          } else if(parent_index[child_index] == ordered_list[0]) {
+            // Child subhalo's parent is the central, which is the parent of
+            // everything else so we're free to reassign a new parent.
             can_reassign = true;
           } else {
-            // Check that new parent is somewhere nested within the old parent
+            // Child subhalo's parent is a subhalo. Check that the new parent
+            // we're going to assign is somewhere nested within the parent
             HBTInt parent_of_new_parent = new_parent_index;
             while(parent_of_new_parent >= 0) {
               if(parent_of_new_parent == parent_index[child_index])can_reassign = true;
