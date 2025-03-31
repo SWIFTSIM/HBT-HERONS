@@ -1500,6 +1500,10 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const Ha
         // Child subhalo should be no more massive than the parent
         assert(child.Mbound <= new_parent.Mbound);
 
+        // Don't consider orphan subhalos as possible parents, because they
+        // don't have an associated radius
+        if(new_parent.Nbound <= 1)continue;
+
         // Check that we don't already have any hierarchical relation between
         // the two subhalos in either direction. If new_parent is already a
         // parent of child there's nothing to do.
