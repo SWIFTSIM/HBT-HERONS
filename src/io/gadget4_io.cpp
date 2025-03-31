@@ -87,10 +87,16 @@ void Gadget4Reader_t::SetSnapshot(int snapshotId)
     SnapshotName = HBTConfig.SnapshotNameList[snapshotId];
 }
 
+/* Generates the path to the snapshot (sub)file */
 void Gadget4Reader_t::GetFileName(int ifile, string &filename)
 {
   stringstream formatter;
-  formatter << HBTConfig.SnapshotPath << "/" << SnapshotName << "." << ifile << ".hdf5";
+
+  if (HBTConfig.SnapshotDirBase.length() > 0)
+   formatter << HBTConfig.SnapshotPath << "/" << SnapshotName << "." << ifile << ".hdf5";
+  else
+    formatter << HBTConfig.SnapshotPath << "/" << SnapshotName << ".hdf5";
+
   filename = formatter.str();
 }
 
