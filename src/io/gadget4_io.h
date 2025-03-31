@@ -50,6 +50,7 @@ struct ParticleHost_t : public Particle_t
 class Gadget4Reader_t
 {
   string SnapshotName;
+  int SnapshotId;
 
   const int root_node = 0;
   // snap tab:

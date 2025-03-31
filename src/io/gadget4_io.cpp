@@ -75,6 +75,7 @@ void create_Gadget4Header_MPI_type(MPI_Datatype &dtype)
 
 void Gadget4Reader_t::SetSnapshot(int snapshotId)
 {
+  SnapshotId = snapshotId;
   if (HBTConfig.SnapshotNameList.empty())
   {
     stringstream formatter;
@@ -105,21 +106,42 @@ void Gadget4Reader_t::GetGroupFileName(int ifile, string &filename)
   string snap_idname = SnapshotName.substr(SnapshotName.size() - 3); // last 3 chars
   stringstream formatter;
 
-  /* We try two possible combinations, since the name of the FoF catalogue 
+  /* Halo catalogues have the same number of files as snapshots. Within each block
+  /* we try two possible combinations, since the name of the FoF catalogue 
    * depends on whether GADGET-4 only ran FoF or if it also did SUBFIND/SUBFIND-HBT. */
-  
-  /* If only FoF was run. */
-  formatter << HBTConfig.HaloPath << "/fof_tab_" << snap_idname << ".hdf5";
-  filename = formatter.str();
-  bool is_valid_file = is_it_valid(filename);
-  
-  if(is_valid_file)
-    return;
+  if (HBTConfig.SnapshotDirBase.length() > 0)
+  {
+    /* If only FoF was run. */
+    formatter << HBTConfig.HaloPath << "groups_" << setw(3) << setfill('0') << SnapshotId << "/fof_tab_" << snap_idname << "." << ifile << ".hdf5";
+    filename = formatter.str();
+    bool is_valid_file = is_it_valid(filename);
 
-  /* Subfind or Subfind-HBT was also run. */
-  formatter << HBTConfig.HaloPath << "/fof_subhalo_tab_" << snap_idname << ".hdf5";
-  filename = formatter.str();
-  return; 
+    if(is_valid_file)
+      return;
+
+    std::stringstream().swap(formatter); // Empty stringstream 
+
+    /* Subfind or Subfind-HBT was also run. */
+    formatter << HBTConfig.HaloPath << "groups_" << setw(3) << setfill('0') << SnapshotId << "/fof_subhalo_tab_" << snap_idname << "." << ifile << ".hdf5";
+    filename = formatter.str();
+  }
+  else
+  {
+    /* If only FoF was run. */
+    formatter << HBTConfig.HaloPath << "/fof_tab_" << snap_idname << ".hdf5";
+    filename = formatter.str();
+    bool is_valid_file = is_it_valid(filename);
+
+    if(is_valid_file)
+      return;
+
+    std::stringstream().swap(formatter); // Empty stringstream 
+
+    /* Subfind or Subfind-HBT was also run. */
+    formatter << HBTConfig.HaloPath << "/fof_subhalo_tab_" << snap_idname << ".hdf5";
+    filename = formatter.str();
+  }
+  return;
 }
 
 void Gadget4Reader_t::ReadHeader(int ifile, Gadget4Header_t &header)
