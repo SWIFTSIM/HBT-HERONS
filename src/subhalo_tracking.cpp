@@ -1480,19 +1480,19 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const Ha
     // Loop over subhalos in the halo in ascending order of mass, excluding
     // the main subhalo because anything not already nested will be added to
     // the main subhalo by ExtendCentralNests() anyway.
-    for(HBTInt i=nr_subhalos-1; i>0; i-=1) {
+    for(HBTInt child_rank=nr_subhalos-1; child_rank>0; child_rank-=1) {
 
       // We're going to check if this subhalo should be nested in any of the
       // more massive subhalos other than the central. First, get a reference
       // to the subhalo we're considering re-nesting.
-      HBTInt child_index = ordered_list[i];
-      Subhalo_t &child = Subhalos[ordered_list[i]];
+      HBTInt child_index = ordered_list[child_rank];
+      Subhalo_t &child = Subhalos[ordered_list[child_rank]];
 
       // Then, loop over possible new parent subhalos - i.e. all more massive subhalos
-      for(HBTInt j=i-1; j>0; j-=1) {
+      for(HBTInt new_parent_rank=child_rank-1; new_parent_rank>0; new_parent_rank-=1) {
 
         // Get a reference to the possible new parent
-        HBTInt new_parent_index = ordered_list[j];
+        HBTInt new_parent_index = ordered_list[new_parent_rank];
         Subhalo_t &new_parent = Subhalos[new_parent_index];
 
         // Subhalos should be in the same host halo
@@ -1553,7 +1553,7 @@ void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const Ha
             child.SpatialNestingTrackId = new_parent.TrackId;
             child.SnapshotIndexOfSpatialNesting = GetSnapshotIndex();
             parent_index[child_index] = new_parent_index;
-            child.Rank = i; // Must have Rank>0 if we have a parent subhalo
+            child.Rank = child_rank; // Must have Rank>0 if we have a parent subhalo
             nr_modified += 1;
           }
         }
