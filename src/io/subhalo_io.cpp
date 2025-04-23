@@ -367,8 +367,8 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
 
   /* Version information */
   hid_t header = H5Gcreate2(file, "/Header", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  writeStringAttribute(header, "Git_branch", branch_name);
-  writeStringAttribute(header, "Git_commit", commit_hash);
+  writeStringAttribute(header, branch_name, "Git_branch");
+  writeStringAttribute(header, commit_hash, "Git_commit");
   H5Gclose(header);
 
   vector<hvl_t> vl(Subhalos.size());
