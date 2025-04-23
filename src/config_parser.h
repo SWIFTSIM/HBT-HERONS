@@ -55,6 +55,7 @@ public:
   bool SnapshotIdUnsigned;
   bool SaveBoundParticleProperties;
   bool SaveBoundParticleBindingEnergies;
+  bool SaveBoundParticlePotentialEnergies;
   bool MergeTrappedSubhalos; // whether to MergeTrappedSubhalos, see code paper for more info.
   vector<int> SnapshotIdList;
   vector<int> TracerParticleTypes;
@@ -109,6 +110,7 @@ public:
     SnapshotIdUnsigned = false;
     SaveBoundParticleProperties = false;
     SaveBoundParticleBindingEnergies = false;
+    SaveBoundParticlePotentialEnergies = false;
 #ifdef NO_STRIPPING
     MergeTrappedSubhalos = false;
 #else
