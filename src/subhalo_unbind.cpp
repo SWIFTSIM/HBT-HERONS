@@ -117,6 +117,8 @@ public:
   }
   HBTReal GetPotentialEnergy(HBTInt i, const HBTxyz &refPos, const HBTxyz &refVel) const
   {
+    // Load the total binding energy of the particle, then remove the thermal
+    // and kinetic terms so we can return the potential energy
     HBTReal E = Elist[i].E;
 #ifdef UNBIND_WITH_THERMAL_ENERGY
     E -= GetInternalEnergy(i);
