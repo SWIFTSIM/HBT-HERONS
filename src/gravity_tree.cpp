@@ -165,6 +165,14 @@ double GravityTree_t::EvaluatePotential(const HBTxyz &targetPos, const HBTReal t
   return pot * PhysicalConst::G / Snapshot->Cosmology.ScaleFactor;
 }
 
+double GravityTree_t::KineticEnergy(const HBTxyz &targetPos, const HBTxyz &targetVel, const HBTxyz &refPos,
+                                    const HBTxyz &refVel)
+{
+  HBTxyz dv;
+  Snapshot->RelativeVelocity(targetPos, targetVel, refPos, refVel, dv);
+  return VecNorm(dv) * 0.5;
+}
+
 double GravityTree_t::BindingEnergy(const HBTxyz &targetPos, const HBTxyz &targetVel, const HBTxyz &refPos,
                                     const HBTxyz &refVel, const HBTReal targetMass)
 /* return specific binding energy

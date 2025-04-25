@@ -185,6 +185,7 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(ComovingAveragePosition[0], MPI_HBT_REAL, 3);
   RegisterAttr(PhysicalAverageVelocity[0], MPI_HBT_REAL, 3);
   RegisterAttr(ComovingMostBoundPosition[0], MPI_HBT_REAL, 3);
+  RegisterAttr(ComovingMinPotentialPosition[0], MPI_HBT_REAL, 3);
   RegisterAttr(PhysicalMostBoundVelocity[0], MPI_HBT_REAL, 3);
 
   assert(offsets[NumAttr - 1] - offsets[NumAttr - 2] == sizeof(HBTReal) * 3); // to make sure HBTxyz is stored locally.

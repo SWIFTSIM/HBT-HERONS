@@ -88,6 +88,7 @@ public:
   HBTxyz ComovingAveragePosition;
   HBTxyz PhysicalAverageVelocity;   // default vel of sub
   HBTxyz ComovingMostBoundPosition; // default pos of sub
+  HBTxyz ComovingMinPotentialPosition; // position of bound particle with minimum potential
   HBTxyz PhysicalMostBoundVelocity;
   HBTInt MostBoundParticleId; // a shortcut to the first particle in Particles, for easier IO in GALFORM
 

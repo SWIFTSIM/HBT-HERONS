@@ -281,13 +281,16 @@ public:
     SpecificAngularMomentum[2] = AMz / M;
   }
 };
-inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, GravityTree_t &tree, HBTxyz &RefPos,
+inline HBTxyz RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, GravityTree_t &tree, HBTxyz &RefPos,
                                      HBTxyz &RefVel)
 { // reorder the first Size particles according to their self-binding energy
   auto &Elist = ESnap.Elist;
   auto &Particles = ESnap.Particles;
   tree.Build(ESnap, Size);
   vector<ParticleEnergy_t> Einner(Size);
+  double min_pot = 0.;
+  double pot;
+  HBTxyz ComovingMinPotentialPosition;
 #pragma omp parallel if (Size > 100)
   {
 #pragma omp for
@@ -295,8 +298,13 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
     {
       HBTInt pid = Elist[i].pid;
       Einner[i].pid = i;
-      Einner[i].E = tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].GetPhysicalVelocity(), RefPos,
-                                       RefVel, Particles[pid].Mass);
+      pot = tree.EvaluatePotential(Particles[pid].ComovingPosition, Particles[pid].Mass);
+      Einner[i].E = pot + tree.KineticEnergy(Particles[pid].ComovingPosition, Particles[pid].GetPhysicalVelocity(), RefPos,
+                                       RefVel);
+      if (pot < min_pot) {
+        min_pot = pot;
+        copyHBTxyz(ComovingMinPotentialPosition, Particles[i].ComovingPosition);
+      }
     }
 #pragma omp single
     sort(Einner.begin(), Einner.end(), CompEnergy);
@@ -311,6 +319,7 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
       Elist[i] = Einner[i];
     }
   }
+  return ComovingMinPotentialPosition;
 }
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
@@ -445,6 +454,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       /* The most bound positions of the new orphan were found when updating
        * every subhalo particles. Copy over to the comoving ones. For future
        * outputs, we will rely on UpdateMostBoundPosition instead */
+    // What to do with minimum potential
       copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
       copyHBTxyz(PhysicalAverageVelocity, PhysicalMostBoundVelocity);
 
@@ -486,6 +496,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         // update particle list
         sort(Elist.begin(), Elist.begin() + Nbound, CompEnergy); // sort the self-bound part
 
+        // Set to -1. If refinign we will update. If not we will check at a later date
+        for (HBTInt i = 0; i < 3; i++)
+        {
+          ComovingMinPotentialPosition[i] = -1;
+        }
         /* We need to refine the most bound particle, as subsampling large subhaloes will lead to
          * incorrect ordering of binding energies. Hence, the most bound particle before this step
          * may not be the true most bound particle. */
@@ -498,7 +513,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
           HBTInt SampleSizeCenterRefinement =
             max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCenterRefinement * Nbound));
 
-          RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
+          HBTxyz min_pot_pos = RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
+          copyHBTxyz(ComovingMinPotentialPosition, min_pot_pos);
         }
 
         // todo: optimize this with in-place permutation, to avoid mem alloc and copying.
@@ -541,6 +557,20 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       ParticleBindingEnergies[i] = Elist[i].E;
   }
 
+  // TODO: Add option for outputting min pos, combine with below
+  if (ComovingMinPotentialPosition[0] == -1)
+  {
+    double min_pot = 0.;
+    double pot;
+    for (HBTInt i = 0; i < Nbound; i++)
+    {
+      pot = ESnap.GetPotentialEnergy(i, RefPos, RefVel);
+      if (pot < min_pot) {
+        min_pot = pot;
+        copyHBTxyz(ComovingMinPotentialPosition, Particles[i].ComovingPosition);
+      }
+    }
+  }
   /* Store the potential energy information to save later */
   if (HBTConfig.SaveBoundParticlePotentialEnergies)
   {
