@@ -31,13 +31,14 @@ foreach(TEST_NAME
     test_argsort
     test_sort_by_hash
     test_omp_vector_reductions
+    test_neighbour_search
   )
 
   add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
   target_link_libraries(${TEST_NAME} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES})
   add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
   set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${HBT_TEST_OMP_NUM_THREADS})
-  
+
 endforeach()
 
 #
@@ -59,7 +60,7 @@ foreach(TEST_NAME
   target_link_libraries(${TEST_NAME} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES})
   add_test(NAME ${TEST_NAME} COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${HBT_TEST_MPI_NPROCS} ${MPIEXEC_PREFLAGS} ${TEST_NAME} ${MPIEXEC_POSTFLAGS})
   set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${HBT_TEST_OMP_NUM_THREADS})
-  
+
 endforeach()
 
 # Program to test ID matching code on a large simulation snapshot
