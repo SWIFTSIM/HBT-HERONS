@@ -108,6 +108,7 @@ set(HBT_SRC
   src/snapshot_exchanger.cpp
   src/subhalo.cpp
   src/subhalo_merge.cpp
+  src/subhalo_reassign_gas.cpp
   src/subhalo_tracking.cpp
   src/subhalo_unbind.cpp
   src/subhalo_update_mostbound.cpp
