@@ -261,7 +261,8 @@ public:
   }
   void Collect(HBTInt index, HBTReal d2)
   {
-    if (d2 < D2)
+    // Keep this neighbour if it's the first one found or it's the closest so far
+    if ((D2 < 0.0) || (d2 < D2))
     {
       D2 = d2;
       Index = index;
