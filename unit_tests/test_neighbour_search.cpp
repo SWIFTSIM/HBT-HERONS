@@ -81,18 +81,16 @@ HBTReal distance_squared(HBTxyz pos1, HBTxyz pos2) {
   }
 }
 
-int main(int argc, char *argv[])
+void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTReal boxsize, bool periodic, std::mt19937 &rng)
 {
-  // Set up repeatable RNG
-  std::mt19937 rng;
-  rng.seed(0);
+  std::cout << "Start test with N=" << N << ", Nsearch = " << Nsearch << ", boxsize = " << boxsize;
+  if(periodic)std::cout << " (periodic)";
+  std::cout << endl;
 
   // Make a random snapshot
-  const HBTInt N = 1000;
-  const HBTReal boxsize = 1.0;
   RandomSnapshot_t snap(N, boxsize, rng);
 
-  // Disable periodicity for now
+  // Box size and periodicity used by the tree are set in the HBTConfig object
   HBTConfig.BoxSize = boxsize;
   HBTConfig.BoxHalf = boxsize/2;
   HBTConfig.PeriodicBoundaryOn = false;
@@ -102,7 +100,6 @@ int main(int argc, char *argv[])
   tree.Build(snap, N);
 
   // Make an array of centres for the neighbour search
-  const HBTInt Nsearch = 100;
   std::vector<HBTxyz> centre(Nsearch);
   std::uniform_real_distribution<HBTReal> dist(0, boxsize);
   for(auto &pos : centre) {
@@ -115,7 +112,7 @@ int main(int argc, char *argv[])
   std::vector<HBTInt> ngb_idx(Nsearch);
 
   // Carry out the search
-  cout << "Finding neighbours using octree" << std::endl;
+  cout << "  Finding neighbours using octree" << std::endl;
   for(HBTInt i=0; i<Nsearch; i+=1) {
     ngb_idx[i] = tree.NearestNeighbour(centre[i], 0.01);
     verify(ngb_idx[i] >= 0);
@@ -124,7 +121,7 @@ int main(int argc, char *argv[])
 
   // Now check the results by brute force:
   // There should be no points closer than the neighbour we found.
-  cout << "Checking neighbour distances" << std::endl;
+  cout << "  Checking neighbour distances" << std::endl;
   for(HBTInt i=0; i<Nsearch; i+=1) {
 
     // Compute distance (squared) to the identified neighbour
@@ -142,6 +139,45 @@ int main(int argc, char *argv[])
     }
   }
 
-  cout << "Done." << std::endl;
-  return 0;
+  cout << "  Test done." << std::endl;
+}
+
+
+int main(int argc, char *argv[]) {
+
+  // Set up repeatable RNG
+  std::mt19937 rng;
+  rng.seed(0);
+
+  // Test neighbour search with and without periodic boundary
+  const int nr_reps = 50;
+  for(int rep_nr=0; rep_nr<nr_reps; rep_nr+=1)
+  {
+    const HBTInt N = 1000;
+    const HBTInt Nsearch = 100;
+    const HBTReal boxsize = 1.0;
+    test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ false, rng);
+    test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ true, rng);
+  }
+
+  // Test neighbour search with few particles
+  for(int rep_nr=0; rep_nr<nr_reps; rep_nr+=1)
+  {
+    const HBTInt N = 10;
+    const HBTInt Nsearch = 100;
+    const HBTReal boxsize = 1.0;
+    test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ false, rng);
+    test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ true, rng);
+  }
+
+  // Test neighbour search with one particle
+  for(int rep_nr=0; rep_nr<nr_reps; rep_nr+=1)
+  {
+    const HBTInt N = 1;
+    const HBTInt Nsearch = 100;
+    const HBTReal boxsize = 1.0;
+    test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ false, rng);
+    test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ true, rng);
+  }
+  std::cout << "All tests done." << endl;
 }
