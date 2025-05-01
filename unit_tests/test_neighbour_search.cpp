@@ -70,6 +70,16 @@ public:
 
 };
 
+HBTReal distance_squared(HBTxyz pos1, HBTxyz pos2) {
+
+  if(HBTConfig.PeriodicBoundaryOn) {
+    return PeriodicDistance(pos1, pos2);
+  } else {
+    return (pos1[0]-pos2[0])*(pos1[0]-pos2[0]) +
+      (pos1[1]-pos2[1])*(pos1[1]-pos2[1]) +
+      (pos1[2]-pos2[2])*(pos1[2]-pos2[2]);
+  }
+}
 
 int main(int argc, char *argv[])
 {
@@ -85,7 +95,7 @@ int main(int argc, char *argv[])
   // Disable periodicity for now
   HBTConfig.BoxSize = boxsize;
   HBTConfig.BoxHalf = boxsize/2;
-  HBTConfig.PeriodicBoundaryOn = true;
+  HBTConfig.PeriodicBoundaryOn = false;
 
   // Build the octree
   GeoTree_t tree;
@@ -105,10 +115,33 @@ int main(int argc, char *argv[])
   std::vector<HBTInt> ngb_idx(Nsearch);
 
   // Carry out the search
+  cout << "Finding neighbours using octree" << std::endl;
   for(HBTInt i=0; i<Nsearch; i+=1) {
-    std::cout << i << std::endl;
     ngb_idx[i] = tree.NearestNeighbour(centre[i], 0.01);
+    verify(ngb_idx[i] >= 0);
+    verify(ngb_idx[i] < N);
   }
 
+  // Now check the results by brute force:
+  // There should be no points closer than the neighbour we found.
+  cout << "Checking neighbour distances" << std::endl;
+  for(HBTInt i=0; i<Nsearch; i+=1) {
+
+    // Compute distance (squared) to the identified neighbour
+    const HBTxyz &cen = centre[i];
+    const HBTxyz &ngb_pos = snap.GetComovingPosition(ngb_idx[i]);
+    const HBTReal ngb_r2 = distance_squared(cen, ngb_pos);
+
+    // Check distance to all particles
+    for(HBTInt j=0; j<N; j+=1) {
+      const HBTxyz &part_pos = snap.GetComovingPosition(j);
+      if(j != ngb_idx[i]) {
+        // Other particles should not be closer than the nearest neighbour
+        verify(distance_squared(cen, part_pos) >= ngb_r2);
+      }
+    }
+  }
+
+  cout << "Done." << std::endl;
   return 0;
 }
