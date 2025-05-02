@@ -137,6 +137,15 @@ int main(int argc, char **argv)
     subsnap.PrepareCentrals(world, halosnap);
     global_timer.Tick("prepare_centrals", world.Communicator);
 
+#ifndef DM_ONLY
+    /* Assign gas particles to the same subhalo as their nearest neighbour
+       tracer type particle in the same FoF group */
+    if (world.rank() == 0)
+      cout << "Reassigning gas particles...\n";
+    subsnap.ReassignGasParticles();
+    global_timer.Tick("reassign_gas", world.Communicator);
+#endif
+
     /* We recursively unbind subhaloes in a depth-first approach, defined
      * by hierarchical relationships. After unbinding a given object, we check
      * wheteher any of its deeper subhaloes overlap in phase-space (if so, this
@@ -146,15 +155,6 @@ int main(int argc, char **argv)
       cout << "Unbinding...\n";
     subsnap.RefineParticles();
     global_timer.Tick("unbind", world.Communicator);
-
-#ifndef DM_ONLY
-    /* Assign gas particles to the same subhalo as their nearest neighbour
-       tracer type particle in the same FoF group */
-    if (world.rank() == 0)
-      cout << "Reassigning gas particles...\n";
-    subsnap.ReassignGasParticles();
-    global_timer.Tick("reassign_gas", world.Communicator);
-#endif
 
     /* Assign a unique TrackId to newly created subgroups. Update depth values,
      * hierarchical relationship, globalise FOF host values and compute other
