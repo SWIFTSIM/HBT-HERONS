@@ -303,7 +303,7 @@ inline HBTxyz RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gra
                                        RefVel);
       if (pot < min_pot) {
         min_pot = pot;
-        copyHBTxyz(ComovingMinPotentialPosition, Particles[i].ComovingPosition);
+        copyHBTxyz(ComovingMinPotentialPosition, Particles[pid].ComovingPosition);
       }
     }
 #pragma omp single
@@ -567,7 +567,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       pot = ESnap.GetPotentialEnergy(i, RefPos, RefVel);
       if (pot < min_pot) {
         min_pot = pot;
-        copyHBTxyz(ComovingMinPotentialPosition, Particles[i].ComovingPosition);
+        copyHBTxyz(ComovingMinPotentialPosition, ESnap.GetComovingPosition(i));
       }
     }
   }
