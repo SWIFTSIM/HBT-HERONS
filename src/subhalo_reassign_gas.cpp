@@ -110,17 +110,13 @@ void SubhaloSnapshot_t::ReassignGasParticles()
           nr_tracers = 0;
           for(auto subid : subgroup)
             {
-              const HBTInt nbound = Subhalos[subid].Nbound;
               for(HBTInt i=0; i<sublen[subid]; i+=1)
                 {
                   auto &part = Subhalos[subid].Particles[i];
                   if(part.IsTracer())
                     {
                       tracer_pos[nr_tracers] = part.ComovingPosition;
-                      if(i < nbound)
-                        tracer_subid[nr_tracers] = subid;
-                      else
-                        tracer_subid[nr_tracers] = -1; // Tracer is not bound to any subhalo
+                      tracer_subid[nr_tracers] = subid;
                       nr_tracers += 1;
                     }
                 }
@@ -155,7 +151,7 @@ void SubhaloSnapshot_t::ReassignGasParticles()
                 }
             }
 
-          // Now tidy up any particles we flagged for removal and update Nbound
+          // Now tidy up any particles we flagged for removal
           for(auto subid : subgroup) {
             // Ensure Nbound is not greater than the total number of particles
             if(Subhalos[subid].Nbound > Subhalos[subid].Particles.size())
