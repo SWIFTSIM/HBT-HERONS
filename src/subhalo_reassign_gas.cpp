@@ -137,24 +137,32 @@ void SubhaloSnapshot_t::ReassignGasParticles()
               for(HBTInt i=0; i<sublen[subid]; i+=1)
                 {
                   auto &part = Subhalos[subid].Particles[i];
-                  const HBTxyz centre = part.ComovingPosition;
-                  const HBTInt ngb_idx = tree.NearestNeighbour(centre, 1.0e-4);
-                  const HBTInt ngb_subid = tracer_subid[ngb_idx];
-
-                  // Check if we need to move this gas particle
-                  if((ngb_subid >= 0) && (ngb_subid != subid))
+                  if(part.Id != SpecialConst::NullParticleId)
                     {
-                      // Append the particle to the other subhalo's source list
-                      Subhalos[ngb_subid].Particles.push_back(part);
-                      // Flag the particle for removal from this subhalo
-                      part.Id = SpecialConst::NullParticleId;
+                      const HBTxyz centre = part.ComovingPosition;
+                      const HBTInt ngb_idx = tree.NearestNeighbour(centre, 1.0e-4);
+                      const HBTInt ngb_subid = tracer_subid[ngb_idx];
+
+                      // Check if we need to move this gas particle
+                      if((ngb_subid >= 0) && (ngb_subid != subid))
+                        {
+                          // Append the particle to the other subhalo's source list
+                          Subhalos[ngb_subid].Particles.push_back(part);
+                          // Flag the particle for removal from this subhalo
+                          part.Id = SpecialConst::NullParticleId;
+                        }
                     }
                 }
             }
 
           // Now tidy up any particles we flagged for removal and update Nbound
-          for(auto subid : subgroup)
+          for(auto subid : subgroup) {
+            // Ensure Nbound is not greater than the total number of particles
+            if(Subhalos[subid].Nbound > Subhalos[subid].Particles.size())
+              Subhalos[subid].Nbound = Subhalos[subid].Particles.size();
+            // Remove null particles and update tracer index
             Subhalos[subid].KickNullParticles();
+          }
         }
       // Next FoF halo
     }
