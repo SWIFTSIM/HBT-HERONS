@@ -95,6 +95,7 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
    * associated to them explicitly*/
   if (Nbound == 0)
   {
+    // What to do with minimum potential
     copyHBTxyz(CoreComovingPosition, ComovingMostBoundPosition);
     copyHBTxyz(CorePhysicalVelocity, PhysicalMostBoundVelocity);
     CoreComovingSigmaR = 0.;
@@ -217,6 +218,7 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
    * are based on the ACTUAL MOST BOUND PARTICLE. Orphans are based on the
    * MOST BOUND TRACER PARTICLE. */
   MostBoundParticleId = Particles[GetTracerIndex()].Id;
+    // What to do with minimum potential
   copyHBTxyz(ComovingMostBoundPosition, Particles[GetTracerIndex()].ComovingPosition);
   copyHBTxyz(PhysicalMostBoundVelocity, Particles[GetTracerIndex()].GetPhysicalVelocity());
   copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);

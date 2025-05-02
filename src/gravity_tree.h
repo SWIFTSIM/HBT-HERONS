@@ -15,6 +15,7 @@ private:
 
 public:
   double EvaluatePotential(const HBTxyz &targetPos, const HBTReal targetMass = 0.);
+  double KineticEnergy(const HBTxyz &targetPos, const HBTxyz &targetVel, const HBTxyz &refPos, const HBTxyz &refVel);
   double BindingEnergy(const HBTxyz &targetPos, const HBTxyz &targetVel, const HBTxyz &refPos, const HBTxyz &refVel,
                        const HBTReal targetMass = 0.);
 };
