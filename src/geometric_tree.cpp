@@ -91,6 +91,27 @@ HBTInt GeoTree_t::NearestNeighbour(const HBTxyz &cen, HBTReal rguess)
   return collector.Index;
 }
 
+std::vector<HBTInt> GeoTree_t::NearestNeighbours(const HBTxyz &cen, HBTReal rguess, HBTInt max_neighbours)
+// return the particle_index of (up to) max_neighbours nearest neighbours
+{
+  NumNearestNeighboursCollector_t collector(max_neighbours);
+  HBTInt nr_to_find = (NumberOfParticles < max_neighbours) ? NumberOfParticles : max_neighbours;
+  Search(cen, rguess, collector);
+  while (collector.NumberFound() < nr_to_find)
+  {
+    rguess *= 1.26; // double the guess volume
+    Search(cen, rguess, collector);
+  }
+  // Make a vector of neighbour indexes
+  std::vector<HBTInt> result;
+  while(collector.neighbours.size() > 0) {
+    LocatedParticle_t lp = collector.neighbours.top();
+    result.push_back(lp.index);
+    collector.neighbours.pop();
+  }
+  return result;
+}
+
 void GeoTree_t::Search(const HBTxyz &searchcenter, HBTReal radius, ParticleCollector_t &collector)
 { /*find a list of particles from the tree, located within radius around searchcenter,
    * and process the particles with collector */
