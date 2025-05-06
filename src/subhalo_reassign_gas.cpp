@@ -127,7 +127,7 @@ void SubhaloSnapshot_t::ReassignGasParticles()
           GeoTree_t tree;
           tree.Build(tracer_snap);
 
-          // For each gas particle (bound or not), identify the nearest neighbour tracer type particle
+          // For each gas particle (bound or not), identify the nearest neighbour tracer type particles
           for(auto subid : subgroup)
             {
               for(HBTInt i=0; i<sublen[subid]; i+=1)
@@ -135,20 +135,35 @@ void SubhaloSnapshot_t::ReassignGasParticles()
                   auto &part = Subhalos[subid].Particles[i];
                   if(part.Id != SpecialConst::NullParticleId)
                     {
+                      const HBTInt nr_ngbs = 5;
                       const HBTxyz centre = part.ComovingPosition;
                       // TODO: better initial search radius guess
                       //       could use size of the tree node containing the point?
                       //       not sure why we have to provide a guess at all!
-                      const HBTInt ngb_idx = tree.NearestNeighbour(centre, 1.0e-4);
-                      const HBTInt ngb_subid = tracer_subid[ngb_idx];
-
-                      // Check if we need to move this gas particle
-                      if((ngb_subid >= 0) && (ngb_subid != subid))
+                      std::vector<HBTInt> neighbour_list = tree.NearestNeighbours(centre, 1.0e-4, nr_ngbs);
+                      // Check if any of the neighbours are in the current subhalo
+                      bool found = false;
+                      for(auto ngb_idx : neighbour_list)
                         {
-                          // Append the particle to the other subhalo's source list
-                          Subhalos[ngb_subid].Particles.push_back(part);
-                          // Flag the particle for removal from this subhalo
-                          part.Id = SpecialConst::NullParticleId;
+                          if(tracer_subid[ngb_idx] == subid)
+                            {
+                              found=true;
+                              break;
+                            }
+                        }
+                      if(!found)
+                        {
+                          // Current subhalo is not on the neighbour list, so we
+                          // may want to move this particle. Find nearest neighbour.
+                          const HBTInt ngb_idx = neighbour_list.back();
+                          const HBTInt ngb_subid = tracer_subid[ngb_idx];
+                          if((ngb_subid >= 0) && (ngb_subid != subid))
+                            {
+                              // Append the particle to the other subhalo's source list
+                              Subhalos[ngb_subid].Particles.push_back(part);
+                              // Flag the particle for removal from this subhalo
+                              part.Id = SpecialConst::NullParticleId;
+                            }
                         }
                     }
                 }
