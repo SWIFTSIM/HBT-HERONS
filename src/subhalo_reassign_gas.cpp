@@ -136,6 +136,9 @@ void SubhaloSnapshot_t::ReassignGasParticles()
                   if(part.Id != SpecialConst::NullParticleId)
                     {
                       const HBTxyz centre = part.ComovingPosition;
+                      // TODO: better initial search radius guess
+                      //       could use size of the tree node containing the point?
+                      //       not sure why we have to provide a guess at all!
                       const HBTInt ngb_idx = tree.NearestNeighbour(centre, 1.0e-4);
                       const HBTInt ngb_subid = tracer_subid[ngb_idx];
 
