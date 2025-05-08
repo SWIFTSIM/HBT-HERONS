@@ -81,10 +81,8 @@ HBTReal distance_squared(HBTxyz pos1, HBTxyz pos2) {
   }
 }
 
-void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTReal boxsize, bool periodic, std::mt19937 &rng)
+void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTInt nr_ngb, HBTReal boxsize, bool periodic, std::mt19937 &rng)
 {
-  const HBTInt nr_ngb = 10;
-
   std::cout << "Start test with N=" << N << ", Nsearch = " << Nsearch << ", boxsize = " << boxsize;
   if(periodic)std::cout << " (periodic)";
   std::cout << endl;
@@ -166,14 +164,17 @@ int main(int argc, char *argv[]) {
   rng.seed(0);
 
   // Test neighbour search with and without periodic boundary
-  const int nr_reps = 50;
+  const int nr_reps = 10;
   for(int rep_nr=0; rep_nr<nr_reps; rep_nr+=1)
   {
-    const HBTInt N = 1000;
-    const HBTInt Nsearch = 100;
-    const HBTReal boxsize = 1.0;
-    test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ false, rng);
-    test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ true, rng);
+    for(HBTInt nr_ngb=1; nr_ngb<=10; nr_ngb+=1)
+      {
+        const HBTInt N = 1000;
+        const HBTInt Nsearch = 100;
+        const HBTReal boxsize = 1.0;
+        test_neighbour_search(N, Nsearch, nr_ngb, boxsize, /* periodic = */ false, rng);
+        test_neighbour_search(N, Nsearch, nr_ngb, boxsize, /* periodic = */ true, rng);
+      }
   }
 
   // Test neighbour search with few particles
@@ -181,10 +182,13 @@ int main(int argc, char *argv[]) {
     {
       for(int rep_nr=0; rep_nr<nr_reps; rep_nr+=1)
         {
-          const HBTInt Nsearch = 100;
-          const HBTReal boxsize = 1.0;
-          test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ false, rng);
-          test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ true, rng);
+          for(HBTInt nr_ngb=1; nr_ngb<=10; nr_ngb+=1)
+            {
+              const HBTInt Nsearch = 100;
+              const HBTReal boxsize = 1.0;
+              test_neighbour_search(N, Nsearch, nr_ngb, boxsize, /* periodic = */ false, rng);
+              test_neighbour_search(N, Nsearch, nr_ngb, boxsize, /* periodic = */ true, rng);
+            }
         }
     }
   std::cout << "All tests done." << endl;
