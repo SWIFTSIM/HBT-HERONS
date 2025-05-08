@@ -177,23 +177,15 @@ int main(int argc, char *argv[]) {
   }
 
   // Test neighbour search with few particles
-  for(int rep_nr=0; rep_nr<nr_reps; rep_nr+=1)
-  {
-    const HBTInt N = 10;
-    const HBTInt Nsearch = 100;
-    const HBTReal boxsize = 1.0;
-    test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ false, rng);
-    test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ true, rng);
-  }
-
-  // Test neighbour search with one particle
-  for(int rep_nr=0; rep_nr<nr_reps; rep_nr+=1)
-  {
-    const HBTInt N = 1;
-    const HBTInt Nsearch = 100;
-    const HBTReal boxsize = 1.0;
-    test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ false, rng);
-    test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ true, rng);
-  }
+  for(int N=1; N<10; N+=1)
+    {
+      for(int rep_nr=0; rep_nr<nr_reps; rep_nr+=1)
+        {
+          const HBTInt Nsearch = 100;
+          const HBTReal boxsize = 1.0;
+          test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ false, rng);
+          test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ true, rng);
+        }
+    }
   std::cout << "All tests done." << endl;
 }
