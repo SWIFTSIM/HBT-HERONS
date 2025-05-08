@@ -75,6 +75,8 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(MaxPhysicalSofteningHalo);
   TrySetPar(TracerParticleBitMask);
   TrySetPar(ParticlesSplit);
+  TrySetPar(SymmetricMerging);
+  TrySetPar(SpatialNesting);
 
 #undef TrySetPar
 
@@ -326,6 +328,8 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncBool(GroupLoadedFullParticle);
   _SyncAtom(TracerParticleBitMask, MPI_INT);
   _SyncAtom(ParticlesSplit, MPI_INT);
+  _SyncBool(SymmetricMerging);
+  _SyncBool(SpatialNesting);
   //---------------end sync params-------------------------//
 
   _SyncReal(PhysicalConst::G);
@@ -449,6 +453,8 @@ void Parameter_t::DumpParameters()
   }
   DumpPar(MergeTrappedSubhalos);
   DumpPar(MajorProgenitorMassRatio);
+  DumpPar(SymmetricMerging);
+  DumpPar(SpatialNesting);
 
 #undef DumpPar
 #undef DumpHeader

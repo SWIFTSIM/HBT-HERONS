@@ -8,6 +8,7 @@
 #include "datatypes.h"
 #include "snapshot_number.h"
 #include "subhalo.h"
+#include "config_parser.h"
 
 void Subhalo_t::UpdateTrack(const Snapshot_t &epoch)
 {
@@ -839,7 +840,7 @@ void SubhaloSnapshot_t::PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo
     DecideCentrals(halo_snap);
     FeedCentrals(halo_snap);
   }
-  NestSubhalos(world);
+  NestSubhalos(world, halo_snap);
 #ifndef INCLUSIVE_MASS
   MaskSubhalos();
 #endif
@@ -1007,10 +1008,16 @@ void SubhaloSnapshot_t::GlobalizeTrackReferences()
   }
 }
 
-void SubhaloSnapshot_t::NestSubhalos(MpiWorker_t &world)
+void SubhaloSnapshot_t::NestSubhalos(MpiWorker_t &world, const HaloSnapshot_t &halo_snap)
 {
   LocalizeNestedIds(world);
   LevelUpDetachedSubhalos();
+
+  /* Update subhalo nesting where necessary. This will identify cases where a
+     subhalo is within the spatial extent of another subhalo but has not been
+     identified as a sub-subhalo. */
+  if(HBTConfig.SpatialNesting)IdentifyNewlyNestedSubhalos(world, halo_snap);
+
 // collect detached(head) subhalos
 #pragma omp single
   MemberTable.SubGroupsOfHeads.clear();
@@ -1411,8 +1418,8 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
         Subhalos[i].HostHaloId = halo_snap.Halos[HostId].HaloId; // restore global haloid
     }
     GlobalizeTrackReferences();
-    SetNestedParentIds();
   }
+  SetNestedParentIds();
 #pragma omp parallel for if (ParallelizeHaloes)
   for (HBTInt i = 0; i < Subhalos.size(); i++)
   {
@@ -1425,5 +1432,175 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
     for (int j = 0; j < 3; j++)
       Subhalos[i].ComovingAveragePosition[j] =
         position_modulus(Subhalos[i].ComovingAveragePosition[j], HBTConfig.BoxSize);
+  }
+}
+
+/*
+ * Find subhalos which are spatially within another, more massive, halo but
+ * have not been identified as a subhalo yet. Modifies Subhalo_t::NestedSubhalos.
+ *
+ * It is assumed that the subhalo comoving most bound position is up to date
+ * and that we can use twice the half mass radius from the previous snapshot
+ * as the extent of each subhalo. Newly formed FoF groups will not have RHalf
+ * computed, but since they only contain a single subhalo there's nothing to
+ * do and we can skip them.
+ *
+ * We also assume that LocalizeNestedIds() has been called so that the
+ * NestedSubhalos arrays contain indexes into the Subhalos array and not
+ * global IDs.
+ */
+void SubhaloSnapshot_t::IdentifyNewlyNestedSubhalos(MpiWorker_t &world, const HaloSnapshot_t &halo_snap) {
+
+  // Here we convert the NestedSubhalo arrays of child subhalos into a single array
+  // with the index of the parent for each subhalo. We can then modify this array
+  // and reconstruct the NestedSubhalos afterwards
+  std::vector<HBTInt> parent_index(Subhalos.size(), -1);
+  for(HBTInt i=0; i<Subhalos.size(); i+=1) {
+    for(auto j : Subhalos[i].NestedSubhalos) {
+      assert(j >= 0);
+      assert(j < parent_index.size()); // NestedSubhalos should contain local subhalo array indexes
+      assert(Subhalos[j].HostHaloId==Subhalos[i].HostHaloId); // Subhalos not in the same FoF should have been removed from nests
+      assert(Subhalos[j].Rank != 0); // Subhalos with Rank=0 should not be nested
+      assert(parent_index[j] == -1); // Subhalos can only have one parent
+      parent_index[j] = i;
+    }
+  }
+
+  // Count how many subhalos we re-nested
+  HBTInt nr_modified = 0;
+
+  // Loop over all local halos
+  for (HBTInt hostid = 0; hostid < halo_snap.Halos.size(); hostid++)
+  {
+    // Get list of indexes of subhalos in this halo
+    MemberShipTable_t::MemberList_t &List = MemberTable.SubGroups[hostid]; // List is view of HBTInt vector with subhalo indexes
+    HBTInt nr_subhalos = List.size();
+
+    // If there are fewer than three subhalos, we have nothing to do.
+    if(nr_subhalos < 3)continue;
+
+    // Make a copy of the subhalo indexes sorted in descending mass order,
+    // except that we want to keep the central chosen by DecideCentrals at
+    // the start so that we avoid nesting it inside any other subhalo.
+    std::vector<HBTInt> ordered_list(nr_subhalos);
+    for(HBTInt i=0; i<nr_subhalos; i+=1)
+      ordered_list[i] = List[i];
+    CompareMass_t compare_mass(Subhalos);
+    std::sort(ordered_list.begin()+1, ordered_list.end(), compare_mass);
+
+    // Loop over subhalos in the halo in ascending order of mass, excluding
+    // the main subhalo because anything not already nested will be added to
+    // the main subhalo by ExtendCentralNests() anyway.
+    for(HBTInt child_rank=nr_subhalos-1; child_rank>0; child_rank-=1) {
+
+      // We're going to check if this subhalo should be nested in any of the
+      // more massive subhalos other than the central. First, get a reference
+      // to the subhalo we're considering re-nesting.
+      HBTInt child_index = ordered_list[child_rank];
+      Subhalo_t &child = Subhalos[ordered_list[child_rank]];
+
+      // Then, loop over possible new parent subhalos - i.e. all more massive subhalos
+      for(HBTInt new_parent_rank=child_rank-1; new_parent_rank>0; new_parent_rank-=1) {
+
+        // Get a reference to the possible new parent
+        HBTInt new_parent_index = ordered_list[new_parent_rank];
+        Subhalo_t &new_parent = Subhalos[new_parent_index];
+
+        // Subhalos should be in the same host halo
+        assert(new_parent.HostHaloId == child.HostHaloId);
+        // Child subhalo should be no more massive than the parent
+        assert(child.Mbound <= new_parent.Mbound);
+
+        // Don't consider orphan subhalos as possible parents, because they
+        // don't have an associated radius
+        if(new_parent.Nbound <= 1)continue;
+
+        // Check that we don't already have any hierarchical relation between
+        // the two subhalos in either direction. If new_parent is already a
+        // parent of child there's nothing to do.
+        bool connected = false;
+        HBTInt sub_index = child_index;
+        while(sub_index >= 0) {
+          if(sub_index == new_parent_index){
+            connected = true;
+            break;
+          }
+          sub_index = parent_index[sub_index];
+        }
+        // Don't try to nest a subhalo inside itself or any of its sub-subhalos etc
+        sub_index = new_parent_index;
+        while(sub_index >= 0) {
+          if(sub_index == child_index) {
+            connected = true;
+            break;
+          }
+          sub_index = parent_index[sub_index];
+        }
+        if(connected)continue;
+
+        // Check if child subhalo is enclosed by possible new parent subhalo
+        HBTxyz new_parent_pos = new_parent.ComovingMostBoundPosition;
+        HBTReal new_parent_radius = 2*new_parent.RHalfComoving;
+        assert(new_parent_radius > 0.0);
+        HBTxyz child_pos = child.ComovingMostBoundPosition;
+        HBTReal separation = PeriodicDistance(new_parent_pos, child_pos) / new_parent_radius;
+        bool reassigned = false;
+        if(separation < 1.0) {
+          // In this case child is spatially within new_parent but is not considered
+          // a subhalo. If new_parent is a subhalo of the child's original parent
+          // (or the child has no parent assigned yet) then we can reassign child to
+          // be a subhalo of new_parent without preventing any merger checks.
+          bool can_reassign = false;
+          if(parent_index[child_index] < 0) {
+            // Child subhalo has no parent, so we're free to reassign it a
+            // new parent.
+            can_reassign = true;
+          } else if(parent_index[child_index] == ordered_list[0]) {
+            // Child subhalo's parent is the central, which is the parent of
+            // everything else so we're free to reassign a new parent.
+            can_reassign = true;
+          } else {
+            // Child subhalo's parent is a subhalo. Check that the new parent
+            // we're going to assign is somewhere nested within the parent
+            HBTInt parent_of_new_parent = new_parent_index;
+            while(parent_of_new_parent >= 0) {
+              if(parent_of_new_parent == parent_index[child_index])can_reassign = true;
+              parent_of_new_parent = parent_index[parent_of_new_parent];
+            }
+          }
+          if(can_reassign) {
+            // Child subhalo can be assigned a new parent.
+            assert(child.TrackId != new_parent.TrackId);
+            child.SpatialNestingTrackId = new_parent.TrackId;
+            child.SnapshotIndexOfSpatialNesting = GetSnapshotIndex();
+            parent_index[child_index] = new_parent_index;
+            child.Rank = child_rank; // Must have Rank>0 if we have a parent subhalo
+            nr_modified += 1;
+            reassigned = true;
+          }
+        }
+        // If we renested this subhalo, don't need to check for any more possible parents
+        if(reassigned)break;
+      } // Next possible new parent
+    } // Next possible child halo
+  } // Next FoF halo
+
+  // Now reconstruct the nests. First clear all nest arrays.
+  for(auto &subhalo : Subhalos) {
+    subhalo.NestedSubhalos.clear();
+  }
+
+  // Then add all nested subhalos back to the nest arrays
+  for(HBTInt i=0; i<Subhalos.size(); i+=1) {
+    if(parent_index[i] >= 0) {
+      Subhalos[parent_index[i]].NestedSubhalos.push_back(i);
+    }
+  }
+
+  // Report how many changes we made
+  HBTInt nr_total;
+  MPI_Allreduce(&nr_modified, &nr_total, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  if(world.rank() == 0) {
+    std::cout << "Modified nesting of " << nr_total << " subhalos" << std::endl;
   }
 }
