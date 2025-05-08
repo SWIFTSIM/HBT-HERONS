@@ -3,9 +3,9 @@
 
 namespace PhysicalConst
 {
-HBTReal G;
-HBTReal H0;
-} // namespace PhysicalConst
+  HBTReal G;
+  HBTReal H0;
+}
 
 Parameter_t HBTConfig;
 

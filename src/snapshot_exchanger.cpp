@@ -56,6 +56,12 @@ void ParticleSnapshot_t::ExchangeParticles(MpiWorker_t &world)
     MPI_Allreduce(&np, &NumberOfParticlesOnAllNodes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
   }
 
+  /* We should not communicate particles for GADGET-4 just yet, as the groups
+   * are defined based on particle offsets. Communicating will therefore 
+   * mix up the order of particles and give bogus results. */
+  if(HBTConfig.GroupFileFormat == "gadget4_hdf")
+    return;
+
   vector<HBTInt> SendOffsets = PartitionParticles(world);
   SendOffsets.push_back(Particles.size());
   vector<HBTInt> SendSizes(world.size(), 0);

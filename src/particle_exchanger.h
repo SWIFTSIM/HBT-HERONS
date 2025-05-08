@@ -151,6 +151,7 @@ void ParticleExchanger_t<Halo_T>::CollectParticles()
     }
     h.Particles.clear(); // or hard clear to save memory?
   }
+  assert(n == np);
 }
 
 template <class Halo_T>

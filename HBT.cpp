@@ -84,8 +84,13 @@ int main(int argc, char **argv)
 
     /* Load FOF group information */
     HaloSnapshot_t halosnap;
-    halosnap.Load(world, isnap);
-    global_timer.Tick("read_halo", world.Communicator);
+    // NOTE: We should handle this in a better way. 
+    if(HBTConfig.GroupFileFormat == "gadget4_hdf")
+      halosnap.Load(world, partsnap);
+    else
+      halosnap.Load(world, isnap);
+    
+      global_timer.Tick("read_halo", world.Communicator);
 
     /* For SWIFT-based outputs we load some parameters directly from the snapshots,
        so we delay writing Parameters.log until the values are known. */

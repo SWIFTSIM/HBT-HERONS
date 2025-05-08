@@ -114,11 +114,13 @@ set(HBT_SRC
   src/io/apostle_io.cpp
   src/io/gadget_group_io.cpp
   src/io/gadget_io.cpp
+  src/io/gadget4_io.cpp
   src/io/swiftsim_io.cpp
   src/io/halo_io.cpp
   src/io/snapshot_io.cpp
   src/io/subhalo_io.cpp
   src/io/exchange_and_merge.cpp
+  src/io/halo_patch_exchanger.cpp
   )
 
 #
