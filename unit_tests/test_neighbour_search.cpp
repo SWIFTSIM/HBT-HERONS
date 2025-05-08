@@ -114,7 +114,7 @@ void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTReal boxsize, bool perio
   // Carry out the search
   cout << "  Finding neighbours using octree" << std::endl;
   for(HBTInt i=0; i<Nsearch; i+=1) {
-    ngb_idx[i] = tree.NearestNeighbour(centre[i], 0.01);
+    ngb_idx[i] = tree.NearestNeighbour(centre[i]);
     verify(ngb_idx[i] >= 0);
     verify(ngb_idx[i] < N);
   }
