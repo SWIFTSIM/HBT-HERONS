@@ -822,11 +822,8 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
       if (central.IsAlive())
         assert(central.Particles.size());
 
-      /* The subhalo now contains all the host particles. Those belonging to
-       * subhaloes will be masked during unbinding, if exclusive mass option is
-       * used. */
-      central.Particles.swap(Host.Particles);
-      central.Nbound = central.Particles.size();
+      // Assign new FoF particles to subhalos
+      FeedSubhalos(Host, Members);
     }
   }
   //   #pragma omp single
