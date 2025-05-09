@@ -326,6 +326,9 @@ public:
   void ConstrainToSingleHost(const HaloSnapshot_t &halo_snap);
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void RefineParticles();
+#ifndef DM_ONLY
+  void ReassignGasParticles();
+#endif
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
 
   /* To remove duplicate particles from the source subgroup. */

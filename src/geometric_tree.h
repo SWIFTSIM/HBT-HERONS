@@ -19,7 +19,8 @@ public:
   {
   }
   void Search(const HBTxyz &searchcenter, HBTReal radius, ParticleCollector_t &collector);
-  HBTInt NearestNeighbour(const HBTxyz &searchcenter, HBTReal rguess);
+  HBTInt NearestNeighbour(const HBTxyz &searchcenter);
+  std::vector<HBTInt> NearestNeighbours(const HBTxyz &cen, HBTInt max_neighbours);
   double SphDensity(const HBTxyz &cen, HBTReal &rguess);
   int GetNumNeighbourSPH()
   {
@@ -29,6 +30,7 @@ public:
   {
     NumNeighbourSPH = num_neighbour;
   }
+  HBTReal EstimateNumberDensity(const HBTxyz &searchcenter);
 };
 
 inline HBTReal GuessNeighbourRange(HBTInt n_neighbours, HBTReal number_density_guess)
