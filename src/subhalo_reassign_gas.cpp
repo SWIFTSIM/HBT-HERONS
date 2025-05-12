@@ -140,7 +140,7 @@ void SubhaloSnapshot_t::ReassignGasParticles()
                       // TODO: better initial search radius guess
                       //       could use size of the tree node containing the point?
                       //       not sure why we have to provide a guess at all!
-                      std::vector<HBTInt> neighbour_list = tree.NearestNeighbours(centre, nr_ngbs);
+                      std::vector<HBTInt> neighbour_list = tree.NearestNeighbours(centre, nr_ngbs, HBTConfig.SofteningHalo*0.1);
                       // Check if any of the neighbours are in the current subhalo
                       bool found = false;
                       for(auto ngb_idx : neighbour_list)

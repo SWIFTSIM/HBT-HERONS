@@ -78,7 +78,7 @@ void GeoTree_t::UpdateInternalNodes(HBTInt no, HBTInt sib, double len, const dou
   FillNodeCenter(no, center);
 }
 
-HBTInt GeoTree_t::NearestNeighbour(const HBTxyz &cen)
+HBTInt GeoTree_t::NearestNeighbour(const HBTxyz &cen, HBTReal rguess)
 // return the particle_index of the nearest neighbour
 {
   if(NumberOfParticles == 0) {
@@ -93,11 +93,6 @@ HBTInt GeoTree_t::NearestNeighbour(const HBTxyz &cen)
 
   } else {
 
-    // We have multiple particles. Get initial guess for the search radius.
-    // Need >= 2 particles for this to work.
-    HBTReal number_density_guess = EstimateNumberDensity(cen);
-    HBTReal rguess = GuessNeighbourRange(1, number_density_guess);
-
     // Search for the neighbours
     NearestNeighbourCollector_t collector;
     Search(cen, rguess, collector);
@@ -110,7 +105,7 @@ HBTInt GeoTree_t::NearestNeighbour(const HBTxyz &cen)
   }
 }
 
-std::vector<HBTInt> GeoTree_t::NearestNeighbours(const HBTxyz &cen, HBTInt max_neighbours)
+std::vector<HBTInt> GeoTree_t::NearestNeighbours(const HBTxyz &cen, HBTInt max_neighbours, HBTReal rguess)
 // return the particle_index of (up to) max_neighbours nearest neighbours
 {
   // Determine how many neighbours we should find
@@ -123,36 +118,8 @@ std::vector<HBTInt> GeoTree_t::NearestNeighbours(const HBTxyz &cen, HBTInt max_n
     {
       // Nothing to do in this case
     }
-  else if(NumberOfParticles == nr_to_find)
-    {
-      // Handle the case where we find all of the particles as neighbours
-      for(HBTInt pid=0; pid<nr_to_find; pid+=1)
-        {
-          bool IsPeriodic = HBTConfig.PeriodicBoundaryOn;
-          auto &pos = Snapshot->GetComovingPosition(pid);
-          double x0 = cen[0], y0 = cen[1], z0 = cen[2];
-          double dx = pos[0] - x0;
-          if (IsPeriodic)
-            dx = NEAREST(dx);
-          double dy = pos[1] - y0;
-          if (IsPeriodic)
-            dy = NEAREST(dy);
-          double dz = pos[2] - z0;
-          if (IsPeriodic)
-            dz = NEAREST(dz);
-          double r2 = dx * dx + dy * dy + dz * dz;
-          collector.Collect(pid, r2);
-        }
-    }
   else
     {
-      // This case should have been handled above
-      assert(NumberOfParticles > 1);
-
-      // Get an initial guess for the search radius from the octree
-      HBTReal number_density_guess = EstimateNumberDensity(cen);
-      HBTReal rguess = GuessNeighbourRange(max_neighbours, number_density_guess);
-
       // Search for the neighbours
       Search(cen, rguess, collector);
       while (collector.NumberFound() < nr_to_find)
@@ -245,65 +212,6 @@ void GeoTree_t::Search(const HBTxyz &searchcenter, HBTReal radius, ParticleColle
     }
   }
 }
-
-HBTReal GeoTree_t::EstimateNumberDensity(const HBTxyz &searchcenter)
-{
-  // Find the node containing searchcentre and use it to estimate the local number density
-  bool IsPeriodic = HBTConfig.PeriodicBoundaryOn;
-  double x0 = searchcenter[0], y0 = searchcenter[1], z0 = searchcenter[2];
-
-  HBTInt numngb = 0;
-  HBTInt node_id = RootNodeId;
-
-  // Side length of the root node
-  HBTReal length = Nodes[node_id].way.len;
-  assert(length > 0.0); // Will fail if the tree has only one particle
-
-  // Mean number density
-  HBTReal mean_density = NumberOfParticles / (length*length*length);
-
-  while (node_id >= 0)
-  {
-    if (node_id < RootNodeId)
-    {
-      /* single particle, so estimate number density and return */
-      return pow(length, -3.0);
-    }
-    else
-    {
-      auto &node = Nodes[node_id];
-
-      node_id = node.way.sibling; /* in case the node can be discarded */
-      double rmax = node.way.len / 2.;
-
-      auto &pos = node.way.s;
-      double dx = pos[0] - x0;
-      if (IsPeriodic)
-        dx = NEAREST(dx);
-      if (dx > rmax || dx < -rmax)
-        continue;
-
-      double dy = pos[1] - y0;
-      if (IsPeriodic)
-        dy = NEAREST(dy);
-      if (dy > rmax || dy < -rmax)
-        continue;
-
-      double dz = pos[2] - z0;
-      if (IsPeriodic)
-        dz = NEAREST(dz);
-      if (dz > rmax || dz < -rmax)
-        continue;
-
-      length = node.way.len;
-      node_id = node.way.nextnode; /* ok, we need to open the node */
-    }
-  }
-
-  // We get here if the search centre is not in any tree node
-  return mean_density;
-}
-
 
 double GeoTree_t::SphDensity(const HBTxyz &cen, HBTReal &hguess)
 {
