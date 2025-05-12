@@ -77,6 +77,7 @@ void SubhaloSnapshot_t::ReassignGasParticles()
 
   // Loop over FoF groups
   HBTInt NumHalos = MemberTable.SubGroups.size();
+#pragma omp parallel for schedule(dynamic, 1)
   for (HBTInt haloid = 0; haloid < NumHalos; haloid++)
     {
       // Get indexes of subhalos in this FoF group
