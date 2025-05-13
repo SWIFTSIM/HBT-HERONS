@@ -23,6 +23,7 @@ struct SwiftSimHeader_t
   double ScaleFactor;
   double OmegaM0;
   double OmegaLambda0;
+  double Hz;
   double h;
   double mass[TypeMax];
   int npart[TypeMax];

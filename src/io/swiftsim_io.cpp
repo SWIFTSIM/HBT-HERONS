@@ -43,8 +43,10 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
   }
   RegisterAttr(NumberOfFiles, MPI_INT, 1);
   RegisterAttr(BoxSize, MPI_DOUBLE, 1);
-  RegisterAttr(ScaleFactor, MPI_DOUBLE, 1) RegisterAttr(OmegaM0, MPI_DOUBLE, 1);
+  RegisterAttr(ScaleFactor, MPI_DOUBLE, 1);
+  RegisterAttr(OmegaM0, MPI_DOUBLE, 1);
   RegisterAttr(OmegaLambda0, MPI_DOUBLE, 1);
+  RegisterAttr(Hz, MPI_DOUBLE, 1);
   RegisterAttr(h, MPI_DOUBLE, 1) RegisterAttr(mass, MPI_DOUBLE, TypeMax);
   RegisterAttr(npart[0], MPI_INT, TypeMax);
   RegisterAttr(npartTotal[0], MPI_HBT_INT, TypeMax);
@@ -139,6 +141,7 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   Header.BoxSize = BoxSize_3D[0]; // Can only handle cubic boxes
   ReadAttribute(file, "Cosmology", "Scale-factor", H5T_NATIVE_DOUBLE, &Header.ScaleFactor);
   ReadAttribute(file, "Cosmology", "Omega_m", H5T_NATIVE_DOUBLE, &Header.OmegaM0);
+  ReadAttribute(file, "Cosmology", "H [internal units]", H5T_NATIVE_DOUBLE, &Header.Hz);
   ReadAttribute(file, "Cosmology", "Omega_lambda", H5T_NATIVE_DOUBLE, &Header.OmegaLambda0);
   ReadAttribute(file, "Cosmology", "h", H5T_NATIVE_DOUBLE, &Header.h);
   for (int i = 0; i < TypeMax; i += 1)
@@ -660,8 +663,6 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   world.SyncContainer(np_file, MPI_HBT_INT, root);
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
 
-  Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
-
   /* Assign the box size read in from the Header */
   HBTConfig.BoxSize = Header.BoxSize;
   HBTConfig.BoxHalf = HBTConfig.BoxSize / 2;
@@ -684,6 +685,10 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   PhysicalConst::G =
     43.0071 * (HBTConfig.MassInMsunh / 1e10) / HBTConfig.VelInKmS / HBTConfig.VelInKmS / HBTConfig.LengthInMpch;
   PhysicalConst::H0 = 100. * (1. / HBTConfig.VelInKmS) / (1. / HBTConfig.LengthInMpch);
+
+  /* Set the cosmological parameters */
+  Cosmology.Set_Hz(Header.Hz);
+  Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
 
   /* This will be used to determine which particles are hostless when
    * constraining subhaloes to their assigned hosts. */
