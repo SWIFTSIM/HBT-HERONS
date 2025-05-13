@@ -36,16 +36,13 @@ struct Cosmology_t
     OmegaLambda0 = omegaLambda0;
     ScaleFactor = scalefactor;
 
-    double Hratio;
     if (Hz == -1.0)
     {
+      double Hratio;
       Hratio = sqrt(omega0 / (scalefactor * scalefactor * scalefactor) +
                          (1 - omega0 - omegaLambda0) / (scalefactor * scalefactor) +
                          omegaLambda0);
       Hz = Hratio * PhysicalConst::H0;
-    } else
-    {
-      Hratio = Hz / PhysicalConst::H0;
     }
   }
 };
