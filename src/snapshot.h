@@ -47,8 +47,6 @@ struct Cosmology_t
     {
       Hratio = Hz / PhysicalConst::H0;
     }
-
-    Hz = Hratio * PhysicalConst::H0;
   }
 };
 
