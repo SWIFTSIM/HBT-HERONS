@@ -333,11 +333,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   RHalfComoving = prof[Nbound / 2].r;
   REncloseComoving = prof[Nbound - 1].r;
 
-  HBTReal virialF_tophat, virialF_b200, virialF_c200;
-  epoch.HaloVirialFactors(virialF_tophat, virialF_b200, virialF_c200);
-  //   epoch.SphericalOverdensitySize(MVir, RVirComoving, virialF_tophat, prof);
-  epoch.SphericalOverdensitySize(BoundM200Crit, BoundR200CritComoving, virialF_c200, prof);
-  //   epoch.SphericalOverdensitySize(M200Mean, R200MeanComoving, virialF_b200, prof);
+  epoch.SphericalOverdensitySize(BoundM200Crit, BoundR200CritComoving, 200., prof);
 
   if (VmaxPhysical >= LastMaxVmaxPhysical)
   {
