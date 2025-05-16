@@ -439,19 +439,19 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 #pragma omp parallel for if (Nlast > 100)
       for (HBTInt i = 0; i < Nlast; i++)
       {
-        HBTInt pid = Elist[i].ParticleIndex;
-        HBTReal mass;
-        if (i < np_tree)
-          mass = ESnap.GetMass(i); // to correct for self-gravity
-        else
-          mass = 0.; // not sampled in tree, no self gravity to correct
-        Elist[i].Energy = tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].GetPhysicalVelocity(), RefPos,
-                                        RefVel, mass);
+        /* Non-zero masses for particles in the tree because we need to remove
+         * their self-gravity. */
+        HBTReal particle_mass = (i < np_tree) ? ESnap.GetMass(i) : 0.;
+
+        HBTInt index = Elist[i].ParticleIndex;
+        Elist[i].Energy = tree.BindingEnergy(Particles[index].ComovingPosition, 
+                                             Particles[index].GetPhysicalVelocity(),
+                                             RefPos, RefVel, particle_mass);
 #ifdef UNBIND_WITH_THERMAL_ENERGY
-        Elist[i].Energy += Particles[pid].InternalEnergy;
+        Elist[i].Energy += Particles[index].InternalEnergy;
 #endif
       }
-      ESnap.SetMassUnit(1.); // reset, no necessary
+      ESnap.SetMassUnit(1.);
     }
     Nbound = PartitionBindingEnergy(Elist, Nlast); // TODO: parallelize this.
 #ifdef NO_STRIPPING
