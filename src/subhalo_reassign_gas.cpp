@@ -152,7 +152,7 @@ void SubhaloSnapshot_t::ReassignGasParticles()
               for(HBTInt i=0; i<sublen[subid]; i+=1)
                 {
                   auto &part = Subhalos[subid].Particles[i];
-                  if(part.Id != SpecialConst::NullParticleId)
+                  if((part.Id != SpecialConst::NullParticleId) && (part.Type==TypeGas))
                     {
                       const HBTInt nr_ngbs = HBTConfig.NumNeighboursForReassignment;
                       const HBTxyz centre = part.ComovingPosition;
