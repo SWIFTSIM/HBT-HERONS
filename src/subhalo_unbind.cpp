@@ -11,7 +11,7 @@
 
 struct ParticleEnergy_t
 {
-  HBTInt pid;
+  HBTInt ParticleIndex;
   float E;
 };
 inline bool CompEnergy(const ParticleEnergy_t &a, const ParticleEnergy_t &b)
@@ -77,7 +77,7 @@ class EnergySnapshot_t : public Snapshot_t
 {
   HBTInt GetParticle(HBTInt i) const
   {
-    return Elist[i].pid;
+    return Elist[i].ParticleIndex;
   }
 
 public:
@@ -293,8 +293,8 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
 #pragma omp for
     for (HBTInt i = 0; i < Size; i++)
     {
-      HBTInt pid = Elist[i].pid;
-      Einner[i].pid = i;
+      HBTInt pid = Elist[i].ParticleIndex;
+      Einner[i].ParticleIndex = i;
       Einner[i].E = tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].GetPhysicalVelocity(), RefPos,
                                        RefVel, Particles[pid].Mass);
     }
@@ -303,7 +303,7 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
 #pragma omp for
     for (HBTInt i = 0; i < Size; i++)
     {
-      Einner[i] = Elist[Einner[i].pid];
+      Einner[i] = Elist[Einner[i].ParticleIndex];
     }
 #pragma omp for
     for (HBTInt i = 0; i < Size; i++)
@@ -362,7 +362,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   vector<ParticleEnergy_t> Elist(Nbound);
   for (HBTInt i = 0; i < Nbound; i++)
-    Elist[i].pid = i;
+    Elist[i].ParticleIndex = i;
   EnergySnapshot_t ESnap(Elist.data(), Elist.size(), Particles, epoch);
   bool CorrectionLoop = false;
   while (true)
@@ -378,7 +378,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 #pragma omp parallel for if (Nlast > 100)
       for (HBTInt i = 0; i < Nbound; i++)
       {
-        HBTInt pid = Elist[i].pid;
+        HBTInt pid = Elist[i].ParticleIndex;
         auto &x = Particles[pid].ComovingPosition;
         auto v = Particles[pid].GetPhysicalVelocity();
         HBTxyz OldVel;
@@ -400,7 +400,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 #pragma omp parallel for if (Nlast > 100)
       for (HBTInt i = 0; i < Nlast; i++)
       {
-        HBTInt pid = Elist[i].pid;
+        HBTInt pid = Elist[i].ParticleIndex;
         HBTReal mass;
         if (i < np_tree)
           mass = ESnap.GetMass(i); // to correct for self-gravity
@@ -427,7 +427,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     HBTInt Nbound_tracers = 0;
     for (HBTInt i = 0; i < Nbound; i += 1)
     {
-      const auto &p = Particles[Elist[i].pid];
+      const auto &p = Particles[Elist[i].ParticleIndex];
       if (p.IsTracer())
         Nbound_tracers += 1;
       if (Nbound_tracers >= HBTConfig.MinNumTracerPartOfSub)
@@ -505,8 +505,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         ParticleList_t p(Particles.size());
         for (HBTInt i = 0; i < Particles.size(); i++)
         {
-          p[i] = Particles[Elist[i].pid];
-          Elist[i].pid = i; // update particle index in Elist as well.
+          p[i] = Particles[Elist[i].ParticleIndex];
+          Elist[i].ParticleIndex = i; // update particle index in Elist as well.
         }
         Particles.swap(p);
 
