@@ -43,7 +43,7 @@ static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size
           iterbackward++;
         return iterbackward - Elist.begin();
       }
-      if (iterbackward->E < 0)
+      if (iterbackward->Energy < 0)
         break;
     }
     *iterforward = *iterbackward;
@@ -58,7 +58,7 @@ static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size
           iterbackward++;
         return iterbackward - Elist.begin();
       }
-      if (iterforward->E > 0)
+      if (iterforward->Energy > 0)
         break;
     }
     *iterbackward = *iterforward;
