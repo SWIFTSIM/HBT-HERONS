@@ -137,14 +137,12 @@ int main(int argc, char **argv)
     subsnap.PrepareCentrals(world, halosnap);
     global_timer.Tick("prepare_centrals", world.Communicator);
 
-#ifndef DM_ONLY
     /* Assign gas particles to the same subhalo as their nearest neighbour
        tracer type particle in the same FoF group */
     if (world.rank() == 0)
-      cout << "Reassigning gas particles...\n";
-    subsnap.ReassignGasParticles();
-    global_timer.Tick("reassign_gas", world.Communicator);
-#endif
+      cout << "Reassigning particles...\n";
+    subsnap.ReassignParticles();
+    global_timer.Tick("reassign_particles", world.Communicator);
 
     /* We recursively unbind subhaloes in a depth-first approach, defined
      * by hierarchical relationships. After unbinding a given object, we check
