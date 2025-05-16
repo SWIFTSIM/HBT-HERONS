@@ -14,10 +14,12 @@ struct ParticleEnergy_t
   HBTInt ParticleIndex;
   float E;
 };
+
 inline bool CompareEnergy(const ParticleEnergy_t &a, const ParticleEnergy_t &b)
 {
   return (a.E < b.E);
 };
+
 static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size_t len)
 /*sort Elist to move unbound particles to the end*/
 { // similar to the C++ partition() func
@@ -62,6 +64,7 @@ static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size
     *iterbackward = *iterforward;
   }
 }
+
 static void PopMostBoundParticle(ParticleEnergy_t *Edata, const HBTInt Nbound)
 {
   HBTInt imin = 0;
@@ -73,6 +76,7 @@ static void PopMostBoundParticle(ParticleEnergy_t *Edata, const HBTInt Nbound)
   if (imin != 0)
     swap(Edata[imin], Edata[0]);
 }
+
 class EnergySnapshot_t : public Snapshot_t
 {
   HBTInt GetParticle(HBTInt i) const
@@ -86,27 +90,33 @@ public:
   HBTInt N;
   const ParticleList_t &Particles;
   HBTReal MassFactor;
+
   EnergySnapshot_t(ParticleEnergy_t *e, HBTInt n, const ParticleList_t &particles, const Snapshot_t &epoch)
     : Elist(e), N(n), Particles(particles), MassFactor(1.)
   {
     Cosmology = epoch.Cosmology;
   };
+
   void SetMassUnit(HBTReal mass_unit)
   {
     MassFactor = mass_unit;
   }
+
   HBTInt size() const
   {
     return N;
   }
+
   HBTInt GetId(HBTInt i) const
   {
     return Particles[GetParticle(i)].Id;
   }
+
   HBTReal GetMass(HBTInt i) const
   {
     return Particles[GetParticle(i)].Mass * MassFactor;
   }
+
   HBTReal GetInternalEnergy(HBTInt i) const
   {
 #ifdef HAS_THERMAL_ENERGY
@@ -115,6 +125,7 @@ public:
     return 0.;
 #endif
   }
+
   HBTReal GetPotentialEnergy(HBTInt i, const HBTxyz &refPos, const HBTxyz &refVel) const
   {
     // Load the total binding energy of the particle, then remove the thermal
@@ -137,14 +148,17 @@ public:
     }
     return E;
   }
+
   const HBTxyz GetPhysicalVelocity(HBTInt i) const
   {
     return Particles[GetParticle(i)].GetPhysicalVelocity();
   }
+
   const HBTxyz &GetComovingPosition(HBTInt i) const
   {
     return Particles[GetParticle(i)].ComovingPosition;
   }
+
   double AverageVelocity(HBTxyz &CoV, HBTInt NumPart)
   /*mass weighted average velocity*/
   {
@@ -177,6 +191,7 @@ public:
     CoV[2] = svz / msum;
     return msum;
   }
+
   double AveragePosition(HBTxyz &CoM, HBTInt NumPart)
   /*mass weighted average position*/
   {
@@ -230,6 +245,7 @@ public:
     CoM[2] = sz;
     return msum;
   }
+
   void AverageKinematics(float &SpecificPotentialEnergy, float &SpecificKineticEnergy, float SpecificAngularMomentum[3],
                          HBTInt NumPart, const HBTxyz &refPos, const HBTxyz &refVel)
   /*obtain specific potential, kinetic energy, and angular momentum for the first NumPart particles
@@ -281,6 +297,7 @@ public:
     SpecificAngularMomentum[2] = AMz / M;
   }
 };
+
 inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, GravityTree_t &tree, HBTxyz &RefPos,
                                      HBTxyz &RefVel)
 { // reorder the first Size particles according to their self-binding energy
@@ -312,6 +329,7 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
     }
   }
 }
+
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
 
@@ -550,6 +568,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       ParticlePotentialEnergies[i] = ESnap.GetPotentialEnergy(i, RefPos, RefVel);
   }
 }
+
 void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
 {
   /* Unbind all subhaloes that are nested deeper in the hierarchy of the current
