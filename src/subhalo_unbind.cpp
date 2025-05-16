@@ -14,7 +14,7 @@ struct ParticleEnergy_t
   HBTInt ParticleIndex;
   float E;
 };
-inline bool CompEnergy(const ParticleEnergy_t &a, const ParticleEnergy_t &b)
+inline bool CompareEnergy(const ParticleEnergy_t &a, const ParticleEnergy_t &b)
 {
   return (a.E < b.E);
 };
@@ -299,7 +299,7 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
                                        RefVel, Particles[pid].Mass);
     }
 #pragma omp single
-    sort(Einner.begin(), Einner.end(), CompEnergy);
+    sort(Einner.begin(), Einner.end(), CompareEnergy);
 #pragma omp for
     for (HBTInt i = 0; i < Size; i++)
     {
@@ -458,7 +458,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     }
     else
     {
-      sort(Elist.begin() + Nbound, Elist.begin() + Nlast, CompEnergy); // only sort the unbound part
+      sort(Elist.begin() + Nbound, Elist.begin() + Nlast, CompareEnergy); // only sort the unbound part
       HBTInt Ndiff = Nlast - Nbound;
       if (Ndiff < Nbound)
       {
@@ -484,7 +484,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
           SinkTrackId = SpecialConst::NullTrackId; // clear sinktrack as well
         }
         // update particle list
-        sort(Elist.begin(), Elist.begin() + Nbound, CompEnergy); // sort the self-bound part
+        sort(Elist.begin(), Elist.begin() + Nbound, CompareEnergy); // sort the self-bound part
 
         /* We need to refine the most bound particle, as subsampling large subhaloes will lead to
          * incorrect ordering of binding energies. Hence, the most bound particle before this step
