@@ -74,6 +74,8 @@ public:
 */
 void SubhaloSnapshot_t::ReassignGasParticles()
 {
+  // Do nothing if reassignment is not enabled
+  if(HBTConfig.ReassignParticles == 0)return;
 
   // Loop over FoF groups
   HBTInt NumHalos = MemberTable.SubGroups.size();
@@ -136,7 +138,7 @@ void SubhaloSnapshot_t::ReassignGasParticles()
                   auto &part = Subhalos[subid].Particles[i];
                   if(part.Id != SpecialConst::NullParticleId)
                     {
-                      const HBTInt nr_ngbs = 10;
+                      const HBTInt nr_ngbs = HBTConfig.NumNeighboursForReassignment;
                       const HBTxyz centre = part.ComovingPosition;
                       // TODO: better initial search radius guess
                       //       could use size of the tree node containing the point?
