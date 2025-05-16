@@ -151,6 +151,7 @@ public:
        2 = particles of any type are moved if all of their neighbours belong to another halo
      */
     ReassignParticles = 0;
+    NumNeighboursForReassignment = 10;
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);
