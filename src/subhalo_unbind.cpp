@@ -318,6 +318,25 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
   }
 }
 
+HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &NLast, const HBTInt &MaxSampleSize, const HBTInt &MassPreviousIteration)
+{
+  /* If we have a DMO simulation, all particles will have the same mass, 
+   * so we use the particle number ratio. Hydrodynamical simulations likely use 
+   * particles of different masses, so we need to accumulate particle masses*/
+#ifdef DM_ONLY
+  HBTReal MassUpscaleFactor = (HBTReal)Nlast / MaxSampleSize;
+#else
+  HBTReal MassParticleSubsample = 0;
+#pragma omp parallel for if (MaxSampleSize > 100) reduction(+:MassParticleSubsample)
+  for (HBTInt i = 0; i < MaxSampleSize; i++)
+  {
+    MassParticleSubsample += ESnap.GetMass(i);
+  }
+  HBTReal MassUpscaleFactor = MassPreviousIteration / MassParticleSubsample;
+#endif
+  return MassUpscaleFactor;
+}
+
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
 
@@ -365,6 +384,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   if (MaxSampleSize > 0 && Nbound > MaxSampleSize)
     random_shuffle(Particles.begin(), Particles.end()); // shuffle for easy resampling later.
   HBTInt Nlast;
+  HBTInt MassPreviousIteration; // TODO: add method to compute this for hydro simulations.
 
   /* This vector stores the original ordering of particles, and will later store
    * their binding energies. */
@@ -403,11 +423,18 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     {
       Nlast = Nbound;
       HBTInt np_tree = Nlast;
-      if (MaxSampleSize > 0 && Nlast > MaxSampleSize) // downsample
+
+      /* If we subsample, then we need to upscale the masses of particles that
+       * contribute to potential calculations. */
+      if (MaxSampleSize > 0 && Nlast > MaxSampleSize)
       {
         np_tree = MaxSampleSize;
-        ESnap.SetMassUnit((HBTReal)Nlast / MaxSampleSize);
+
+        ESnap.SetMassUnit(1.);
+        HBTReal MassUpscaleFactor = GetMassUpscaleFactor(ESnap, Nlast, MaxSampleSize, MassPreviousIteration);
+        ESnap.SetMassUnit(MassUpscaleFactor);
       }
+
       tree.Build(ESnap, np_tree);
 #pragma omp parallel for if (Nlast > 100)
       for (HBTInt i = 0; i < Nlast; i++)
