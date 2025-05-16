@@ -366,10 +366,16 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     random_shuffle(Particles.begin(), Particles.end()); // shuffle for easy resampling later.
   HBTInt Nlast;
 
+  /* This vector stores the original ordering of particles, and will later store
+   * their binding energies. */
   vector<ParticleEnergy_t> Elist(Nbound);
   for (HBTInt i = 0; i < Nbound; i++)
     Elist[i].ParticleIndex = i;
+
   EnergySnapshot_t ESnap(Elist.data(), Elist.size(), Particles, epoch);
+
+  /* Iteratively unbind until we find that the subhalo bound particle number (or 
+   * mass) has either converged or the subhalo has disrupted. */
   bool CorrectionLoop = false;
   while (true)
   {
@@ -480,17 +486,21 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       Mbound = ESnap.AverageVelocity(PhysicalAverageVelocity, Nbound);
       ESnap.AveragePosition(ComovingAveragePosition, Nbound);
 
-      if (Nbound >= Nlast * BoundMassPrecision) // converge
+      /* We have converged according to the user specified threshold */
+      if (Nbound >= Nlast * BoundMassPrecision)
       {
+        /* Since we have a resolved subhalo, we reset the death and sink 
+         * information. */
         if (!IsAlive())
-          SnapshotIndexOfDeath = SpecialConst::NullSnapshotId; // clear death snapshot
+          SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
         if (IsTrapped())
         {
           SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
-          SinkTrackId = SpecialConst::NullTrackId; // clear sinktrack as well
+          SinkTrackId = SpecialConst::NullTrackId;
         }
-        // update particle list
-        sort(Elist.begin(), Elist.begin() + Nbound, CompareEnergy); // sort the self-bound part
+
+        /* Sort the bound particles in binding energy */
+        sort(Elist.begin(), Elist.begin() + Nbound, CompareEnergy);
 
         /* We need to refine the most bound particle, as subsampling large subhaloes will lead to
          * incorrect ordering of binding energies. Hence, the most bound particle before this step
@@ -504,6 +514,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
           HBTInt SampleSizeCenterRefinement =
             max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCenterRefinement * Nbound));
 
+          /* Computes self-binding energy of the SampleSizeCenterRefinement most bound
+           * particles, and sorts them according to their binding energy. */
+          // NOTE: Elist.Energies is not updated, so if we save binding energies
+          // in the output, the values will be "out of order" since they reflect 
+          // the subsampled energy estimate. 
           RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
         }
 
@@ -517,15 +532,18 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         Particles.swap(p);
 
         /* Update the most bound coordinate. Note that for resolved subhaloes,
-         * this is not necceserally a tracer particle. */
+         * this is not necessarily a tracer particle. */
         copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
         copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
         break;
       }
     }
   }
+
+  /* Computes the specific potential and kinetic energy of the bound subhalo, as
+   * well as its specific angular momentum. */
   ESnap.AverageKinematics(SpecificSelfPotentialEnergy, SpecificSelfKineticEnergy, SpecificAngularMomentum, Nbound,
-                          RefPos, RefVel); // only use CoM frame when unbinding and calculating Kinematics
+                          RefPos, RefVel);
 
   /* For orphans, this function call only sets it MboundType and NboundType equal to 0. For resolved objects, it
    * updates those fields, as well as the index of the most bound tracer particle.*/
@@ -536,6 +554,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   if (IsAlive())
     MostBoundParticleId = Particles[GetTracerIndex()].Id;
 
+  /* Get centre of mass position and velocity of the most bound particles, which
+   * is later used to determine if this subhalo overlaps in phase-space with another. */
   GetCorePhaseSpaceProperties();
 
   /* Store the binding energy information to save later */
