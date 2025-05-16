@@ -65,18 +65,6 @@ static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size
   }
 }
 
-static void PopMostBoundParticle(ParticleEnergy_t *Edata, const HBTInt Nbound)
-{
-  HBTInt imin = 0;
-  for (HBTInt i = 1; i < Nbound; i++)
-  {
-    if (Edata[i].Energy < Edata[imin].Energy)
-      imin = i;
-  }
-  if (imin != 0)
-    swap(Edata[imin], Edata[0]);
-}
-
 class EnergySnapshot_t : public Snapshot_t
 {
   HBTInt GetParticle(HBTInt i) const
