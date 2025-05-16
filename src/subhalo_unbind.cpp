@@ -11,13 +11,13 @@
 
 struct ParticleEnergy_t
 {
+  float Energy;
   HBTInt ParticleIndex;
-  float E;
 };
 
 inline bool CompareEnergy(const ParticleEnergy_t &a, const ParticleEnergy_t &b)
 {
-  return (a.E < b.E);
+  return (a.Energy < b.Energy);
 };
 
 static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size_t len)
@@ -26,7 +26,7 @@ static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size
   if (len == 0)
     return 0;
   if (len == 1)
-    return Elist[0].E < 0;
+    return Elist[0].Energy < 0;
 
   ParticleEnergy_t Etmp = Elist[0];
   auto iterforward = Elist.begin(), iterbackward = Elist.begin() + len;
@@ -39,7 +39,7 @@ static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size
       if (iterbackward == iterforward)
       {
         *iterforward = Etmp;
-        if (Etmp.E < 0)
+        if (Etmp.Energy < 0)
           iterbackward++;
         return iterbackward - Elist.begin();
       }
@@ -54,7 +54,7 @@ static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size
       if (iterforward == iterbackward)
       {
         *iterbackward = Etmp;
-        if (Etmp.E < 0)
+        if (Etmp.Energy < 0)
           iterbackward++;
         return iterbackward - Elist.begin();
       }
@@ -70,7 +70,7 @@ static void PopMostBoundParticle(ParticleEnergy_t *Edata, const HBTInt Nbound)
   HBTInt imin = 0;
   for (HBTInt i = 1; i < Nbound; i++)
   {
-    if (Edata[i].E < Edata[imin].E)
+    if (Edata[i].Energy < Edata[imin].Energy)
       imin = i;
   }
   if (imin != 0)
@@ -130,7 +130,7 @@ public:
   {
     // Load the total binding energy of the particle, then remove the thermal
     // and kinetic terms so we can return the potential energy
-    HBTReal E = Elist[i].E;
+    HBTReal E = Elist[i].Energy;
 #ifdef UNBIND_WITH_THERMAL_ENERGY
     E -= GetInternalEnergy(i);
 #endif
@@ -267,7 +267,7 @@ public:
     for (HBTInt i = 0; i < NumPart; i++)
     {
       HBTReal m = GetMass(i);
-      E += Elist[i].E * m;
+      E += Elist[i].Energy * m;
 #ifdef UNBIND_WITH_THERMAL_ENERGY
       E -= GetInternalEnergy(i) * m;
 #endif
@@ -312,7 +312,7 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
     {
       HBTInt pid = Elist[i].ParticleIndex;
       Einner[i].ParticleIndex = i;
-      Einner[i].E = tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].GetPhysicalVelocity(), RefPos,
+      Einner[i].Energy = tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].GetPhysicalVelocity(), RefPos,
                                        RefVel, Particles[pid].Mass);
     }
 #pragma omp single
@@ -401,7 +401,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         auto v = Particles[pid].GetPhysicalVelocity();
         HBTxyz OldVel;
         epoch.RelativeVelocity(x, v, OldRefPos, OldRefVel, OldVel);
-        Elist[i].E += VecDot(OldVel, RefVelDiff) + dK - tree.EvaluatePotential(x, 0);
+        Elist[i].Energy += VecDot(OldVel, RefVelDiff) + dK - tree.EvaluatePotential(x, 0);
       }
       Nlast = Nbound;
     }
@@ -424,10 +424,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
           mass = ESnap.GetMass(i); // to correct for self-gravity
         else
           mass = 0.; // not sampled in tree, no self gravity to correct
-        Elist[i].E = tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].GetPhysicalVelocity(), RefPos,
+        Elist[i].Energy = tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].GetPhysicalVelocity(), RefPos,
                                         RefVel, mass);
 #ifdef UNBIND_WITH_THERMAL_ENERGY
-        Elist[i].E += Particles[pid].InternalEnergy;
+        Elist[i].Energy += Particles[pid].InternalEnergy;
 #endif
       }
       ESnap.SetMassUnit(1.); // reset, no necessary
@@ -556,7 +556,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     ParticleBindingEnergies.resize(Nbound);
 #pragma omp parallel for if (Nbound > 100)
     for (HBTInt i = 0; i < Nbound; i++)
-      ParticleBindingEnergies[i] = Elist[i].E;
+      ParticleBindingEnergies[i] = Elist[i].Energy;
   }
 
   /* Store the potential energy information to save later */
