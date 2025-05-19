@@ -70,8 +70,8 @@ void SubhaloSnapshot_t::ReassignParticles()
       // We're not reassigning particles
       return;
     case 1:
-      // Gas particles are moved to tracer type neighbours
-      ReassignGasParticles();
+      // Non-tracer-type particles are moved to tracer type neighbours
+      ReassignNonTracerParticles();
       return;
     case 2:
       // Particles of any type are moved if all neighbours are in another halo
@@ -85,13 +85,13 @@ void SubhaloSnapshot_t::ReassignParticles()
 }
 
 /*
-  For each gas particle, identify the nearest tracer type particle in
-  any subhalo in the same FoF group and assign the gas particle to the
-  subhalo the tracer is bound to, if any.
+  For each non-tracer type particle, identify the nearest tracer type particle
+  in any subhalo in the same FoF group and assign it to the subhalo the tracer
+  is bound to, if any.
 
-  All gas particles, bound or not, are considered for reassignment.
+  All non-tracer type particles, bound or not, are considered for reassignment.
 */
-void SubhaloSnapshot_t::ReassignGasParticles()
+void SubhaloSnapshot_t::ReassignNonTracerParticles()
 {
   // Loop over FoF groups
   HBTInt NumHalos = MemberTable.SubGroups.size();
@@ -101,20 +101,26 @@ void SubhaloSnapshot_t::ReassignGasParticles()
       // Get indexes of subhalos in this FoF group
       auto &subgroup = MemberTable.SubGroups[haloid];
 
-      // Count gas and tracer type particles
+      // Count tracer and non-tracer type particles
       HBTInt nr_tracers = 0;
-      HBTInt nr_gas = 0;
+      HBTInt nr_non_tracers = 0;
       for(auto subid : subgroup)
         {
           for(auto &part : Subhalos[subid].Particles)
             {
-              if(part.IsTracer())nr_tracers += 1;
-              if(part.Type==TypeGas)nr_gas += 1;
+              if(part.IsTracer())
+                {
+                  nr_tracers += 1;
+                }
+              else
+                {
+                  nr_non_tracers += 1;
+                }
             }
         }
 
-      // If there's no gas, we can skip this halo
-      if(nr_gas > 0)
+      // If there are no non-tracers, we can skip this halo
+      if(nr_non_tracers > 0)
         {
           // Store the number of particles in each subhalo.
           // This is so that moved particles can be appended to the particle
@@ -146,13 +152,13 @@ void SubhaloSnapshot_t::ReassignGasParticles()
           GeoTree_t tree;
           tree.Build(tracer_snap);
 
-          // For each gas particle (bound or not), identify the nearest neighbour tracer type particles
+          // For each non-tracer particle (bound or not), identify the nearest neighbour tracer type particles
           for(auto subid : subgroup)
             {
               for(HBTInt i=0; i<sublen[subid]; i+=1)
                 {
                   auto &part = Subhalos[subid].Particles[i];
-                  if((part.Id != SpecialConst::NullParticleId) && (part.Type==TypeGas))
+                  if((part.Id != SpecialConst::NullParticleId) && (!part.IsTracer()))
                     {
                       const HBTInt nr_ngbs = HBTConfig.NumNeighboursForReassignment;
                       const HBTxyz centre = part.ComovingPosition;
