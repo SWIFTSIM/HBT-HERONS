@@ -20,16 +20,17 @@ inline bool CompareEnergy(const ParticleEnergy_t &a, const ParticleEnergy_t &b)
   return (a.Energy < b.Energy);
 };
 
-static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size_t len)
-/*sort Elist to move unbound particles to the end*/
-{ // similar to the C++ partition() func
-  if (len == 0)
+/* Similar to the C++ partition() function but returns the number of bound 
+ * particles. Used to sort Elist to move unbound particles to the end. */
+static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size_t NumPart)
+{ 
+  if (NumPart == 0)
     return 0;
-  if (len == 1)
+  if (NumPart == 1)
     return Elist[0].Energy < 0;
 
   ParticleEnergy_t Etmp = Elist[0];
-  auto iterforward = Elist.begin(), iterbackward = Elist.begin() + len;
+  auto iterforward = Elist.begin(), iterbackward = Elist.begin() + NumPart;
   while (true)
   {
     // iterforward is a void now, can be filled
@@ -420,14 +421,22 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   bool CorrectionLoop = false;
   while (true)
   {
+    /* Correct the binding energies of bound particles due to removing particles
+     * from the bound set in the previous iteration. */
     if (CorrectionLoop)
-    { // correct the potential due to removed particles
+    {
+      /* Compute the kinetic energy of the new centre of mass relative to the
+       * old centre of mass frame. */
       HBTxyz RefVelDiff;
       epoch.RelativeVelocity(OldRefPos, OldRefVel, RefPos, RefVel, RefVelDiff);
       HBTReal dK = 0.5 * VecNorm(RefVelDiff);
+
+      /* The tree will only contain particles that were identified as unbound in 
+       * the last unbinding iteration. */
       EnergySnapshot_t ESnapCorrection(&Elist[Nbound], Nlast - Nbound, Particles,
-                                       epoch); // point to freshly removed particles
+                                       epoch);
       tree.Build(ESnapCorrection);
+
 #pragma omp parallel for if (Nlast > 100)
       for (HBTInt i = 0; i < Nbound; i++)
       {
@@ -436,6 +445,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         auto v = Particles[pid].GetPhysicalVelocity();
         HBTxyz OldVel;
         epoch.RelativeVelocity(x, v, OldRefPos, OldRefVel, OldVel);
+
+        /* Remove the potential contribution of unbound particles and update the
+         * kinetic energy based on new reference frame. */
         Elist[i].Energy += VecDot(OldVel, RefVelDiff) + dK - tree.EvaluatePotential(x, 0);
       }
       Nlast = Nbound;
@@ -452,7 +464,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       {
         np_tree = MaxSampleSize;
 
-        ESnap.SetMassUnit(1.);
+        ESnap.SetMassUnit(1.); /* To get true particle mass */
         HBTReal MassUpscaleFactor = GetMassUpscaleFactor(ESnap, Nlast, Mlast, MaxSampleSize);
         ESnap.SetMassUnit(MassUpscaleFactor);
       }
