@@ -394,8 +394,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   GravityTree_t tree;
   tree.Reserve(Particles.size());
 
+  /* Shuffle the particle vector, which we use as our basis of random 
+   * subsamples */
   if (MaxSampleSize > 0 && Nbound > MaxSampleSize)
-    random_shuffle(Particles.begin(), Particles.end()); // shuffle for easy resampling later.
+    random_shuffle(Particles.begin(), Particles.end());
 
   /* This vector stores the original ordering of particles, and will later store
    * their binding energies. */
@@ -410,7 +412,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
    * point. */
   Nbound = Particles.size();
   Mbound = ESnap.SumUpMass(Nbound);
- 
+
   /* Used to determine when iterative unbinding has converged to within the 
    * specified accuracy. */
   HBTInt Nlast;
@@ -508,7 +510,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     }
 #endif
 
-    /* Object has disrupted */
+    /* Subhalo has disrupted */
     if ((Nbound < HBTConfig.MinNumPartOfSub) || (Nbound_tracers < HBTConfig.MinNumTracerPartOfSub))
     {
       /* Store when it disrupted. */
@@ -529,75 +531,77 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
       break;
     }
-    else
+
+    /* Sort the particles that were found to be newly unbound. */
+    sort(Elist.begin() + Nbound, Elist.begin() + Nlast, CompareEnergy);
+    HBTInt Ndiff = Nlast - Nbound;
+    if (Ndiff < Nbound)
     {
-      sort(Elist.begin() + Nbound, Elist.begin() + Nlast, CompareEnergy); // only sort the unbound part
-      HBTInt Ndiff = Nlast - Nbound;
-      if (Ndiff < Nbound)
+      if (MaxSampleSize <= 0 || Ndiff < MaxSampleSize)
       {
-        if (MaxSampleSize <= 0 || Ndiff < MaxSampleSize)
-        {
-          CorrectionLoop = true;
-          copyHBTxyz(OldRefPos, RefPos);
-          copyHBTxyz(OldRefVel, RefVel);
-        }
+        CorrectionLoop = true;
+        copyHBTxyz(OldRefPos, RefPos);
+        copyHBTxyz(OldRefVel, RefVel);
+      }
+    }
+
+    /* The centre of mass frame is updated here */
+    Mbound = ESnap.AverageVelocity(PhysicalAverageVelocity, Nbound);
+    ESnap.AveragePosition(ComovingAveragePosition, Nbound);
+
+    /* We have converged according to the user specified threshold. */
+    if (Nbound >= Nlast * BoundMassPrecision)
+    {
+      /* Since we have a resolved subhalo, we reset the death and sink 
+       * information. */
+      if (!IsAlive())
+        SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
+      if (IsTrapped())
+      {
+        SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
+        SinkTrackId = SpecialConst::NullTrackId;
       }
 
-      /* The centre of mass frame is updated here */
-      Mbound = ESnap.AverageVelocity(PhysicalAverageVelocity, Nbound);
-      ESnap.AveragePosition(ComovingAveragePosition, Nbound);
+      /* Sort the bound particles in binding energy */
+      sort(Elist.begin(), Elist.begin() + Nbound, CompareEnergy);
 
-      /* We have converged according to the user specified threshold. */
-      if (Nbound >= Nlast * BoundMassPrecision)
+      /* We need to refine the most bound particle, as subsampling large subhaloes will lead to
+       * incorrect ordering of binding energies. Hence, the most bound particle before this step
+       * may not be the true most bound particle. */
+      if (RefineMostBoundParticle && Nbound > MaxSampleSize)
       {
-        /* Since we have a resolved subhalo, we reset the death and sink 
-         * information. */
-        if (!IsAlive())
-          SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
-        if (IsTrapped())
-        {
-          SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
-          SinkTrackId = SpecialConst::NullTrackId;
-        }
+        /* If the number of bound particles is large, the number of particles used in this step scales with Nbound.
+         * Using too few particles without this scaling would not result in a better centering. This is because it
+         * would be limited to the (MaxSampleSize / Nbound) fraction of most bound particles, whose ranking can be
+         * extremely sensitive to the randomness used during unbinding. */
+        HBTInt SampleSizeCenterRefinement =
+          max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCenterRefinement * Nbound));
 
-        /* Sort the bound particles in binding energy */
-        sort(Elist.begin(), Elist.begin() + Nbound, CompareEnergy);
-
-        /* We need to refine the most bound particle, as subsampling large subhaloes will lead to
-         * incorrect ordering of binding energies. Hence, the most bound particle before this step
-         * may not be the true most bound particle. */
-        if (RefineMostBoundParticle && Nbound > MaxSampleSize)
-        {
-          /* If the number of bound particles is large, the number of particles used in this step scales with Nbound.
-           * Using too few particles without this scaling would not result in a better centering. This is because it
-           * would be limited to the (MaxSampleSize / Nbound) fraction of most bound particles, whose ranking can be
-           * extremely sensitive to the randomness used during unbinding. */
-          HBTInt SampleSizeCenterRefinement =
-            max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCenterRefinement * Nbound));
-
-          /* Computes self-binding energy of the SampleSizeCenterRefinement most bound
-           * particles, and sorts them according to their binding energy. */
-          // NOTE: Elist.Energies is not updated, so if we save binding energies
-          // in the output, the values will be "out of order" since they reflect 
-          // the subsampled energy estimate.
-          RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
-        }
-
-        // todo: optimize this with in-place permutation, to avoid mem alloc and copying.
-        ParticleList_t p(Particles.size());
-        for (HBTInt i = 0; i < Particles.size(); i++)
-        {
-          p[i] = Particles[Elist[i].ParticleIndex];
-          Elist[i].ParticleIndex = i; // update particle index in Elist as well.
-        }
-        Particles.swap(p);
-
-        /* Update the most bound coordinate. Note that for resolved subhaloes,
-         * this is not necessarily a tracer particle. */
-        copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
-        copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
-        break;
+        /* Computes self-binding energy of the SampleSizeCenterRefinement most bound
+         * particles, and sorts them according to their binding energy. */
+        // NOTE: Elist.Energies is not updated, so if we save binding energies
+        // in the output, the values will be "out of order" since they reflect 
+        // the subsampled energy estimate.
+        RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
       }
+
+      /* Replaces the original particle array with a copy where bound and unbound
+       * particles are partitioned, and the bound particles are sorted in binding
+       * energy. */
+      // todo: optimize this with in-place permutation, to avoid mem alloc and copying.
+      ParticleList_t p(Particles.size());
+      for (HBTInt i = 0; i < Particles.size(); i++)
+      {
+        p[i] = Particles[Elist[i].ParticleIndex];
+        Elist[i].ParticleIndex = i; // update particle index in Elist as well.
+      }
+      Particles.swap(p);
+
+      /* Update the most bound coordinate. Note that for resolved subhaloes,
+       * this is not necessarily a tracer particle. */
+      copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
+      copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
+      break;
     }
   }
 
