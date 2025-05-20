@@ -147,6 +147,18 @@ public:
     return Particles[GetParticle(i)].ComovingPosition;
   }
 
+  /* Computes the total mass of the first NumPart most bound particles. */
+  double SumUpMass(HBTInt NumPart)
+  {
+    double msum = 0;
+#pragma omp parallel for reduction(+ : msum) if (NumPart > 100)
+    for (HBTInt i = 0; i < NumPart; i++)
+    {
+      msum += GetMass(i);
+    }
+    return msum;
+  }
+
   double AverageVelocity(HBTxyz &CoV, HBTInt NumPart)
   /*mass weighted average velocity*/
   {
@@ -318,7 +330,7 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
   }
 }
 
-HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &NLast, const HBTInt &MaxSampleSize, const HBTInt &MassPreviousIteration)
+HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &NLast, const HBTInt &MassPreviousIteration, const HBTInt &MaxSampleSize)
 {
   /* If we have a DMO simulation, all particles will have the same mass, 
    * so we use the particle number ratio. Hydrodynamical simulations likely use 
@@ -380,11 +392,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   GravityTree_t tree;
   tree.Reserve(Particles.size());
-  Nbound = Particles.size(); // start from full set
+
   if (MaxSampleSize > 0 && Nbound > MaxSampleSize)
     random_shuffle(Particles.begin(), Particles.end()); // shuffle for easy resampling later.
-  HBTInt Nlast;
-  HBTInt MassPreviousIteration; // TODO: add method to compute this for hydro simulations.
 
   /* This vector stores the original ordering of particles, and will later store
    * their binding energies. */
@@ -393,6 +403,17 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     Elist[i].ParticleIndex = i;
 
   EnergySnapshot_t ESnap(Elist.data(), Elist.size(), Particles, epoch);
+
+  /* Starting number of bound particles and its associated mass. We include all
+   * particles because we do not know which ones are bound or unbound at this 
+   * point. */
+  Nbound = Particles.size();
+  Mbound = ESnap.SumUpMass(Nbound);
+ 
+  /* Used to determine when iterative unbinding has converged to within the 
+   * specified accuracy. */
+  HBTInt Nlast;
+  HBTReal Mlast;
 
   /* Iteratively unbind until we find that the subhalo bound particle number (or 
    * mass) has either converged or the subhalo has disrupted. */
@@ -422,6 +443,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     else
     {
       Nlast = Nbound;
+      Mlast = Mbound;
       HBTInt np_tree = Nlast;
 
       /* If we subsample, then we need to upscale the masses of particles that
@@ -431,7 +453,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         np_tree = MaxSampleSize;
 
         ESnap.SetMassUnit(1.);
-        HBTReal MassUpscaleFactor = GetMassUpscaleFactor(ESnap, Nlast, MaxSampleSize, MassPreviousIteration);
+        HBTReal MassUpscaleFactor = GetMassUpscaleFactor(ESnap, Nlast, Mlast, MaxSampleSize);
         ESnap.SetMassUnit(MassUpscaleFactor);
       }
 
@@ -513,7 +535,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       Mbound = ESnap.AverageVelocity(PhysicalAverageVelocity, Nbound);
       ESnap.AveragePosition(ComovingAveragePosition, Nbound);
 
-      /* We have converged according to the user specified threshold */
+      /* We have converged according to the user specified threshold. */
       if (Nbound >= Nlast * BoundMassPrecision)
       {
         /* Since we have a resolved subhalo, we reset the death and sink 
@@ -545,7 +567,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
            * particles, and sorts them according to their binding energy. */
           // NOTE: Elist.Energies is not updated, so if we save binding energies
           // in the output, the values will be "out of order" since they reflect 
-          // the subsampled energy estimate. 
+          // the subsampled energy estimate.
           RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
         }
 
