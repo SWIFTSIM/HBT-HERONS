@@ -108,6 +108,7 @@ void SubhaloSnapshot_t::ReassignNonTracerParticles()
         {
           for(auto &part : Subhalos[subid].Particles)
             {
+              assert(part.Id != SpecialConst::NullParticleId); // Should not have null particles at this point
               if(part.IsTracer())
                 {
                   nr_tracers += 1;
@@ -158,7 +159,8 @@ void SubhaloSnapshot_t::ReassignNonTracerParticles()
               for(HBTInt i=0; i<sublen[subid]; i+=1)
                 {
                   auto &part = Subhalos[subid].Particles[i];
-                  if((part.Id != SpecialConst::NullParticleId) && (!part.IsTracer()))
+                  assert(part.Id != SpecialConst::NullParticleId); // Should not have null particles at this point
+                  if(!part.IsTracer())
                     {
                       const HBTInt nr_ngbs = HBTConfig.NumNeighboursForReassignment;
                       const HBTxyz centre = part.ComovingPosition;
@@ -244,6 +246,7 @@ void SubhaloSnapshot_t::ReassignParticlesOfAnyType()
           for(HBTInt i=0; i<sublen[subid]; i+=1)
             {
               auto &part = Subhalos[subid].Particles[i];
+              assert(part.Id != SpecialConst::NullParticleId); // Should not have null particles at this point
               part_pos[nr_tot] = part.ComovingPosition;
               part_subid[nr_tot] = subid;
               nr_tot += 1;
@@ -265,42 +268,41 @@ void SubhaloSnapshot_t::ReassignParticlesOfAnyType()
               for(HBTInt i=0; i<sublen[subid]; i+=1)
                 {
                   auto &part = Subhalos[subid].Particles[i];
-                  if(part.Id != SpecialConst::NullParticleId)
+                  assert(part.Id != SpecialConst::NullParticleId); // Should not have null particles at this point
+
+                  // Find neighbours. Note that neighbour_list is in descending
+                  // order of distance and the last neighbour will usually be
+                  // the particle we're considering reassigning (but might not be
+                  // if several particles have identical coordinates).
+                  const HBTInt nr_ngbs = HBTConfig.NumNeighboursForReassignment;
+                  const HBTxyz centre = part.ComovingPosition;
+                  std::vector<HBTInt> neighbour_list = tree.NearestNeighbours(centre, nr_ngbs, HBTConfig.SofteningHalo*0.1);
+                  // Now check the what subhalos the neighbours are in. Here
+                  // we're going to store the subid of the first neighbour which
+                  // is in a different subhalo and count how many neighbours are in
+                  // that subhalo.
+                  HBTInt new_subid = -1;
+                  HBTInt new_subid_count = 0;
+                  for(auto ngb_idx : neighbour_list)
                     {
-                      // Find neighbours. Note that neighbour_list is in descending
-                      // order of distance and the last neighbour will usually be
-                      // the particle we're considering reassigning (but might not be
-                      // if several particles have identical coordinates).
-                      const HBTInt nr_ngbs = HBTConfig.NumNeighboursForReassignment;
-                      const HBTxyz centre = part.ComovingPosition;
-                      std::vector<HBTInt> neighbour_list = tree.NearestNeighbours(centre, nr_ngbs, HBTConfig.SofteningHalo*0.1);
-                      // Now check the what subhalos the neighbours are in. Here
-                      // we're going to store the subid of the first neighbour which
-                      // is in a different subhalo and count how many neighbours are in
-                      // that subhalo.
-                      HBTInt new_subid = -1;
-                      HBTInt new_subid_count = 0;
-                      for(auto ngb_idx : neighbour_list)
+                      HBTInt ngb_subid = part_subid[ngb_idx];
+                      if(ngb_subid != subid)
                         {
-                          HBTInt ngb_subid = part_subid[ngb_idx];
-                          if(ngb_subid != subid)
-                            {
-                              // This particle is in a different subhalo
-                              if(new_subid == -1)new_subid = ngb_subid;
-                              assert(ngb_subid >= 0); // We only search for neighbours in subhalos
-                              assert(new_subid >= 0); // Should have been set now
-                              if(ngb_subid == new_subid)new_subid_count += 1;
-                            }
+                          // This particle is in a different subhalo
+                          if(new_subid == -1)new_subid = ngb_subid;
+                          assert(ngb_subid >= 0); // We only search for neighbours in subhalos
+                          assert(new_subid >= 0); // Should have been set now
+                          if(ngb_subid == new_subid)new_subid_count += 1;
                         }
-                      // The "neighbours" include the particle itself so if nr_ngbs-1
-                      // neighbours are in another subhalo, we move the particle.
-                      if((new_subid >= 0) && (new_subid_count==nr_ngbs-1))
-                        {
-                          // Append the particle to the other subhalo's source list
-                          Subhalos[new_subid].Particles.push_back(part);
-                          // Flag the particle for removal from this subhalo
-                          part.Id = SpecialConst::NullParticleId;
-                        }
+                    }
+                  // The "neighbours" include the particle itself so if nr_ngbs-1
+                  // neighbours are in another subhalo, we move the particle.
+                  if((new_subid >= 0) && (new_subid_count==nr_ngbs-1))
+                    {
+                      // Append the particle to the other subhalo's source list
+                      Subhalos[new_subid].Particles.push_back(part);
+                      // Flag the particle for removal from this subhalo
+                      part.Id = SpecialConst::NullParticleId;
                     }
                 }
             }
