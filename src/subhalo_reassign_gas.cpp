@@ -182,7 +182,7 @@ HBTInt SubhaloSnapshot_t::ReassignNonTracerParticles()
                       std::vector<HBTInt> neighbour_list = tree.NearestNeighbours(centre, nr_ngbs, HBTConfig.SofteningHalo*0.1);
                       // Check if any of the neighbours are in the current subhalo
                       bool found = false;
-                      for(auto ngb_idx : neighbour_list)
+                      for(const auto ngb_idx : neighbour_list)
                         {
                           if(tracer_subid[ngb_idx] == subid)
                             {
@@ -193,13 +193,48 @@ HBTInt SubhaloSnapshot_t::ReassignNonTracerParticles()
                       if(!found)
                         {
                           // Current subhalo is not on the neighbour list, so we
-                          // may want to move this particle. Find nearest neighbour.
-                          const HBTInt ngb_idx = neighbour_list.back();
-                          const HBTInt ngb_subid = tracer_subid[ngb_idx];
-                          if((ngb_subid >= 0) && (ngb_subid != subid))
+                          // may want to move this particle. Count ocurrences of each
+                          // subid in the neighbour list.
+                          std::map<HBTInt, HBTInt> neighbour_subid_count;
+                          std::map<HBTInt, HBTReal> neighbour_subid_distance;
+                          for(const auto ngb_idx : neighbour_list)
                             {
+                              const HBTInt ngb_subid = tracer_subid[ngb_idx];
+                              if(ngb_subid != subid)
+                                {
+                                  // Count instances of each subid among the neighbours
+                                  neighbour_subid_count[ngb_subid] += 1;
+                                  // Store distance to nearest instance of each subid
+                                  // (neighbours are stored in descending order of distance in neighbour_list)
+                                  neighbour_subid_distance[ngb_subid] = PeriodicDistance(part.ComovingPosition,
+                                                                                         tracer_snap.GetComovingPosition(ngb_idx));
+                                }
+                            }
+
+                          // Now identify the most frequent subid in the neighbour list.
+                          // If we have a tie, use the nearer neighbour.
+                          HBTInt most_frequent_subid = -1;
+                          HBTInt most_frequent_count = 0;
+                          HBTReal most_frequent_distance = 0.0;
+                          for(auto &subid_and_count : neighbour_subid_count)
+                            {
+                              const HBTInt this_subid = subid_and_count.first;
+                              const HBTInt this_count = subid_and_count.second;
+                              const HBTReal this_distance = neighbour_subid_distance[this_subid];
+                              if((this_count > most_frequent_count) || ((this_count == most_frequent_count) && (this_distance < most_frequent_distance)))
+                                {
+                                  most_frequent_subid = this_subid;
+                                  most_frequent_count = this_count;
+                                  most_frequent_distance = this_distance;
+                                }
+                            }
+                          if(most_frequent_subid >= 0)
+                            {
+                              // We identified a subhalo to move the particle to
+                              assert(most_frequent_count > 0);
+                              assert(most_frequent_subid != subid); // not moving to same subhalo we're already in
                               // Append the particle to the other subhalo's source list
-                              Subhalos[ngb_subid].Particles.push_back(part);
+                              Subhalos[most_frequent_subid].Particles.push_back(part);
                               // Flag the particle for removal from this subhalo
                               part.Id = SpecialConst::NullParticleId;
                               nr_reassigned += 1;
