@@ -250,66 +250,70 @@ void SubhaloSnapshot_t::ReassignParticlesOfAnyType()
             }
         }
 
-      // Build a tree for the neighbour search
-      TracerSnapshot_t part_snap(part_pos);
-      GeoTree_t tree;
-      tree.Build(part_snap);
-
-      // Loop over subhalos in the FoF
-      for(auto subid : subgroup)
+      // If there are no particles (is that possible?), skip this FoF group
+      if(nr_tot > 0)
         {
-          // Loop over particles in the subhalo
-          for(HBTInt i=0; i<sublen[subid]; i+=1)
+          // Build a tree for the neighbour search
+          TracerSnapshot_t part_snap(part_pos);
+          GeoTree_t tree;
+          tree.Build(part_snap);
+
+          // Loop over subhalos in the FoF
+          for(auto subid : subgroup)
             {
-              auto &part = Subhalos[subid].Particles[i];
-              if(part.Id != SpecialConst::NullParticleId)
+              // Loop over particles in the subhalo
+              for(HBTInt i=0; i<sublen[subid]; i+=1)
                 {
-                  // Find neighbours. Note that neighbour_list is in descending
-                  // order of distance and the last neighbour will usually be
-                  // the particle we're considering reassigning (but might not be
-                  // if several particles have identical coordinates).
-                  const HBTInt nr_ngbs = HBTConfig.NumNeighboursForReassignment;
-                  const HBTxyz centre = part.ComovingPosition;
-                  std::vector<HBTInt> neighbour_list = tree.NearestNeighbours(centre, nr_ngbs, HBTConfig.SofteningHalo*0.1);
-                  // Now check the what subhalos the neighbours are in. Here
-                  // we're going to store the subid of the first neighbour which
-                  // is in a different subhalo and count how many neighbours are in
-                  // that subhalo.
-                  HBTInt new_subid = -1;
-                  HBTInt new_subid_count = 0;
-                  for(auto ngb_idx : neighbour_list)
+                  auto &part = Subhalos[subid].Particles[i];
+                  if(part.Id != SpecialConst::NullParticleId)
                     {
-                      HBTInt ngb_subid = part_subid[ngb_idx];
-                      if(ngb_subid != subid)
+                      // Find neighbours. Note that neighbour_list is in descending
+                      // order of distance and the last neighbour will usually be
+                      // the particle we're considering reassigning (but might not be
+                      // if several particles have identical coordinates).
+                      const HBTInt nr_ngbs = HBTConfig.NumNeighboursForReassignment;
+                      const HBTxyz centre = part.ComovingPosition;
+                      std::vector<HBTInt> neighbour_list = tree.NearestNeighbours(centre, nr_ngbs, HBTConfig.SofteningHalo*0.1);
+                      // Now check the what subhalos the neighbours are in. Here
+                      // we're going to store the subid of the first neighbour which
+                      // is in a different subhalo and count how many neighbours are in
+                      // that subhalo.
+                      HBTInt new_subid = -1;
+                      HBTInt new_subid_count = 0;
+                      for(auto ngb_idx : neighbour_list)
                         {
-                          // This particle is in a different subhalo
-                          if(new_subid == -1)new_subid = ngb_subid;
-                          assert(ngb_subid >= 0); // We only search for neighbours in subhalos
-                          assert(new_subid >= 0); // Should have been set now
-                          if(ngb_subid == new_subid)new_subid_count += 1;
+                          HBTInt ngb_subid = part_subid[ngb_idx];
+                          if(ngb_subid != subid)
+                            {
+                              // This particle is in a different subhalo
+                              if(new_subid == -1)new_subid = ngb_subid;
+                              assert(ngb_subid >= 0); // We only search for neighbours in subhalos
+                              assert(new_subid >= 0); // Should have been set now
+                              if(ngb_subid == new_subid)new_subid_count += 1;
+                            }
                         }
-                    }
-                  // The "neighbours" include the particle itself so if nr_ngbs-1
-                  // neighbours are in another subhalo, we move the particle.
-                  if((new_subid >= 0) && (new_subid_count==nr_ngbs-1))
-                    {
-                      // Append the particle to the other subhalo's source list
-                      Subhalos[new_subid].Particles.push_back(part);
-                      // Flag the particle for removal from this subhalo
-                      part.Id = SpecialConst::NullParticleId;
+                      // The "neighbours" include the particle itself so if nr_ngbs-1
+                      // neighbours are in another subhalo, we move the particle.
+                      if((new_subid >= 0) && (new_subid_count==nr_ngbs-1))
+                        {
+                          // Append the particle to the other subhalo's source list
+                          Subhalos[new_subid].Particles.push_back(part);
+                          // Flag the particle for removal from this subhalo
+                          part.Id = SpecialConst::NullParticleId;
+                        }
                     }
                 }
             }
-        }
 
-      // Now tidy up any particles we flagged for removal
-      for(auto subid : subgroup)
-        {
-          // Ensure Nbound is not greater than the total number of particles
-          if(Subhalos[subid].Nbound > Subhalos[subid].Particles.size())
-            Subhalos[subid].Nbound = Subhalos[subid].Particles.size();
-          // Remove null particles and update tracer index
-          Subhalos[subid].KickNullParticles();
+          // Now tidy up any particles we flagged for removal
+          for(auto subid : subgroup)
+            {
+              // Ensure Nbound is not greater than the total number of particles
+              if(Subhalos[subid].Nbound > Subhalos[subid].Particles.size())
+                Subhalos[subid].Nbound = Subhalos[subid].Particles.size();
+              // Remove null particles and update tracer index
+              Subhalos[subid].KickNullParticles();
+            }
         }
       // Next FoF halo
     }
