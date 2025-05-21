@@ -62,26 +62,37 @@ public:
   }
 };
 
-void SubhaloSnapshot_t::ReassignParticles()
+void SubhaloSnapshot_t::ReassignParticles(MpiWorker_t &world, HaloSnapshot_t &halo_snap)
 {
+  HBTInt nr_reassigned = 0;
   switch(HBTConfig.ReassignParticles)
     {
     case 0:
       // We're not reassigning particles
+      if (world.rank() == 0)
+        cout << "  Not reassigning particles\n";
       return;
     case 1:
       // Non-tracer-type particles are moved to tracer type neighbours
-      ReassignNonTracerParticles();
-      return;
+      if (world.rank() == 0)
+        cout << "  Reassigning tracer type particles only\n";
+      nr_reassigned = ReassignNonTracerParticles();
+      break;
     case 2:
       // Particles of any type are moved if all neighbours are in another halo
-      ReassignParticlesOfAnyType();
-      return;
+      if (world.rank() == 0)
+        cout << "  Reassigning all particle types\n";
+      nr_reassigned = ReassignParticlesOfAnyType();
+      break;
     default:
       // Invalid parameter value
       std::cerr << "Invalid value for ReassignParticles" << std::endl;
       std::abort();
     }
+  HBTInt nr_reassigned_tot;
+  MPI_Allreduce(&nr_reassigned, &nr_reassigned_tot, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  if (world.rank() == 0)
+    cout << "  Total number of particles reassigned = " << nr_reassigned_tot << "\n";
 }
 
 /*
@@ -91,11 +102,12 @@ void SubhaloSnapshot_t::ReassignParticles()
 
   All non-tracer type particles, bound or not, are considered for reassignment.
 */
-void SubhaloSnapshot_t::ReassignNonTracerParticles()
+HBTInt SubhaloSnapshot_t::ReassignNonTracerParticles()
 {
   // Loop over FoF groups
   HBTInt NumHalos = MemberTable.SubGroups.size();
-#pragma omp parallel for schedule(dynamic, 1)
+  HBTInt nr_reassigned = 0;
+#pragma omp parallel for schedule(dynamic, 1) reduction(+:nr_reassigned)
   for (HBTInt haloid = 0; haloid < NumHalos; haloid++)
     {
       // Get indexes of subhalos in this FoF group
@@ -190,6 +202,7 @@ void SubhaloSnapshot_t::ReassignNonTracerParticles()
                               Subhalos[ngb_subid].Particles.push_back(part);
                               // Flag the particle for removal from this subhalo
                               part.Id = SpecialConst::NullParticleId;
+                              nr_reassigned += 1;
                             }
                         }
                     }
@@ -208,6 +221,7 @@ void SubhaloSnapshot_t::ReassignNonTracerParticles()
       // Next FoF halo
     }
   // Done.
+  return nr_reassigned;
 }
 
 
@@ -216,11 +230,12 @@ void SubhaloSnapshot_t::ReassignNonTracerParticles()
   are in the same halo (but not the one the particle is in) then move
   the particle to that halo.
 */
-void SubhaloSnapshot_t::ReassignParticlesOfAnyType()
+HBTInt SubhaloSnapshot_t::ReassignParticlesOfAnyType()
 {
   // Loop over FoF groups
   HBTInt NumHalos = MemberTable.SubGroups.size();
-#pragma omp parallel for schedule(dynamic, 1)
+  HBTInt nr_reassigned = 0;
+#pragma omp parallel for schedule(dynamic, 1) reduction(+:nr_reassigned)
   for (HBTInt haloid = 0; haloid < NumHalos; haloid++)
     {
       // Get indexes of subhalos in this FoF group
@@ -303,6 +318,7 @@ void SubhaloSnapshot_t::ReassignParticlesOfAnyType()
                       Subhalos[new_subid].Particles.push_back(part);
                       // Flag the particle for removal from this subhalo
                       part.Id = SpecialConst::NullParticleId;
+                      nr_reassigned += 1;
                     }
                 }
             }
@@ -320,4 +336,5 @@ void SubhaloSnapshot_t::ReassignParticlesOfAnyType()
       // Next FoF halo
     }
   // Done.
+  return nr_reassigned;
 }

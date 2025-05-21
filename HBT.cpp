@@ -141,7 +141,7 @@ int main(int argc, char **argv)
        tracer type particle in the same FoF group */
     if (world.rank() == 0)
       cout << "Reassigning particles...\n";
-    subsnap.ReassignParticles();
+    subsnap.ReassignParticles(world, halosnap);
     global_timer.Tick("reassign_particles", world.Communicator);
 
     /* We recursively unbind subhaloes in a depth-first approach, defined
