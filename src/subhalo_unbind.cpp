@@ -337,7 +337,7 @@ HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &NLast,
    * so we use the particle number ratio. Hydrodynamical simulations likely use 
    * particles of different masses, so we need to accumulate particle masses*/
 #ifdef DM_ONLY
-  HBTReal MassUpscaleFactor = (HBTReal)Nlast / MaxSampleSize;
+  HBTReal MassUpscaleFactor = (HBTReal)NLast / MaxSampleSize;
 #else
   HBTReal MassParticleSubsample = 0;
 #pragma omp parallel for if (MaxSampleSize > 100) reduction(+:MassParticleSubsample)
