@@ -302,10 +302,10 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
 #pragma omp for
     for (HBTInt i = 0; i < Size; i++)
     {
-      HBTInt pid = Elist[i].ParticleIndex;
+      HBTInt index = Elist[i].ParticleIndex;
       Einner[i].ParticleIndex = i;
-      Einner[i].Energy = tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].GetPhysicalVelocity(), RefPos,
-                                       RefVel, Particles[pid].Mass);
+      Einner[i].Energy = tree.BindingEnergy(Particles[index].ComovingPosition, Particles[index].GetPhysicalVelocity(), RefPos,
+                                       RefVel, Particles[index].Mass);
     }
 #pragma omp single
     sort(Einner.begin(), Einner.end(), CompareEnergy);
@@ -434,9 +434,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 #pragma omp parallel for if (Nlast > 100)
       for (HBTInt i = 0; i < Nbound; i++)
       {
-        HBTInt pid = Elist[i].ParticleIndex;
-        auto &x = Particles[pid].ComovingPosition;
-        auto v = Particles[pid].GetPhysicalVelocity();
+        HBTInt index = Elist[i].ParticleIndex;
+        auto &x = Particles[index].ComovingPosition;
+        auto v = Particles[index].GetPhysicalVelocity();
         HBTxyz OldVel;
         epoch.RelativeVelocity(x, v, OldRefPos, OldRefVel, OldVel);
 
