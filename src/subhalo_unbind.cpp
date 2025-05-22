@@ -174,7 +174,7 @@ public:
   double AverageVelocity(HBTxyz &CoV, HBTInt NumPart)
   {
     HBTInt i;
-    double svx, svy, svz, msum = 0.;
+    double svx = 0, svy = 0, svz = 0, msum = 0.;
 
 #pragma omp parallel for reduction(+ : msum, svx, svy, svz) if (NumPart > 100)
     for (i = 0; i < NumPart; i++)
@@ -197,7 +197,7 @@ public:
   double AveragePosition(HBTxyz &CoM, HBTInt NumPart)
   {
     HBTInt i;
-    double sx, sy, sz, msum = 0;
+    double sx = 0, sy = 0, sz = 0, msum = 0;
 
     double origin[3];
     if (HBTConfig.PeriodicBoundaryOn)
