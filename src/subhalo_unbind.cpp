@@ -401,8 +401,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   /* This vector stores the original ordering of particles, and will later store
    * their binding energies. */
-  vector<ParticleEnergy_t> Elist(Nbound);
-  for (HBTInt i = 0; i < Nbound; i++)
+  vector<ParticleEnergy_t> Elist(Particles.size());
+  for (HBTInt i = 0; i < Particles.size(); i++)
     Elist[i].ParticleIndex = i;
 
   EnergySnapshot_t ESnap(Elist.data(), Elist.size(), Particles, epoch);
