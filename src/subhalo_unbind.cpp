@@ -73,23 +73,19 @@ class EnergySnapshot_t : public Snapshot_t
     return Elist[i].ParticleIndex;
   }
 
+  HBTReal MassFactor;
+
 public:
   ParticleEnergy_t *Elist;
   typedef vector<Particle_t> ParticleList_t;
   HBTInt N;
   const ParticleList_t &Particles;
-  HBTReal MassFactor;
 
   EnergySnapshot_t(ParticleEnergy_t *e, HBTInt n, const ParticleList_t &particles, const Snapshot_t &epoch)
     : Elist(e), N(n), Particles(particles), MassFactor(1.)
   {
     Cosmology = epoch.Cosmology;
   };
-
-  void SetMassUnit(HBTReal mass_unit)
-  {
-    MassFactor = mass_unit;
-  }
 
   HBTInt size() const
   {
@@ -101,9 +97,23 @@ public:
     return Particles[GetParticle(i)].Id;
   }
 
+  /* Sets how much more massive subsampled particles are. */
+  void SetMassUpscaleFactor(HBTReal factor)
+  {
+    MassFactor = factor;
+  }
+
+  /* Returns the true mass of a particle. */
   HBTReal GetMass(HBTInt i) const
   {
-    return Particles[GetParticle(i)].Mass * MassFactor;
+    return Particles[GetParticle(i)].Mass;
+  }
+
+  /* Returns the scaled mass of a particle, which is larger than the true
+   * mass if the particles are being subsampled. */
+  HBTReal GetScaledMass(HBTInt i) const
+  {
+    return GetMass(i) * MassFactor;
   }
 
   HBTReal GetInternalEnergy(HBTInt i) const
@@ -467,9 +477,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       {
         np_tree = MaxSampleSize;
 
-        ESnap.SetMassUnit(1.); /* To get true particle mass */
         HBTReal MassUpscaleFactor = GetMassUpscaleFactor(ESnap, Nlast, Mlast, MaxSampleSize);
-        ESnap.SetMassUnit(MassUpscaleFactor);
+        ESnap.SetMassUpscaleFactor(MassUpscaleFactor);
       }
 
       tree.Build(ESnap, np_tree);
@@ -478,7 +487,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       {
         /* Non-zero masses for particles in the tree because we need to remove
          * their self-gravity. */
-        HBTReal particle_mass = (i < np_tree) ? ESnap.GetMass(i) : 0.;
+        HBTReal particle_mass = (i < np_tree) ? ESnap.GetScaledMass(i) : 0.;
 
         HBTInt index = Elist[i].ParticleIndex;
         Elist[i].Energy = tree.BindingEnergy(Particles[index].ComovingPosition, 
@@ -488,7 +497,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         Elist[i].Energy += Particles[index].InternalEnergy;
 #endif
       }
-      ESnap.SetMassUnit(1.);
+
+      /* This ensures we use the true particle mass if there is no subsampling 
+       * in the next unbinding iteration. */
+      ESnap.SetMassUpscaleFactor(1.);
     }
     Nbound = PartitionBindingEnergy(Elist, Nlast); // TODO: parallelize this.
 #ifdef NO_STRIPPING
