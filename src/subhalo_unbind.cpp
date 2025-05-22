@@ -331,13 +331,13 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
   }
 }
 
-HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &NLast, const HBTInt &MassPreviousIteration, const HBTInt &MaxSampleSize)
+HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize)
 {
   /* If we have a DMO simulation, all particles will have the same mass, 
    * so we use the particle number ratio. Hydrodynamical simulations likely use 
    * particles of different masses, so we need to accumulate particle masses*/
 #ifdef DM_ONLY
-  HBTReal MassUpscaleFactor = (HBTReal)NLast / MaxSampleSize;
+  HBTReal MassUpscaleFactor = (HBTReal)Nlast / MaxSampleSize;
 #else
   HBTReal MassParticleSubsample = 0;
 #pragma omp parallel for if (MaxSampleSize > 100) reduction(+:MassParticleSubsample)
@@ -345,7 +345,7 @@ HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &NLast,
   {
     MassParticleSubsample += ESnap.GetMass(i);
   }
-  HBTReal MassUpscaleFactor = MassPreviousIteration / MassParticleSubsample;
+  HBTReal MassUpscaleFactor = Mlast / MassParticleSubsample;
 #endif
   return MassUpscaleFactor;
 }
@@ -391,11 +391,15 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   auto &RefPos = ComovingAveragePosition;
   auto &RefVel = PhysicalAverageVelocity;
 
+  /* Starting number of bound particles we include all particles because we do
+   * not know which ones are bound or unbound at this point. */
+  Nbound = Particles.size();
+
   GravityTree_t tree;
   tree.Reserve(Particles.size());
 
   /* Shuffle the particle vector, which we use as our basis of random 
-   * subsamples */
+   * subsamples. */
   if (MaxSampleSize > 0 && Nbound > MaxSampleSize)
     random_shuffle(Particles.begin(), Particles.end());
 
@@ -407,10 +411,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   EnergySnapshot_t ESnap(Elist.data(), Elist.size(), Particles, epoch);
 
-  /* Starting number of bound particles and its associated mass. We include all
-   * particles because we do not know which ones are bound or unbound at this 
-   * point. */
-  Nbound = Particles.size();
+  /* Associated mass of the starting number of particles. */
   Mbound = ESnap.SumUpMass(Nbound);
 
   /* Used to determine when iterative unbinding has converged to within the 
