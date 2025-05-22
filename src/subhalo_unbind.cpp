@@ -170,22 +170,12 @@ public:
     return msum;
   }
 
+  /* Mass-weighted average velocity */
   double AverageVelocity(HBTxyz &CoV, HBTInt NumPart)
-  /*mass weighted average velocity*/
   {
-    HBTInt i, j;
-    double svx, svy, svz, msum;
+    HBTInt i;
+    double svx, svy, svz, msum = 0.;
 
-    if (0 == NumPart)
-      return 0.;
-    if (1 == NumPart)
-    {
-      copyHBTxyz(CoV, GetPhysicalVelocity(0));
-      return GetMass(0);
-    }
-
-    svx = svy = svz = 0.;
-    msum = 0.;
 #pragma omp parallel for reduction(+ : msum, svx, svy, svz) if (NumPart > 100)
     for (i = 0; i < NumPart; i++)
     {
@@ -203,26 +193,17 @@ public:
     return msum;
   }
 
+  /* Mass-weighted average position*/
   double AveragePosition(HBTxyz &CoM, HBTInt NumPart)
-  /*mass weighted average position*/
   {
-    HBTInt i, j;
-    double sx, sy, sz, origin[3], msum;
+    HBTInt i;
+    double sx, sy, sz, msum = 0;
 
-    if (0 == NumPart)
-      return 0.;
-    if (1 == NumPart)
-    {
-      copyHBTxyz(CoM, GetComovingPosition(0));
-      return GetMass(0);
-    }
-
+    double origin[3];
     if (HBTConfig.PeriodicBoundaryOn)
-      for (j = 0; j < 3; j++)
+      for (int j = 0; j < 3; j++)
         origin[j] = GetComovingPosition(0)[j];
 
-    sx = sy = sz = 0.;
-    msum = 0.;
 #pragma omp parallel for reduction(+ : msum, sx, sy, sz) if (NumPart > 100)
     for (i = 0; i < NumPart; i++)
     {
