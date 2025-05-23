@@ -322,23 +322,17 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
   }
 }
 
+/* Finds the factor by which the mass of particles need to be multiplied after
+ * subsampling, to ensure mass conservation. */
 HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize)
 {
-  /* If we have a DMO simulation, all particles will have the same mass, 
-   * so we use the particle number ratio. Hydrodynamical simulations likely use 
-   * particles of different masses, so we need to accumulate particle masses*/
-#ifdef DM_ONLY
-  HBTReal MassUpscaleFactor = (HBTReal)Nlast / MaxSampleSize;
-#else
-  HBTReal MassParticleSubsample = 0;
-#pragma omp parallel for if (MaxSampleSize > 100) reduction(+:MassParticleSubsample)
+  HBTReal Msubsample = 0;
+#pragma omp parallel for if (MaxSampleSize > 100) reduction(+:Msubsample)
   for (HBTInt i = 0; i < MaxSampleSize; i++)
   {
-    MassParticleSubsample += ESnap.GetMass(i);
+    Msubsample += ESnap.GetMass(i);
   }
-  HBTReal MassUpscaleFactor = Mlast / MassParticleSubsample;
-#endif
-  return MassUpscaleFactor;
+  return Mlast / Msubsample;
 }
 
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
