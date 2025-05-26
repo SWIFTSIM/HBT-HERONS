@@ -490,8 +490,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       ESnap.SetMassUpscaleFactor(1.);
     }
     Nbound = RemoveUnboundParticles(Elist, Nlast); // TODO: parallelize this.
+    Nunsample = std::count_if(Particles.begin(), Particles.begin() + Nunsample, IsNotSubsampleParticleType);
 #ifdef NO_STRIPPING
     Nbound = Nlast;
+    Nunsample = Nunsample;
 #endif
 
     // Count the number of bound tracer particles
