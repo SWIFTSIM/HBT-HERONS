@@ -477,7 +477,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
       /* If we subsample, then we need to upscale the masses of particles that
        * will be subsampled when doing potential calculations. */
-      if (MaxSampleSize > 0 && Nlast > MaxSampleSize)
+      if ((MaxSampleSize > 0) && (Nlast > (MaxSampleSize + Nunsample)))
       {
         np_tree = MaxSampleSize + Nunsample;
 
