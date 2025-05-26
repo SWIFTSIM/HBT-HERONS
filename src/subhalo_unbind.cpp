@@ -355,10 +355,10 @@ HBTInt CountUnsampledParticles(const vector<ParticleEnergy_t> &Elist, const vect
 
     /* Particles that cannot be sampled are always at the beginning. Thus we can
      * exit the loop if we find a particle that we can subsample. */
-    if(~IsNotSubsampleParticleType(p))
+    if(!p.DoNotSubsample())
       break;
 
-    NewNunsample += IsNotSubsampleParticleType(p);
+    NewNunsample++;
   }
   return NewNunsample;
 }
