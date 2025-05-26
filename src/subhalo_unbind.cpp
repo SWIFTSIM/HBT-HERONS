@@ -299,6 +299,14 @@ HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &Nlast,
   return Mlast / Msubsample;
 }
 
+/* Randomly shuffles the particles whose type are eligible to be subsampled 
+ * during unbinding. Particles types that are not eligible will be placed at the
+ * start of the vector. */
+ void PrepareParticlesForSubsampling(vector<Particle_t> &Particles)
+ {
+    std::random_shuffle(Particles.begin(), Particles.end());
+ }
+
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
 
@@ -350,7 +358,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   /* Shuffle the particle vector, which we use as our basis of random 
    * subsamples. */
   if (MaxSampleSize > 0 && Nbound > MaxSampleSize)
-    random_shuffle(Particles.begin(), Particles.end());
+    PrepareParticlesForSubsampling(Particles);
 
   /* This vector stores the original ordering of particles, and will later store
    * their binding energies. */
