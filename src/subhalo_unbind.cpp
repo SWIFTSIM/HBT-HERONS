@@ -314,12 +314,12 @@ HBTInt PrepareParticlesForSubsampling(vector<Particle_t> &Particles)
   auto iter = std::partition(Particles.begin(), Particles.end(), IsNotSubsampleParticleType);
 
   /* Amount of particles that will not be subsampled. */
-  HBTInt Nsample = iter - Particles.begin();
+  HBTInt Nunsample = iter - Particles.begin();
 
   /* Shuffle the particles that can be subsampled. */
-  std::random_shuffle(Particles.begin() + Nsample, Particles.end());
+  std::random_shuffle(Particles.begin() + Nunsample, Particles.end());
 
-  return Nsample;
+  return Nunsample;
 }
 
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
@@ -372,9 +372,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   /* Shuffle the particle vector, which we use as our basis of random 
    * subsamples. */
-  HBTInt Nsample = 0;
+  HBTInt Nunsample = 0;
   if (MaxSampleSize > 0 && Nbound > MaxSampleSize)
-    Nsample = PrepareParticlesForSubsampling(Particles);
+    Nunsample = PrepareParticlesForSubsampling(Particles);
 
   /* This vector stores the original ordering of particles, and will later store
    * their binding energies. */
