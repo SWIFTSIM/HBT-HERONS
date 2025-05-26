@@ -25,6 +25,11 @@ inline bool IsBound(const ParticleEnergy_t &a)
   return (a.Energy < 0);
 };
 
+inline bool IsNotSubsampleParticleType(const Particle_t &a)
+{
+  return (a.Type == 5);
+};
+
  /* Separates unbound particles from bound particles by placing them at the end
   * of Elist */
  static HBTInt RemoveUnboundParticles(vector<ParticleEnergy_t> &Elist, const size_t NumPart)
@@ -302,10 +307,20 @@ HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &Nlast,
 /* Randomly shuffles the particles whose type are eligible to be subsampled 
  * during unbinding. Particles types that are not eligible will be placed at the
  * start of the vector. */
- void PrepareParticlesForSubsampling(vector<Particle_t> &Particles)
- {
-    std::random_shuffle(Particles.begin(), Particles.end());
- }
+HBTInt PrepareParticlesForSubsampling(vector<Particle_t> &Particles)
+{
+  /* We first partition the particle vector into those which we will 
+   * subsample and those which we will not. */
+  auto iter = std::partition(Particles.begin(), Particles.end(), IsNotSubsampleParticleType);
+
+  /* Amount of particles that will not be subsampled. */
+  HBTInt Nsample = iter - Particles.begin();
+
+  /* Shuffle the particles that can be subsampled. */
+  std::random_shuffle(Particles.begin() + Nsample, Particles.end());
+
+  return Nsample;
+}
 
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
@@ -357,8 +372,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   /* Shuffle the particle vector, which we use as our basis of random 
    * subsamples. */
+  HBTInt Nsample = 0;
   if (MaxSampleSize > 0 && Nbound > MaxSampleSize)
-    PrepareParticlesForSubsampling(Particles);
+    Nsample = PrepareParticlesForSubsampling(Particles);
 
   /* This vector stores the original ordering of particles, and will later store
    * their binding energies. */
