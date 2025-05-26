@@ -18,28 +18,28 @@ struct ParticleEnergy_t
 inline bool CompareEnergy(const ParticleEnergy_t &a, const ParticleEnergy_t &b)
 {
   return (a.Energy < b.Energy);
-};
+}
 
 inline bool IsBound(const ParticleEnergy_t &a)
 {
   return (a.Energy < 0);
-};
+}
 
 inline bool IsNotSubsampleParticleType(const Particle_t &a)
 {
   return (a.Type == 5);
-};
+}
 
- /* Separates unbound particles from bound particles by placing them at the end
-  * of Elist */
- static HBTInt RemoveUnboundParticles(vector<ParticleEnergy_t> &Elist, const size_t NumPart)
- {
+/* Separates unbound particles from bound particles by placing them at the end
+ * of Elist */
+static HBTInt RemoveUnboundParticles(vector<ParticleEnergy_t> &Elist, const size_t NumPart)
+{
   /* Separate bound from unbound particles */  
   auto iter = std::partition(Elist.begin(), Elist.begin() + NumPart, IsBound);
 
   /* Equals the number of bound particles*/
   return iter - Elist.begin();
- }
+}
 
 class EnergySnapshot_t : public Snapshot_t
 {
