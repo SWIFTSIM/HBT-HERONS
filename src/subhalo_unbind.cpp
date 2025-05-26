@@ -345,6 +345,24 @@ HBTInt PrepareParticlesForSubsampling(vector<Particle_t> &Particles)
   return Nunsample;
 }
 
+/* Counts how many bound particles are not eligible to be subsampled. */
+HBTInt CountUnsampledParticles(const vector<ParticleEnergy_t> &Elist, const vector<Particle_t> &Particles, const HBTInt &OldNsubsample)
+{
+  HBTInt NewNunsample = 0;
+  for (HBTInt i = 0; i < OldNsubsample; i++)
+  {
+    const auto &p = Particles[Elist[i].ParticleIndex];
+
+    /* Particles that cannot be sampled are always at the beginning. Thus we can
+     * exit the loop if we find a particle that we can subsample. */
+    if(~IsNotSubsampleParticleType(p))
+      break;
+
+    NewNunsample += IsNotSubsampleParticleType(p);
+  }
+  return NewNunsample;
+}
+
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
 
@@ -490,7 +508,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       ESnap.SetMassUpscaleFactor(1.);
     }
     Nbound = RemoveUnboundParticles(Elist, Nlast); // TODO: parallelize this.
-    Nunsample = std::count_if(Particles.begin(), Particles.begin() + Nunsample, IsNotSubsampleParticleType);
+    Nunsample = CountUnsampledParticles(Elist, Particles, Nunsample);
 #ifdef NO_STRIPPING
     Nbound = Nlast;
     Nunsample = Nunsample;
