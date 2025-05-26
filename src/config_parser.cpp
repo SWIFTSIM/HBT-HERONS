@@ -73,7 +73,6 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(PeriodicBoundaryOn);
   TrySetPar(SnapshotHasIdBlock);
   TrySetPar(MaxPhysicalSofteningHalo);
-  TrySetPar(TracerParticleBitMask);
   TrySetPar(ParticlesSplit);
 
 #undef TrySetPar
@@ -110,6 +109,21 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
     TracerParticleBitMask = 0;
     for (int i : TracerParticleTypes)
       TracerParticleBitMask += 1 << i;
+    return true;
+  }
+  if (ParameterName == "DoNotSubsampleParticleTypes")
+  {
+    /* Store as a vector first to output in Params.log in a human-readable
+     * format */
+    DoNotSubsampleParticleTypes.clear(); // To remove default values
+    for (int i; ParameterValues >> i;)
+      DoNotSubsampleParticleTypes.push_back(i);
+
+    /* Create a bitmask, to be used internally by the code to identify which 
+     * particles it should not subsample during unbinding. */
+    DoNotSubsampleParticleBitMask = 0;
+    for (int i : DoNotSubsampleParticleTypes)
+      DoNotSubsampleParticleBitMask += 1 << i;
     return true;
   }
   return false; // This signals to continue looking for valid parameter names
@@ -325,6 +339,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
 
   _SyncBool(GroupLoadedFullParticle);
   _SyncAtom(TracerParticleBitMask, MPI_INT);
+  _SyncAtom(DoNotSubsampleParticleBitMask, MPI_INT);
   _SyncAtom(ParticlesSplit, MPI_INT);
   //---------------end sync params-------------------------//
 
@@ -444,6 +459,13 @@ void Parameter_t::DumpParameters()
   {
     version_file << "TracerParticleTypes";
     for (auto &&i : TracerParticleTypes)
+      version_file << " " << i;
+    version_file << endl;
+  }
+  if (DoNotSubsampleParticleTypes.size())
+  {
+    version_file << "DoNotSubsampleParticleTypes";
+    for (auto &&i : DoNotSubsampleParticleTypes)
       version_file << " " << i;
     version_file << endl;
   }

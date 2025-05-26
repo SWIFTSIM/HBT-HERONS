@@ -59,6 +59,7 @@ public:
   bool MergeTrappedSubhalos; // whether to MergeTrappedSubhalos, see code paper for more info.
   vector<int> SnapshotIdList;
   vector<int> TracerParticleTypes;
+  vector<int> DoNotSubsampleParticleTypes; /* Which particles types cannot be subsampled. */
   vector<string> SnapshotNameList;
 
   HBTReal MajorProgenitorMassRatio;
@@ -80,6 +81,7 @@ public:
                                           refined */
 
   int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
+  int DoNotSubsampleParticleBitMask; /* Bitmask used to identify which particle type cannot be subsampled */
   int ParticlesSplit;        /* Whether baryonic particles are able to split. Relevant to swift simulations */
 
   /*derived parameters; do not require user input*/
@@ -138,6 +140,13 @@ public:
     for (int i : TracerParticleTypes)
       TracerParticleBitMask += 1 << i;
 
+    /* We default to not subsampling black holes, since they are generally very
+     * massive relative to all other particle types. */
+    DoNotSubsampleParticleTypes = vector<int>{5};
+    DoNotSubsampleParticleBitMask = 0;
+    for (int i : DoNotSubsampleParticleTypes)
+      DoNotSubsampleParticleBitMask += 1 << i;
+ 
     /* The value is negative to indicate whether the parameter has been set in the. If not,
      * we will default to a value of 1 if this is a swift HYDRO run. This way we reminder the
      * user to pre-process snapshots (toolbox/swiftsim/generate_splitting_information.py) */
