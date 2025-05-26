@@ -459,7 +459,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
        * will be subsampled when doing potential calculations. */
       if (MaxSampleSize > 0 && Nlast > MaxSampleSize)
       {
-        np_tree = MaxSampleSize;
+        np_tree = MaxSampleSize + Nunsample;
 
         ESnap.SetMassUpscaleFactor(1.); /* To get true particle mass */
         HBTReal MassUpscaleFactor = GetMassUpscaleFactor(ESnap, Nlast, Mlast, MaxSampleSize, Nunsample);
