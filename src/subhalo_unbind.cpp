@@ -20,51 +20,21 @@ inline bool CompareEnergy(const ParticleEnergy_t &a, const ParticleEnergy_t &b)
   return (a.Energy < b.Energy);
 };
 
-/* Similar to the C++ partition() function but returns the number of bound 
- * particles. Used to sort Elist to move unbound particles to the end. */
-static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size_t NumPart)
-{ 
-  if (NumPart == 0)
-    return 0;
-  if (NumPart == 1)
-    return Elist[0].Energy < 0;
+inline bool IsBound(const ParticleEnergy_t &a)
+{
+  return (a.Energy < 0);
+};
 
-  ParticleEnergy_t Etmp = Elist[0];
-  auto iterforward = Elist.begin(), iterbackward = Elist.begin() + NumPart;
-  while (true)
-  {
-    // iterforward is a void now, can be filled
-    while (true)
-    {
-      iterbackward--;
-      if (iterbackward == iterforward)
-      {
-        *iterforward = Etmp;
-        if (Etmp.Energy < 0)
-          iterbackward++;
-        return iterbackward - Elist.begin();
-      }
-      if (iterbackward->Energy < 0)
-        break;
-    }
-    *iterforward = *iterbackward;
-    // iterbackward is a void now, can be filled
-    while (true)
-    {
-      iterforward++;
-      if (iterforward == iterbackward)
-      {
-        *iterbackward = Etmp;
-        if (Etmp.Energy < 0)
-          iterbackward++;
-        return iterbackward - Elist.begin();
-      }
-      if (iterforward->Energy > 0)
-        break;
-    }
-    *iterbackward = *iterforward;
-  }
-}
+ /* Separates unbound particles from bound particles by placing them at the end
+  * of Elist */
+ static HBTInt RemoveUnboundParticles(vector<ParticleEnergy_t> &Elist, const size_t NumPart)
+ {
+  /* Separate bound from unbound particles */  
+  auto iter = std::partition(Elist.begin(), Elist.begin() + NumPart, IsBound);
+
+  /* Equals the number of bound particles*/
+  return iter - Elist.begin();
+ }
 
 class EnergySnapshot_t : public Snapshot_t
 {
@@ -472,7 +442,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
        * in the next unbinding iteration. */
       ESnap.SetMassUpscaleFactor(1.);
     }
-    Nbound = PartitionBindingEnergy(Elist, Nlast); // TODO: parallelize this.
+    Nbound = RemoveUnboundParticles(Elist, Nlast); // TODO: parallelize this.
 #ifdef NO_STRIPPING
     Nbound = Nlast;
 #endif
