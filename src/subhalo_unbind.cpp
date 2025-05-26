@@ -34,8 +34,10 @@ inline bool IsNotSubsampleParticleType(const Particle_t &a)
  * of Elist */
 static HBTInt RemoveUnboundParticles(vector<ParticleEnergy_t> &Elist, const size_t NumPart)
 {
-  /* Separate bound from unbound particles */  
-  auto iter = std::partition(Elist.begin(), Elist.begin() + NumPart, IsBound);
+  /* Separate bound from unbound particles. Stable partition since we want to 
+   * keep original relative ordering (bound particles that cannot be subsampled
+   * will stay at the beginning). */
+  auto iter = std::stable_partition(Elist.begin(), Elist.begin() + NumPart, IsBound);
 
   /* Equals the number of bound particles*/
   return iter - Elist.begin();
