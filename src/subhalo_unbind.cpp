@@ -27,7 +27,7 @@ inline bool IsBound(const ParticleEnergy_t &a)
 
 inline bool IsNotSubsampleParticleType(const Particle_t &a)
 {
-  return (a.Type == 5);
+  return a.DoNotSubsample();
 }
 
 /* Separates unbound particles from bound particles by placing them at the end
