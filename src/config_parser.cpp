@@ -122,6 +122,24 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
     /* Create a bitmask, to be used internally by the code to identify which 
      * particles it should not subsample during unbinding. */
     DoNotSubsampleParticleBitMask = 0;
+
+    /* We specified -1, we allow any particle type to be subsampled. */
+    auto it = std::find(DoNotSubsampleParticleTypes.begin(), DoNotSubsampleParticleTypes.end(), -1);
+    if (it != DoNotSubsampleParticleTypes.end())
+    {
+      /* Sanity check: we can only specify a single number if -1 is present. */
+      if(DoNotSubsampleParticleTypes.size() > 1)
+      {
+        stringstream error_message;
+        error_message << "DoNotSubsampleParticleTypes only takes a single number if -1 is present. " << endl;
+        throw runtime_error(error_message.str());
+      }
+
+      /* We need a right bit shift, as it is otherwise undefined. */
+      DoNotSubsampleParticleBitMask = -1 >> 1; 
+      return true;
+    }
+
     for (int i : DoNotSubsampleParticleTypes)
       DoNotSubsampleParticleBitMask += 1 << i;
     return true;
