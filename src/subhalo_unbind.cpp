@@ -319,7 +319,7 @@ HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &Nlast,
   /* Total mass of the subsampled particle set. */
   HBTReal Msubsample = 0;
 #pragma omp parallel for if (MaxSampleSize > 100) reduction(+:Msubsample)
-  for (HBTInt i = Nunsample; i < MaxSampleSize; i++)
+  for (HBTInt i = Nunsample; i < (Nunsample + MaxSampleSize); i++)
   {
     Msubsample += ESnap.GetMass(i);
   }
