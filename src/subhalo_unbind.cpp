@@ -103,17 +103,11 @@ public:
     MassFactor = factor;
   }
 
-  /* Returns the true mass of a particle. */
+  /* Returns the (scaled) mass of a particle. It will be  larger than the true
+   * mass if the particles are being subsampled. */
   HBTReal GetMass(HBTInt i) const
   {
-    return Particles[GetParticle(i)].Mass;
-  }
-
-  /* Returns the scaled mass of a particle, which is larger than the true
-   * mass if the particles are being subsampled. */
-  HBTReal GetScaledMass(HBTInt i) const
-  {
-    return GetMass(i) * MassFactor;
+    return Particles[GetParticle(i)].Mass * MassFactor;
   }
 
   HBTReal GetInternalEnergy(HBTInt i) const
@@ -452,6 +446,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       {
         np_tree = MaxSampleSize;
 
+        ESnap.SetMassUpscaleFactor(1.); /* To get true particle mass */
         HBTReal MassUpscaleFactor = GetMassUpscaleFactor(ESnap, Nlast, Mlast, MaxSampleSize);
         ESnap.SetMassUpscaleFactor(MassUpscaleFactor);
       }
@@ -462,7 +457,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       {
         /* Non-zero masses for particles in the tree because we need to remove
          * their self-gravity. */
-        HBTReal particle_mass = (i < np_tree) ? ESnap.GetScaledMass(i) : 0.;
+        HBTReal particle_mass = (i < np_tree) ? ESnap.GetMass(i) : 0.;
 
         HBTInt index = Elist[i].ParticleIndex;
         Elist[i].Energy = tree.BindingEnergy(Particles[index].ComovingPosition, 
