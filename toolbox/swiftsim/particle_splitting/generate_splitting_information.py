@@ -40,6 +40,8 @@ def load_hbt_config(config_path):
     # i.e. has a value after its name, we store it.
     with open(config_path) as file:
         for line in file:
+            if line[0] == '#':
+                continue
             if 'MinSnapshotIndex' in line:
                 if (len(line.split()) > 1):
                     config['MinSnapshotIndex'] = int(line.split()[-1])
