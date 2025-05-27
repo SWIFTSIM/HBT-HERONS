@@ -246,13 +246,42 @@ void Parameter_t::ReadSnapshotNameList()
 /* Checks whether the all mandatory parameters have been specified */
 void Parameter_t::CheckRequiredParameters()
 {
-  for (int i = 0; i < IsSet.size(); i++)
+  stringstream error_message; /* In case we need to raise an error. */
+
+  if(!IsSet[0])
   {
-    if (!IsSet[i])
-    {
-      cerr << "Error parsing configuration file: entry " << i << " missing\n";
-      exit(1);
-    }
+    error_message << "SnapshotPath: Mandatory parameter not found." << endl;
+    throw invalid_argument(error_message.str());
+  }
+  if(!IsSet[1])
+  {
+    error_message << "HaloPath: Mandatory parameter not found." << endl;
+    throw invalid_argument(error_message.str());
+  }
+  if(!IsSet[2])
+  {
+    error_message << "SubhaloPath: Mandatory parameter not found." << endl;
+    throw invalid_argument(error_message.str());
+  }
+  if(!IsSet[3])
+  {
+    error_message << "SnapshotFileBase: Mandatory parameter not found." << endl;
+    throw invalid_argument(error_message.str());
+  }
+  if(!IsSet[4])
+  {
+    error_message << "MaxSnapshotIndex: Mandatory parameter not found." << endl;
+    throw invalid_argument(error_message.str());
+  }
+  if(!IsSet[5])
+  {
+    error_message << "BoxSize: Mandatory parameter not found." << endl;
+    throw invalid_argument(error_message.str());
+  }
+  if(!IsSet[6])
+  {
+    error_message << "SofteningHalo: Mandatory parameter not found." << endl;
+    throw invalid_argument(error_message.str());
   }
 }
 
