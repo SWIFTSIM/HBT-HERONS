@@ -291,17 +291,25 @@ void Parameter_t::CheckValidityParameters()
     }
   }
 
-  if (!SnapshotIdList.empty())
+  /* Checks relating to SnapshotIdList. */
+  if (SnapshotIdList.size())
   {
-    int max_index = SnapshotIdList.size() - 1;
-    if (MaxSnapshotIndex != max_index)
+    /* The snapshot ID list should be in ascending order. */
+    if(!std::is_sorted(SnapshotIdList.begin(), SnapshotIdList.end()))
     {
-      cerr << "Error: MaxSnapshotIndex=" << MaxSnapshotIndex << ", inconsistent with SnapshotIdList (" << max_index + 1
-           << " snapshots listed)\n";
-      exit(1);
+      error_message << "SnapshotIdList: Values are not in ascending order." << endl;
+      throw invalid_argument(error_message.str());
+    }
+
+    /* MaxSnapshotIndex should be consistent with SnapshotIdList */
+    if (MaxSnapshotIndex != (SnapshotIdList.size() - 1))
+    {
+      error_message << "MaxSnapshotIndex (" << MaxSnapshotIndex << "): inconsistent with SnapshotIdList (SnapshotIdList.size() - 1 = " << (SnapshotIdList.size() - 1) << ")." << endl;
+      throw invalid_argument(error_message.str());      
     }
   }
 
+  /* No negative values for MaxSampleSizeOfPotentialEstimate allowed. */
   if(MaxSampleSizeOfPotentialEstimate < 0)
   {
     error_message << "MaxSampleSizeOfPotentialEstimate: Negative values are not allowed. Use a value of 0 (no subsampling) or larger (subsampling)." << endl;
