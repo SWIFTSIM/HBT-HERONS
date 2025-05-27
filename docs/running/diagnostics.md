@@ -37,7 +37,7 @@ Each term in brackets refers to the following quantities:
 
 * `<TotalNumberParticles>`: the total number of particles in the simulation output being analysed.
 * `<TotalNumberFoFGroups>`: the total number of Friends of Friends groups in the simulation output being analysed.
-* `<TotalNumberSubhalos>`: the total number of subhaloes saved in the HBT-HERONS output for that simulation output. Since subhaloes that are no longer self-bound (orphan subhaloes) are also saved in the outputs, this number reflects to the total number of subhaloes that have ever existed in the simulation.
+* `<TotalNumberSubhalos>`: the total number of subhaloes saved in the HBT-HERONS output for that simulation output. 
 * `<SnapshotNumber>`: Absolute numbering of the simulation outputs being analysed.
 * `<SnapshotIndex>`: Relative numbering of the simulation output being analysed. It is only different from `SnapshotNumber` if a subset of the outputs are being analysed (specified through `SnapshotIdList`). 
 * `<SubhaloPath>`: base location where the HBT-HERONS outputs are saved.

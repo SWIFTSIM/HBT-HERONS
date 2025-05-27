@@ -32,8 +32,8 @@ Different ways to quantify how massive a subhalo is.
 |                `Mbound`                 | The total mass of particles bound to the subhalo.                                                                                                   |
 |              `NboundType`               | The total number of particles bound to the subhalo, classifed according to their particle type.                                                     |
 |              `MboundType`               | The total mass of particles bound to the subhalo, classifed according to their particle type.                                                       |
-|             `VmaxPhysical`              | The maximum value of the circularised rotation curve of the subhalo.                                                                             |
-|             `BoundM200Crit`             | Mass of a region with a spherical overdensity of 200 times the critical density of the universe. Only bound mass is included and only for centrals. |
+|             `VmaxPhysical`              | The maximum value of the circularised rotation curve of the subhalo. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.                                                                            |
+|             `BoundM200Crit`             | Mass of a region with a spherical overdensity of 200 times the critical density of the universe. Only bound mass is included and only for centrals. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`. |
 
 #### Size metrics
 
@@ -41,10 +41,10 @@ Different ways to quantify the size of a subhalo.
 
 | <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------  | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|             `RmaxComoving`              | The radius at which the circularised rotation curve of the subhalo reaches its maximum value (`VmaxPhysical`).                                                                             |
-|             `RHalfComoving`             | The smallest radius that encloses 50% of the total bound mass.                                                                                                     |
-|           `REncloseComoving`            | The smallest radius that encloses 100% of the total bound mass. Useful when interested in doing spatial masking.                                                               |
-|         `BoundR200CritComoving`         | The radius of a sphere enclosing a mean density that is 200 times the critical density of the Universe. Only bound mass is included and only for centrals. |
+|             `RmaxComoving`              | The radius at which the circularised rotation curve of the subhalo reaches its maximum value (`VmaxPhysical`). The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.                                                                             |
+|             `RHalfComoving`             | The smallest radius that encloses 50% of the total bound mass. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.                                                                                                     |
+|           `REncloseComoving`            | The smallest radius that encloses 100% of the total bound mass. Useful when interested in doing spatial masking. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.                                                                |
+|         `BoundR200CritComoving`         | The radius of a sphere enclosing a mean density that is 200 times the critical density of the Universe. Only bound mass is included and it is only computed for centrals. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.  |
 
 #### Position metrics
 
@@ -63,10 +63,10 @@ Different ways to measure the shape of the subhalo.
 
 | <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------- | :------------------------------------------------ |
-| `InertialEigenVector`                   | Only computed if GSL was enabled at compile time. |
-| `InertialEigenVectorWeighted`           | Only computed if GSL was enabled at compile time. |
-| `InertialTensor`                        | centrals.                                         |
-| `InertialTensorWeighted`                | centrals.                                         |
+| `InertialTensor`                        | Flattened representation of the inertia tensor of the subhalo.                                         |
+| `InertialTensorWeighted`                | Flattened representation of the inertia tensor of the subhalo, weighted by particle mass and 3D distance to `ComovingMostBoundPosition`. |
+| `InertialEigenVector`                   | Eigenvectors of `InertialTensor`. Only computed if GSL was enabled at compile time. |
+| `InertialEigenVectorWeighted`           | Eigenvectors of `InertialTensorWeighted`. Only computed if GSL was enabled at compile time. |
 
 #### Dynamical metrics
 
@@ -98,9 +98,9 @@ The second type of property corresponds to key events in the evolution of a subh
 | <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------  | :--------------------------------------------------------------------- |
 |         `SnapshotIndexOfBirth`          | The output when the subhalo was first identified.                      |
-|          `SnapshotIndexOfSink`          | If the subhalo has merged, the output when that happened.              |
-|         `SnapshotIndexOfDeath`          | If the subhalo has merged or disrupted, the output when that happened  |
-|     `SnapshotIndexOfLastIsolation`      | If the subhalo has ever been a satellite, the output before it ever became a satellite for the first time.    |
+|          `SnapshotIndexOfSink`          | If the subhalo has [sunk](../outputs/merger_trees.md/#subhalo-sinking), the output when that happened. If it has not sunk, it equals -1. |
+|         `SnapshotIndexOfDeath`          | If the subhalo has sunk or disrupted, the output when that happened. If neither has happened, it equals -1. |
+|     `SnapshotIndexOfLastIsolation`      | If the subhalo has ever been a satellite, the output before it ever became a satellite for the first time. If it has always been a central subhalo, it equals -1.    |
 |      `SnapshotIndexOfLastMaxVmax`       | The output when the subhalo reached its maximum value of VmaxPhysical. |
 |      `SnapshotIndexOfLastMaxMass`       | The output when the subhalo reached its maximum value of Mbound        |
 |              `LastMaxMass`              | The maximum mass that the subhalo has reached so far.                  |
@@ -108,15 +108,14 @@ The second type of property corresponds to key events in the evolution of a subh
 
 ### Hierarchical relationships
 
-The last type of property that is saved corresponds ot. This helps analyse which
-FoF groups, which subhalo is the central, etc.
+The last type of property is used to connect subhaloes between each other at a fixed time or across time.
 
 | <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------  | :--------------------------------------------------------------------- |
 |                `TrackId`                | Unique identifier for the subhalo, which persists across time.                      |
-|              `SinkTrackId`              | If the subhalo has merged, the `TrackId` of the subhalo that accreted it.              |
-|           `DescendantTrackId`           | If the subhalo has merged or disrupted, the `TrackId` of the subhalo that accreted its most bound particles.  |
-|          `NestedParentTrackId`          | The `TrackId` of the parent subhalo.         |
-|              `HostHaloId`               | The output when the subhalo reached its maximum value of VmaxPhysical. |
-|                 `Rank`                  | The output when the subhalo reached its maximum value of Mbound        |
+|              `SinkTrackId`              | If the subhalo has sunk, the `TrackId` of the subhalo that accreted it. If it has not happened, it equals -1.              |
+|           `DescendantTrackId`           | If the subhalo has sunk or disrupted, the `TrackId` of the subhalo that accreted its most bound particles. If neither has happened, it equals -1. |
+|          `NestedParentTrackId`          | The `TrackId` of the parent subhalo. Central subhaloes have -1.       |
+|              `HostHaloId`               | The Friends of Friends group that this subhalo is a part of. |
+|                 `Rank`                  | The mass ranking of the subhalo compared to all of the subhaloes that have the same `HostHaloId`. |
 |                 `Depth`                 | The number of hierarchical connections that the subhalo is away from the central, e.g. 0 for centrals, 1 for satellites, 2 for satellites of satellites.                 |

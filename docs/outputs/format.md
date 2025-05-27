@@ -33,7 +33,7 @@ The metadata provides information about the run units and cosmology, as well as 
 | <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
 |             `Units`             | The unit system used by HBT-HERONS, internally and in its output. |
-|             `SnapshotId`             | The (absolute) output number of a simulation corresponding to the current HBT-HERONS output. Both numbers are not equal when running HBT-HERONS on a subset of simulation outputs. |
+|             `SnapshotId`             | The (absolute) output number of a simulation corresponding to the current HBT-HERONS (relative) output number. Both numbers are not equal when running HBT-HERONS on a subset of simulation outputs. |
 |                `Cosmology`                 | Information about the cosmology, like the Hubble parameter,  expansion factor, and the density parameters of matter and dark energy.                                                                                                 |
 |              `NumberOfFiles`               | The number of `SubSnap` files in the current HBT-HERONS output, which equals the number of MPI ranks used.                                                     |
 |                `NumberOfFakeHalos`                 | Number of Friends of Friends groups that do not have any self-bound subhaloes in the current output. |

@@ -1,9 +1,9 @@
 # Time evolution
 
 The history-based approach of HBT-HERONS means that the evolution of subhaloes is tracked
-simultaneously with their identication in each simulation output. No additional algorithm is therefore required to link subhaloes forward in time, so the information required to build merger trees is already contained within the catalogues.
+simultaneously with their identification in each simulation output. No additional algorithm is therefore required to link subhaloes forward in time, so the information required to build merger trees is already contained within the catalogues.
 
-Since HBT-HERONS analyses a simulation from early to late times, the information used to follow the evolution of subhaloes is primarely represented through the notion of descendant subhaloes. There are two types of fate a given subhalo can have at the following output, and the dataset used to find the descendant of a subhalo varies depending on which of the two it experienced:
+Since HBT-HERONS analyses a simulation from early to late times, the information used to follow the evolution of subhaloes is primarily represented through the notion of descendant subhaloes. There are two types of fate a given subhalo can have at any given output, and the dataset used to find the descendant of a subhalo varies depending on which of the two it experienced:
 
 * **It remains self-bound**. The subhalo with the same `TrackId`, which is unique and time-persistent for each subhalo, is its descendant.
 * **It merges with another subhalo**. Depending on the way in which this happened, i.e. through disruption or because their cores overlapped in phase-space, the `DescendantTrackId` or `SinkTrackId` values identify which subhalo it merged with.
@@ -25,14 +25,14 @@ We assume the simulation has 64 outputs throughout this example.
     import h5py
 
     # Path to where the sorted catalogues are located.
-    catalogue_path = "<SORTED_CATALOGUE_BASE_PATH>/SortedOutput_{output_number:03d}.hdf5"
+    catalogue_path = "<SORTED_CATALOGUE_BASE_PATH>/OrderedSubSnap_{output_number:03d}.hdf5"
 
     # Maximum output number for this example (64 outputs but SnapshotIndex uses 0-indexing)
     max_output_number = 63
 
     # Get the TrackId of the most massive subhalo, when it was first identified and when it disrupted/merged.
     with h5py.File(catalogue_path.format(output_number = max_output_number)) as catalogue:
-        TrackId_to_follow = catalogue['Subhalos']['Mbound'].argmax()
+        TrackId_to_follow = catalogue['Subhalos']['Mbound'][()].argmax()
         output_start = catalogue['Subhalos']['SnapshotIndexOfBirth'][TrackId_to_follow]
         output_end   = catalogue['Subhalos']['SnapshotIndexOfDeath'][TrackId_to_follow]
 
@@ -45,7 +45,7 @@ We assume the simulation has 64 outputs throughout this example.
     # Iterate over catalogues to obtain Nbound value of the entry with the TrackId we want to follow. 
     for i, output_number in enumerate(range(output_start, output_end + 1)):
         with h5py.File(catalogue_path.format(output_number = output_number)) as catalogue:
-          Nbound_evolution[i] = catalogue['Subhalo/Nbound'][TrackId_to_follow]
+          Nbound_evolution[i] = catalogue['Subhalos/Nbound'][TrackId_to_follow]
     ```
 
 === "Without running `toolbox/SortCatalogues.py`"
@@ -62,7 +62,7 @@ the code below:
 import matplotlib.pyplot as plt
 
 fig, ax1 = plt.subplots(1)
-ax1.plot(np.arange(output_start, output_end + 1), mass_evolution, 'k-')
+ax1.plot(np.arange(output_start, output_end + 1), Nbound_evolution, 'k-')
 ax1.set_xlabel('Output Number')
 ax1.set_ylabel('Total number of bound particles')
 ax1.set_yscale('log')
@@ -93,7 +93,7 @@ To identify the descendant of a disrupted subhalo, HBT-HERONS uses the `NumTrace
 
 <h4>Code example</h4>
 
-Here we show how to identify all subhaloes that disrupted by merging with the most massive subhalo identified in the last output of a simulation. We assume the simulation has 64 outputs throughout this example.
+Here we show how to identify all subhaloes that disrupted and hence merged with the same subhalo of the [first example](#evolution-of-a-single-subhalo). We assume the simulation has 64 outputs throughout this example.
 
 !!! note
 
@@ -105,30 +105,15 @@ Here we show how to identify all subhaloes that disrupted by merging with the mo
     import h5py
 
     # Path to where the sorted catalogues are located.
-    catalogue_path = "<SORTED_CATALOGUE_BASE_PATH>/SortedOutput_{output_number:03d}.hdf5"
+    catalogue_path = "<SORTED_CATALOGUE_BASE_PATH>/OrderedSubSnap_{output_number:03d}.hdf5"
 
     # Maximum output number for this example (64 outputs but SnapshotIndex uses 0-indexing)
     max_output_number = 63
 
     # Get the TrackId of the most massive subhalo, when it was first identified and when it disrupted/merged.
     with h5py.File(catalogue_path.format(output_number = max_output_number)) as catalogue:
-        TrackId_to_follow = catalogue['Subhalos']['Mbound'].argmax()
-        output_start = catalogue['Subhalos']['SnapshotIndexOfBirth'][TrackId_to_follow]
-        output_end   = catalogue['Subhalos']['SnapshotIndexOfDeath'][TrackId_to_follow]
-
-    # If output_end is equal to -1, that means it is still resolved at the time when the output was saved. 
-    output_end = output_end if output_end != -1 else max_output_number
-
-    # Create an array to hold values we are interested in tracking (number of bound particles)
-    Nbound_evolution = - np.ones(output_end - output_start + 1)
-
-    # Iterate over catalogues to obtain which subhaloes disrupted and merged with TrackId_to_follow. 
-    disruption_progenitors = []
-    for i, output_number in enumerate(range(output_start, output_end + 1)):
-        with h5py.File(catalogue_path.format(output_number = output_number)) as catalogue:
-            disruption_progenitors.append(np.where(catalogue["Subhalos/DescendantTrackId"][()] == TrackId_to_follow)[0])
-
-    disruption_progenitors = np.asarray(disruption_progenitors)
+        TrackId_to_follow = catalogue['Subhalos']['Mbound'][()].argmax()
+        disrupted_progenitors  = np.where(catalogue["Subhalos/DescendantTrackId"][()] == TrackId_to_follow)[0]
     ```
 
 === "Without running `toolbox/SortCatalogues.py`"
@@ -138,7 +123,7 @@ Here we show how to identify all subhaloes that disrupted by merging with the mo
     EXAMPLE INCOMING SOON!
     ```
 
-The `disruption_progenitors` array contains a `TrackID` for each subhalo that disrupted and whose core ended bound to the example subhalo (`TrackId_to_follow`). If you want to find *every* subhalo that is connected to the example subhalo through disruption, e.g. to build its full merger tree, you will need to repeat the above code for each of the `disruption_progenitors` until a complete list is built. The evolution of each subhalo prior to disrupting can be followed in the same way as for an [individual subhalo](#evolution-of-a-single-subhalo).
+The `disrupted_progenitors` array contains a `TrackID` for each subhalo that disrupted and whose core ended bound to the example subhalo (`TrackId_to_follow`). If you want to find *every* subhalo that is connected to the example subhalo through disruption, e.g. to build its full merger tree, you will need to repeat the above code for each of the `disrupted_progenitors` until a complete list is built. The evolution of each subhalo prior to disrupting can be followed in the same way as for an [individual subhalo](#evolution-of-a-single-subhalo).
 
 ### Subhalo sinking
 
@@ -148,7 +133,7 @@ Formally, HBT-HERONS checks the phase-space offset between the cores of subhaloe
 
 <h4>Code example</h4>
 
-Here we show how to identify all subhaloes that directly sunk with the most massive subhalo identified in the last output of a simulation. We assume the simulation has 64 outputs throughout this example.
+Here we show how to identify all subhaloes that directly sunk with the same subhalo of the [first example](#evolution-of-a-single-subhalo). We assume the simulation has 64 outputs throughout this example.
 
 === "After running `toolbox/SortCatalogues.py`"
 
@@ -156,14 +141,14 @@ Here we show how to identify all subhaloes that directly sunk with the most mass
     import h5py
 
     # Path to where the sorted catalogues are located.
-    catalogue_path = "<SORTED_CATALOGUE_BASE_PATH>/SortedOutput_{output_number:03d}.hdf5"
+    catalogue_path = "<SORTED_CATALOGUE_BASE_PATH>/OrderedSubSnap_{output_number:03d}.hdf5"
 
     # Maximum output number for this example (64 outputs but SnapshotIndex uses 0-indexing)
     max_output_number = 63
 
     # Get the TrackId of the most massive subhalo, and use it to find the TrackIds that directly sunk to it.
     with h5py.File(catalogue_path.format(output_number = max_output_number)) as catalogue:
-        TrackId_to_follow = catalogue['Subhalos']['Mbound'].argmax()
+        TrackId_to_follow = catalogue['Subhalos']['Mbound'][()].argmax()
         sink_progenitors  = np.where(catalogue["Subhalos/SinkTrackId"][()] == TrackId_to_follow)[0]
     ```
 

@@ -1,6 +1,6 @@
 # Home
 
-Welcome to the documentation for **HBT-HERONS**! HBT-HERONS is a history-based algorithm used to find subhaloes in cosmological dark-matter-only and hydrodynamical simulations. It is a new version of the [HBT+](<https://github.com/Kambrian/HBTplus>) subhalo finder, with additions made to improve the tracking of subhaloes in dark-matter-only and hydrodynamical simulations. 
+Welcome to the documentation for **HBT-HERONS**! HBT-HERONS is a history-based algorithm used to find subhaloes in cosmological dark-matter-only and hydrodynamical simulations. It is a new version of the [HBT+](<https://github.com/Kambrian/HBTplus>) subhalo finder, with additions made to improve the tracking of subhaloes in dark-matter-only and hydrodynamical simulations. The main changes and methodology of HBT-HERONS are described in [Forouhar Moreno et al. 2025](https://arxiv.org/abs/2502.06932).
 
 !!! question 
 

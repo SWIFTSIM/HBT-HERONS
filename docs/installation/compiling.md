@@ -47,17 +47,16 @@ the thermal energy of gas during subhalo unbinding.
 
 ### Internal precision
 
-These options are used to determine the internal data types used by HBT-HERONS, which always
-default to using the maximum precision possible. If you would like to reduce the memory footprint
-of the code, you can do so using these flags.
+These options are used to determine the internal data types used by HBT-HERONS. If you would like to reduce the memory footprint of the code, you can do so using these flags.
+
 
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :-----------------------------------------------  | :----------------------------------------------- |
-| `HBT_INT8`                     | `Off`| Represent integers using 8 (`On`) or 4  (`Off`) bytes. |
+| `HBT_INT8`                     | `On`| Represent integers using 8 (`On`) or 4  (`Off`) bytes. |
 | `HBT_REAL8`                    | `Off`| Represent floats using 8 (`On`) or 4  (`Off`) bytes. |
 | `HBT_REAL4_VEL`                    | `Off`| Make the code use 4 bytes for velocities, superseeding the choice made in `HBT_REAL8` if `On`. If `Off`, velocities are represented using the same precision specified by `HBT_REAL8`. |
 | `HBT_REAL4_MASS`                    | `Off`| Make the code use 4 bytes for masses, superseeding the choice made in `HBT_REAL8` if `On`. If `Off`, masses are represented using the same precision specified by `HBT_REAL8`.  |
-| `HBT_INPUT_INT8`                    | `Off`| Represent particle IDs using 8 (`On`) or 4 (`Off`) bytes. **DEPRECATED**: the code always uses the value specified by `HBT_INT8`. |
+| `HBT_INPUT_INT8`                    | `Off`| Represent particle IDs using 8 (`On`) or 4 (`Off`) bytes. |
 
 ### Miscellaneous
 
