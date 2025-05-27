@@ -1,5 +1,6 @@
-#include "config_parser.h"
 #include <cstdlib>
+#include <unordered_set>
+#include "config_parser.h"
 
 namespace PhysicalConst
 {
@@ -255,10 +256,40 @@ void Parameter_t::CheckRequiredParameters()
   }
 }
 
+/* Checks if we have duplicate values by creating a set, which will have the same
+ * size as the input vector only if all its elements are unique. */
+bool ContainsDuplicateValues(const std::vector<int> &InputVectorParameter)
+{
+  std::unordered_set<int> UniqueValues(InputVectorParameter.begin(), InputVectorParameter.end());
+  return UniqueValues.size() != InputVectorParameter.size();
+}
+
 /* Checks whether the input parameters are valid */
 void Parameter_t::CheckValidityParameters()
 {
   stringstream error_message; /* In case we need to raise an error. */
+
+  /* Make sure we have not provided duplicate entries for vector input types */
+  {
+    /* SnapshotIdList will be empty if no values are passed at runtime. */
+    if(SnapshotIdList.size() && ContainsDuplicateValues(SnapshotIdList))
+    {
+      error_message << "SnapshotIdList: There are duplicate values, please remove repeated elements." << endl;
+      throw invalid_argument(error_message.str());
+    }
+
+    if(ContainsDuplicateValues(TracerParticleTypes))
+    {
+      error_message << "TracerParticleTypes: There are duplicate values, please remove repeated elements." << endl;
+      throw invalid_argument(error_message.str());
+    }
+
+    if(ContainsDuplicateValues(DoNotSubsampleParticleTypes))
+    {
+      error_message << "DoNotSubsampleParticleTypes: There are duplicate values, please remove repeated elements." << endl;
+      throw invalid_argument(error_message.str());
+    }
+  }
 
   if (!SnapshotIdList.empty())
   {
