@@ -507,11 +507,12 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
        * in the next unbinding iteration. */
       ESnap.SetMassUpscaleFactor(1.);
     }
+
+    /* If we disable stripping, the we do no update Nbound nor Nunsample, and 
+     * they retain the values assigned before the first unbinding iteration. */
+#ifndef NO_STRIPPING
     Nbound = RemoveUnboundParticles(Elist, Nlast); // TODO: parallelize this.
     Nunsample = CountUnsampledParticles(Elist, Particles, Nunsample);
-#ifdef NO_STRIPPING
-    Nbound = Nlast;
-    Nunsample = Nunsample;
 #endif
 
     // Count the number of bound tracer particles
