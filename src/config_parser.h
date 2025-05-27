@@ -155,7 +155,13 @@ public:
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);
   void SetParameterValue(const string &line);
-  void CheckUnsetParameters();
+
+  /* Functions that will check if the input parameter file contains all required
+   * parameters and that they have valid values. */
+  void CheckParameters();
+  void CheckRequiredParameters();
+  void CheckValidityParameters();
+
   void BroadCast(MpiWorker_t &world, int root);
   void BroadCast(MpiWorker_t &world, int root, int &snapshot_start, int &snapshot_end)
   {

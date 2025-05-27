@@ -136,7 +136,7 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
       }
 
       /* We need a right bit shift, as it is otherwise undefined. */
-      DoNotSubsampleParticleBitMask = -1 >> 1; 
+      DoNotSubsampleParticleBitMask = -1 >> 1;
       return true;
     }
 
@@ -192,7 +192,9 @@ void Parameter_t::ParseConfigFile(const char *param_file)
     if (!line.empty())
       SetParameterValue(line);
   }
-  CheckUnsetParameters();
+
+  CheckParameters();
+
   PhysicalConst::G = 43.0071 * (MassInMsunh / 1e10) / VelInKmS / VelInKmS / LengthInMpch;
   PhysicalConst::H0 = 100. * (1. / VelInKmS) / (1. / LengthInMpch);
 
@@ -240,7 +242,8 @@ void Parameter_t::ReadSnapshotNameList()
     assert(SnapshotNameList.size() == MaxSnapshotIndex + 1);
 }
 
-void Parameter_t::CheckUnsetParameters()
+/* Checks whether the all mandatory parameters have been specified */
+void Parameter_t::CheckRequiredParameters()
 {
   for (int i = 0; i < IsSet.size(); i++)
   {
@@ -250,6 +253,13 @@ void Parameter_t::CheckUnsetParameters()
       exit(1);
     }
   }
+}
+
+/* Checks whether the input parameters are valid */
+void Parameter_t::CheckValidityParameters()
+{
+  stringstream error_message; /* In case we need to raise an error. */
+
   if (!SnapshotIdList.empty())
   {
     int max_index = SnapshotIdList.size() - 1;
@@ -260,6 +270,47 @@ void Parameter_t::CheckUnsetParameters()
       exit(1);
     }
   }
+
+  if(MaxSampleSizeOfPotentialEstimate < 0)
+  {
+    error_message << "MaxSampleSizeOfPotentialEstimate: Negative values are not allowed. Use a value of 0 (no subsampling) or larger (subsampling)." << endl;
+    throw invalid_argument(error_message.str());
+  }
+
+  /* Cannot say we subsample in DMO and then disable DM particle subsampling. 
+   * Conversely, we cannot subsample in hydro and then disable subsampling for all
+   * relevant particle types */
+  {
+#ifdef DM_ONLY
+    vector<int> TestParticleTypes = {1};
+#else
+    vector<int> TestParticleTypes = {0, 1, 4, 5};
+#endif
+
+    /* Create a bit mask corresponding to disabling subsampling for all relevant types */    
+    int TestBitMask = 0;
+    for (int i : TestParticleTypes)
+      TestBitMask += 1 << i;
+
+    /* Is this the same as the mask generated from the user input? */
+    if (TestBitMask == DoNotSubsampleParticleBitMask)
+    {
+#ifdef DM_ONLY
+      error_message << "Cannot enable subsampling (MaxSampleSizeOfPotentialEstimate > 0) and then disable subsampling (DoNotSubsampleParticleTypes 1) in DMO simulations. Disable either of the two options." << endl;
+#else
+      error_message << "Cannot enable subsampling (MaxSampleSizeOfPotentialEstimate > 0) and then disable subsampling (DoNotSubsampleParticleTypes 0 1 4 5) in HYDRO simulations. Disable either of the two options." << endl;
+#endif
+      throw invalid_argument(error_message.str());
+    }
+  }
+}
+
+/* Checks if the input parameter file contains all required parameters and that 
+ * they have valid values. */
+void Parameter_t::CheckParameters()
+{
+  CheckRequiredParameters();
+  CheckValidityParameters();
 }
 
 void ParseHBTParams(int argc, char **argv, Parameter_t &config, int &snapshot_start, int &snapshot_end)
