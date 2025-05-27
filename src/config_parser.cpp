@@ -16,7 +16,7 @@ bool Parameter_t::TryCompulsoryParameterValue(string ParameterName, stringstream
   if (ParameterName == #var)                                                                                           \
   {                                                                                                                    \
     ParameterValue >> var;                                                                                             \
-    IsSet[i] = true;                                                                                                   \
+    IsSet[i] = !ParameterValue.fail();                                                                                 \
     return true; /* Signals to not continue looking for matching parameter names */                                    \
   }
 
