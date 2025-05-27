@@ -7,6 +7,7 @@ comm_size = comm.Get_size()
 
 import os
 import re
+import warnings
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
 import h5py
@@ -39,26 +40,28 @@ def load_hbt_config(config_path):
     # i.e. has a value after its name, we store it.
     with open(config_path) as file:
         for line in file:
+            if line[0] == '#':
+                continue
             if 'MinSnapshotIndex' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['MinSnapshotIndex'] = int(line.split()[-1])
             if 'MaxSnapshotIndex' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['MaxSnapshotIndex'] = int(line.split()[-1])
             if 'SnapshotIdList' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['SnapshotIdList'] = np.array(line.split()[1:]).astype(int)
             if 'SnapshotPath' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['SnapshotPath'] = line.split()[-1]
             if 'SnapshotFileBase' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['SnapshotFileBase'] = line.split()[-1]
             if 'SnapshotDirBase' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['SnapshotDirBase'] = line.split()[-1]
             if 'SubhaloPath' in line:
-                if(len(line.split()) > 1):
+                if (len(line.split()) > 1):
                     config['SubhaloPath'] = line.split()[-1]
 
     # If we have no SnapshotIdList, this means all snapshots are
@@ -68,7 +71,7 @@ def load_hbt_config(config_path):
 
     return config
 
-def load_overflow_data(path_to_split_log_files):
+def load_overflow_data(path_to_split_log_files, tree_size):
     '''
     Loads particle splitting information for particles which
     split enough times to overflow the SplitTrees dataset.
@@ -90,11 +93,20 @@ def load_overflow_data(path_to_split_log_files):
 
     overflow_data = {}
     for filename in os.listdir(path_to_split_log_files):
-        if not re.match(r'^splits_\d{4}\.hdf5', filename):
+        if not re.match(r'^splits_\d{4}\.txt', filename):
             continue
-        file_data = np.loadtxt(f'{path_to_split_log_files}/{filename}', dtype=np.int64)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            file_data = np.loadtxt(f'{path_to_split_log_files}/{filename}', dtype=np.int64)
+            # We need to reshape if there is only one row in the splits file
+            if (len(file_data.shape) == 1) and (file_data.shape[0] != 0):
+                file_data = file_data.reshape(1, -1)
         for row in file_data:
             _, new_prog_id, old_prog_id, count, tree = row
+            # Handle negative numbers
+            tree = int(tree)
+            if tree < 0:
+                tree = (1 << tree_size) + tree
             overflow_data[(count, new_prog_id)] = {
                     'progenitor_id': old_prog_id,
                     'tree': tree,
@@ -104,7 +116,7 @@ def load_overflow_data(path_to_split_log_files):
 
 def generate_path_to_snapshot(config, snapshot_index):
     '''
-    Returns the path to the virtual file of a snapshot to analyse.
+    Returns the path of the snapshots files to analyse.
 
     Parameters
     ----------
@@ -118,7 +130,7 @@ def generate_path_to_snapshot(config, snapshot_index):
     Returns
     -------
     str
-        Path to the virtual file of the snapshot.
+        Path to the snapshot files.
     '''
     if 'SnapshotDirBase' in config: 
         subdirectory = f"{config['SnapshotDirBase']}_{config['SnapshotIdList'][snapshot_index]:04d}"
@@ -245,14 +257,15 @@ def get_corrected_split_trees(split_data, overflow_data):
     # Create copy of arrays to be updated
     progenitor_ids = split_data["progenitor_ids"].copy()
     # Set datatype as object so we can have arbitrarily large values
+    tree_size = split_data["trees"].itemsize * 8
     trees = split_data["trees"].astype('object')
+    trees[trees < 0] = (1 << tree_size) + trees[trees < 0]
 
     # Return if the rank has no data
     if (split_data["counts"].shape[0] == 0) or (overflow_data is None):
         return progenitor_ids, trees
 
     # Calculate the maximum number of times a particle has overflowed
-    tree_size = split_data["trees"].itemsize * 8
     n_overflow = np.max((split_data["counts"] - 1) // tree_size)
 
     while n_overflow > 0:
@@ -300,7 +313,9 @@ def update_overflow_split_trees(split_data, overflow_data=None):
             split_data['trees'] = split_data['trees'].astype('object')
             return split_data
         print(f'{np.sum(invalid_trees)} particles with invalid trees skipped on rank {comm_rank}')
-        split_data['trees'] = split_data['trees'][~invalid_trees].astype('object')
+        trees = split_data['trees'][~invalid_trees].astype('object')
+        trees[trees < 0] = (1 << tree_size) + trees[trees < 0]
+        split_data['trees'] = trees
         split_data['counts'] = split_data['counts'][~invalid_trees]
         split_data['progenitor_ids'] = split_data['progenitor_ids'][~invalid_trees]
         split_data['particle_ids'] = split_data['particle_ids'][~invalid_trees]
@@ -308,6 +323,9 @@ def update_overflow_split_trees(split_data, overflow_data=None):
         progenitor_ids, trees = get_corrected_split_trees(split_data, overflow_data)
         split_data['trees'] = trees
         split_data['progenitor_ids'] = progenitor_ids
+
+    if split_data['trees'].shape[0] > 0:
+        assert np.min(split_data['trees']) >= 0
 
     return split_data
 
@@ -403,26 +421,10 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
 
             # If we have a new tree, all new particle IDs have as their progenitor the
             # particle ID that originated this unique tree.
-            # NOTE: Disabled because SWIFT runs had incorrect ParticleProgenitorIDs
-            # progenitor_id_old = tree_progenitor_ID
+            progenitor_id = tree_progenitor_ID
 
+            # Remove the progenitor particle from the list of IDs to prevent infinite loop
             new_ids = new_snapshot_data['particle_ids'][tree_index]
-
-            # We get the ID that has all 0s in its split tree (it retained the ID of
-            # the original particle)
-            progenitor_id = new_ids[new_snapshot_data["trees"][tree_index] == 0]
-
-            # We should have either 1 or 0 progenitor ids.
-            assert(len(progenitor_id) < 2)
-
-            # Print out a warning if no progenitor ID was found... We cannot do much more
-            # than that.
-            if len(progenitor_id) == 0:
-                local_no_progenitors_found += 1
-                continue
-
-            progenitor_id = progenitor_id[0]
-
             new_ids = new_ids[new_ids != progenitor_id]
 
             # We could encounter cases where a particle has split and its descendants
@@ -441,10 +443,6 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
                                                           old_snapshot_data['counts'][tree_index_old],
                                                           new_snapshot_data['particle_ids'][tree_index],
                                                           new_snapshot_data['trees'][tree_index]))
-    global_no_progenitors_found = comm.allreduce(local_no_progenitors_found)
-    if global_no_progenitors_found > 0:
-        if comm_rank == 0:
-            print(f"We could not find progenitors for {global_no_progenitors_found} new split trees.")
 
     return new_splits
 
@@ -467,8 +465,8 @@ def save(split_dictionary, file_path):
     global_total_splits = comm.allreduce(local_total_splits)
 
     # For completeness purposes, save an empty hdf5 even when we have no splits
-    if(global_total_splits == 0):
-        if(comm_rank == 0):
+    if (global_total_splits == 0):
+        if (comm_rank == 0):
             with h5py.File(file_path, 'w') as file:
                 file.create_dataset("SplitInformation/Keys", data = h5py.Empty("int"))
                 file.create_dataset("SplitInformation/Values", data = h5py.Empty("int"))
@@ -507,9 +505,13 @@ def save(split_dictionary, file_path):
     if comm_rank == 0:
         with h5py.File(file_path, 'r') as file:
             keys = file['SplitInformation/Keys'][:]
-            assert np.unique(keys).shape[0] == keys.shape[0]
+            keys_unique = np.unique(keys).shape[0] == keys.shape[0]
             values = file['SplitInformation/Values'][:]
-            assert np.unique(values).shape[0] == values.shape[0]
+            values_unique = np.unique(values).shape[0] == values.shape[0]
+        if not (keys_unique and values_unique):
+            os.remove(file_path)
+            # Not need for MPI_ABORT since other ranks are finished anyway
+            raise RuntimeError('Keys/Values were not unique')
 
 def assign_task_based_on_id(ids):
     """
@@ -615,9 +617,9 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
     #==========================================================================
     # Check that we are analysing a valid snapshot index
     #==========================================================================
-    if(snapshot_index > config['MaxSnapshotIndex']):
+    if (snapshot_index > config['MaxSnapshotIndex']):
         raise ValueError(f"Chosen snapshot index {snapshot_index} is larger than the one specified in the config ({config['MaxSnapshotIndex']}).")
-    if(snapshot_index < config['MinSnapshotIndex']):
+    if (snapshot_index < config['MinSnapshotIndex']):
         raise ValueError(f"Chosen snapshot index {snapshot_index} is smaller than the one specified in the config ({config['MinSnapshotIndex']}).")
 
     #==========================================================================
@@ -633,7 +635,7 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
     # There will be no splits for snapshot 0, so we can skip its analysis
     #==========================================================================
     if snapshot_index == 0:
-        if(comm_rank == 0):
+        if (comm_rank == 0):
             print(f"Skipping snapshot index {snapshot_index}")
 
         save({},output_file_name)
@@ -644,7 +646,10 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
     #==========================================================================
     overflow_data = None
     if comm_rank == 0:
-        overflow_data = load_overflow_data(path_to_split_log_files)
+        ref_snapshot_path = generate_path_to_snapshot(config, snapshot_index)
+        with h5py.File(ref_snapshot_path.format(file_nr=0), 'r') as file:
+            tree_size = file['PartType0/SplitTrees'].dtype.itemsize * 8
+        overflow_data = load_overflow_data(path_to_split_log_files, tree_size)
     overflow_data = comm.bcast(overflow_data, root=0)
 
     #==========================================================================
@@ -660,7 +665,7 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
     # Get how many particles that have been split exist in current snapshot
     total_number_splits = comm.allreduce(len(new_data["counts"]))
 
-    if(total_number_splits) == 0:
+    if total_number_splits == 0:
         if comm_rank == 0:
             print (f"No splits at snapshot index {snapshot_index}. Skipping...")
 
@@ -724,6 +729,9 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
         print (f"Done!")
 
 if __name__ == "__main__":
+
+    if comm_rank == 0:
+        print(f"Running generate_particle_splitting_information.py with {comm_size} ranks")
 
     from virgo.mpi.util import MPIArgumentParser
 
