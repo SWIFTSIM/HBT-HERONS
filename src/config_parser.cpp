@@ -1,5 +1,6 @@
-#include "config_parser.h"
 #include <cstdlib>
+#include <unordered_set>
+#include "config_parser.h"
 
 namespace PhysicalConst
 {
@@ -73,7 +74,6 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(PeriodicBoundaryOn);
   TrySetPar(SnapshotHasIdBlock);
   TrySetPar(MaxPhysicalSofteningHalo);
-  TrySetPar(TracerParticleBitMask);
   TrySetPar(ParticlesSplit);
 
 #undef TrySetPar
@@ -110,6 +110,39 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
     TracerParticleBitMask = 0;
     for (int i : TracerParticleTypes)
       TracerParticleBitMask += 1 << i;
+    return true;
+  }
+  if (ParameterName == "DoNotSubsampleParticleTypes")
+  {
+    /* Store as a vector first to output in Params.log in a human-readable
+     * format */
+    DoNotSubsampleParticleTypes.clear(); // To remove default values
+    for (int i; ParameterValues >> i;)
+      DoNotSubsampleParticleTypes.push_back(i);
+
+    /* Create a bitmask, to be used internally by the code to identify which 
+     * particles it should not subsample during unbinding. */
+    DoNotSubsampleParticleBitMask = 0;
+
+    /* We specified -1, we allow any particle type to be subsampled. */
+    auto it = std::find(DoNotSubsampleParticleTypes.begin(), DoNotSubsampleParticleTypes.end(), -1);
+    if (it != DoNotSubsampleParticleTypes.end())
+    {
+      /* Sanity check: we can only specify a single number if -1 is present. */
+      if(DoNotSubsampleParticleTypes.size() > 1)
+      {
+        stringstream error_message;
+        error_message << "DoNotSubsampleParticleTypes only takes a single number if -1 is present. " << endl;
+        throw runtime_error(error_message.str());
+      }
+
+      /* We need a right bit shift, as it is otherwise undefined. */
+      DoNotSubsampleParticleBitMask = -1 >> 1;
+      return true;
+    }
+
+    for (int i : DoNotSubsampleParticleTypes)
+      DoNotSubsampleParticleBitMask += 1 << i;
     return true;
   }
   return false; // This signals to continue looking for valid parameter names
@@ -160,7 +193,9 @@ void Parameter_t::ParseConfigFile(const char *param_file)
     if (!line.empty())
       SetParameterValue(line);
   }
-  CheckUnsetParameters();
+
+  CheckParameters();
+
   PhysicalConst::G = 43.0071 * (MassInMsunh / 1e10) / VelInKmS / VelInKmS / LengthInMpch;
   PhysicalConst::H0 = 100. * (1. / VelInKmS) / (1. / LengthInMpch);
 
@@ -208,7 +243,8 @@ void Parameter_t::ReadSnapshotNameList()
     assert(SnapshotNameList.size() == MaxSnapshotIndex + 1);
 }
 
-void Parameter_t::CheckUnsetParameters()
+/* Checks whether the all mandatory parameters have been specified */
+void Parameter_t::CheckRequiredParameters()
 {
   for (int i = 0; i < IsSet.size(); i++)
   {
@@ -218,16 +254,102 @@ void Parameter_t::CheckUnsetParameters()
       exit(1);
     }
   }
-  if (!SnapshotIdList.empty())
+}
+
+/* Checks if we have duplicate values by creating a set, which will have the same
+ * size as the input vector only if all its elements are unique. */
+bool ContainsDuplicateValues(const std::vector<int> &InputVectorParameter)
+{
+  std::unordered_set<int> UniqueValues(InputVectorParameter.begin(), InputVectorParameter.end());
+  return UniqueValues.size() != InputVectorParameter.size();
+}
+
+/* Checks whether the input parameters are valid */
+void Parameter_t::CheckValidityParameters()
+{
+  stringstream error_message; /* In case we need to raise an error. */
+
+  /* Make sure we have not provided duplicate entries for vector input types */
   {
-    int max_index = SnapshotIdList.size() - 1;
-    if (MaxSnapshotIndex != max_index)
+    /* SnapshotIdList will be empty if no values are passed at runtime. */
+    if(SnapshotIdList.size() && ContainsDuplicateValues(SnapshotIdList))
     {
-      cerr << "Error: MaxSnapshotIndex=" << MaxSnapshotIndex << ", inconsistent with SnapshotIdList (" << max_index + 1
-           << " snapshots listed)\n";
-      exit(1);
+      error_message << "SnapshotIdList: There are duplicate values, please remove repeated elements." << endl;
+      throw invalid_argument(error_message.str());
+    }
+
+    if(ContainsDuplicateValues(TracerParticleTypes))
+    {
+      error_message << "TracerParticleTypes: There are duplicate values, please remove repeated elements." << endl;
+      throw invalid_argument(error_message.str());
+    }
+
+    if(ContainsDuplicateValues(DoNotSubsampleParticleTypes))
+    {
+      error_message << "DoNotSubsampleParticleTypes: There are duplicate values, please remove repeated elements." << endl;
+      throw invalid_argument(error_message.str());
     }
   }
+
+  /* Checks relating to SnapshotIdList. */
+  if (SnapshotIdList.size())
+  {
+    /* The snapshot ID list should be in ascending order. */
+    if(!std::is_sorted(SnapshotIdList.begin(), SnapshotIdList.end()))
+    {
+      error_message << "SnapshotIdList: Values are not in ascending order." << endl;
+      throw invalid_argument(error_message.str());
+    }
+
+    /* MaxSnapshotIndex should be consistent with SnapshotIdList */
+    if (MaxSnapshotIndex != (SnapshotIdList.size() - 1))
+    {
+      error_message << "MaxSnapshotIndex (" << MaxSnapshotIndex << "): inconsistent with SnapshotIdList (SnapshotIdList.size() - 1 = " << (SnapshotIdList.size() - 1) << ")." << endl;
+      throw invalid_argument(error_message.str());      
+    }
+  }
+
+  /* No negative values for MaxSampleSizeOfPotentialEstimate allowed. */
+  if(MaxSampleSizeOfPotentialEstimate < 0)
+  {
+    error_message << "MaxSampleSizeOfPotentialEstimate: Negative values are not allowed. Use a value of 0 (no subsampling) or larger (subsampling)." << endl;
+    throw invalid_argument(error_message.str());
+  }
+
+  /* Cannot say we subsample in DMO and then disable DM particle subsampling. 
+   * Conversely, we cannot subsample in hydro and then disable subsampling for all
+   * relevant particle types */
+  {
+#ifdef DM_ONLY
+    vector<int> TestParticleTypes = {1};
+#else
+    vector<int> TestParticleTypes = {0, 1, 4, 5};
+#endif
+
+    /* Create a bit mask corresponding to disabling subsampling for all relevant types */    
+    int TestBitMask = 0;
+    for (int i : TestParticleTypes)
+      TestBitMask += 1 << i;
+
+    /* Is this the same as the mask generated from the user input? */
+    if (TestBitMask == DoNotSubsampleParticleBitMask)
+    {
+#ifdef DM_ONLY
+      error_message << "Cannot enable subsampling (MaxSampleSizeOfPotentialEstimate > 0) and then disable subsampling (DoNotSubsampleParticleTypes 1) in DMO simulations. Disable either of the two options." << endl;
+#else
+      error_message << "Cannot enable subsampling (MaxSampleSizeOfPotentialEstimate > 0) and then disable subsampling (DoNotSubsampleParticleTypes 0 1 4 5) in HYDRO simulations. Disable either of the two options." << endl;
+#endif
+      throw invalid_argument(error_message.str());
+    }
+  }
+}
+
+/* Checks if the input parameter file contains all required parameters and that 
+ * they have valid values. */
+void Parameter_t::CheckParameters()
+{
+  CheckRequiredParameters();
+  CheckValidityParameters();
 }
 
 void ParseHBTParams(int argc, char **argv, Parameter_t &config, int &snapshot_start, int &snapshot_end)
@@ -325,6 +447,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
 
   _SyncBool(GroupLoadedFullParticle);
   _SyncAtom(TracerParticleBitMask, MPI_INT);
+  _SyncAtom(DoNotSubsampleParticleBitMask, MPI_INT);
   _SyncAtom(ParticlesSplit, MPI_INT);
   //---------------end sync params-------------------------//
 
@@ -444,6 +567,13 @@ void Parameter_t::DumpParameters()
   {
     version_file << "TracerParticleTypes";
     for (auto &&i : TracerParticleTypes)
+      version_file << " " << i;
+    version_file << endl;
+  }
+  if (DoNotSubsampleParticleTypes.size())
+  {
+    version_file << "DoNotSubsampleParticleTypes";
+    for (auto &&i : DoNotSubsampleParticleTypes)
       version_file << " " << i;
     version_file << endl;
   }

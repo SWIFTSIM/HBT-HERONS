@@ -18,52 +18,29 @@ struct ParticleEnergy_t
 inline bool CompareEnergy(const ParticleEnergy_t &a, const ParticleEnergy_t &b)
 {
   return (a.Energy < b.Energy);
-};
+}
 
-/* Similar to the C++ partition() function but returns the number of bound 
- * particles. Used to sort Elist to move unbound particles to the end. */
-static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size_t NumPart)
-{ 
-  if (NumPart == 0)
-    return 0;
-  if (NumPart == 1)
-    return Elist[0].Energy < 0;
+inline bool IsBound(const ParticleEnergy_t &a)
+{
+  return (a.Energy < 0);
+}
 
-  ParticleEnergy_t Etmp = Elist[0];
-  auto iterforward = Elist.begin(), iterbackward = Elist.begin() + NumPart;
-  while (true)
-  {
-    // iterforward is a void now, can be filled
-    while (true)
-    {
-      iterbackward--;
-      if (iterbackward == iterforward)
-      {
-        *iterforward = Etmp;
-        if (Etmp.Energy < 0)
-          iterbackward++;
-        return iterbackward - Elist.begin();
-      }
-      if (iterbackward->Energy < 0)
-        break;
-    }
-    *iterforward = *iterbackward;
-    // iterbackward is a void now, can be filled
-    while (true)
-    {
-      iterforward++;
-      if (iterforward == iterbackward)
-      {
-        *iterbackward = Etmp;
-        if (Etmp.Energy < 0)
-          iterbackward++;
-        return iterbackward - Elist.begin();
-      }
-      if (iterforward->Energy > 0)
-        break;
-    }
-    *iterbackward = *iterforward;
-  }
+inline bool IsNotSubsampleParticleType(const Particle_t &a)
+{
+  return a.DoNotSubsample();
+}
+
+/* Separates unbound particles from bound particles by placing them at the end
+ * of Elist */
+static HBTInt RemoveUnboundParticles(vector<ParticleEnergy_t> &Elist, const size_t NumPart)
+{
+  /* Separate bound from unbound particles. Stable partition since we want to 
+   * keep original relative ordering (bound particles that cannot be subsampled
+   * will stay at the beginning). */
+  auto iter = std::stable_partition(Elist.begin(), Elist.begin() + NumPart, IsBound);
+
+  /* Equals the number of bound particles*/
+  return iter - Elist.begin();
 }
 
 class EnergySnapshot_t : public Snapshot_t
@@ -103,11 +80,14 @@ public:
     MassFactor = factor;
   }
 
-  /* Returns the (scaled) mass of a particle. It will be  larger than the true
+  /* Returns the (scaled) mass of a particle. It will be larger than the true
    * mass if the particles are being subsampled. */
   HBTReal GetMass(HBTInt i) const
   {
-    return Particles[GetParticle(i)].Mass * MassFactor;
+    if(IsNotSubsampleParticleType(Particles[GetParticle(i)]))
+      return Particles[GetParticle(i)].Mass;
+    else
+      return Particles[GetParticle(i)].Mass * MassFactor;
   }
 
   HBTReal GetInternalEnergy(HBTInt i) const
@@ -318,15 +298,69 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
 
 /* Finds the factor by which the mass of particles need to be multiplied after
  * subsampling, to ensure mass conservation. */
-HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize)
+HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
 {
+  /* Compute the total mass of particles that are not subsampled, to subtract
+   * contribution from Mlast and hence get total true mass of subsampled 
+   * particles. */
+  HBTReal Munsampled = 0;
+  if(Nunsample > 0)
+  {
+#pragma omp parallel for if (Nunsample > 100) reduction(+:Munsampled)
+    for (HBTInt i = 0; i < Nunsample; i++)
+    {
+      Munsampled += ESnap.GetMass(i);
+    }
+  }
+
+  /* This is the mass value that we need to convert when doing subsampling. */
+  HBTReal MsubsampleTrue = Mlast - Munsampled;
+
+  /* Total mass of the subsampled particle set. */
   HBTReal Msubsample = 0;
 #pragma omp parallel for if (MaxSampleSize > 100) reduction(+:Msubsample)
-  for (HBTInt i = 0; i < MaxSampleSize; i++)
+  for (HBTInt i = Nunsample; i < (Nunsample + MaxSampleSize); i++)
   {
     Msubsample += ESnap.GetMass(i);
   }
-  return Mlast / Msubsample;
+
+  return MsubsampleTrue / Msubsample;
+}
+
+/* Randomly shuffles the particles whose type are eligible to be subsampled 
+ * during unbinding. Particles types that are not eligible will be placed at the
+ * start of the vector. */
+HBTInt PrepareParticlesForSubsampling(vector<Particle_t> &Particles)
+{
+  /* We first partition the particle vector into those which we will 
+   * subsample and those which we will not. */
+  auto iter = std::partition(Particles.begin(), Particles.end(), IsNotSubsampleParticleType);
+
+  /* Amount of particles that will not be subsampled. */
+  HBTInt Nunsample = iter - Particles.begin();
+
+  /* Shuffle the particles that can be subsampled. */
+  std::random_shuffle(Particles.begin() + Nunsample, Particles.end());
+
+  return Nunsample;
+}
+
+/* Counts how many bound particles are not eligible to be subsampled. */
+HBTInt CountUnsampledParticles(const vector<ParticleEnergy_t> &Elist, const vector<Particle_t> &Particles, const HBTInt &OldNsubsample)
+{
+  HBTInt NewNunsample = 0;
+  for (HBTInt i = 0; i < OldNsubsample; i++)
+  {
+    const auto &p = Particles[Elist[i].ParticleIndex];
+
+    /* Particles that cannot be sampled are always at the beginning. Thus we can
+     * exit the loop if we find a particle that we can subsample. */
+    if(!p.DoNotSubsample())
+      break;
+
+    NewNunsample++;
+  }
+  return NewNunsample;
 }
 
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
@@ -379,8 +413,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   /* Shuffle the particle vector, which we use as our basis of random 
    * subsamples. */
+  HBTInt Nunsample = 0;
   if (MaxSampleSize > 0 && Nbound > MaxSampleSize)
-    random_shuffle(Particles.begin(), Particles.end());
+    Nunsample = PrepareParticlesForSubsampling(Particles);
 
   /* This vector stores the original ordering of particles, and will later store
    * their binding energies. */
@@ -441,13 +476,13 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       HBTInt np_tree = Nlast;
 
       /* If we subsample, then we need to upscale the masses of particles that
-       * contribute to potential calculations. */
-      if (MaxSampleSize > 0 && Nlast > MaxSampleSize)
+       * will be subsampled when doing potential calculations. */
+      if ((MaxSampleSize > 0) && (Nlast > (MaxSampleSize + Nunsample)))
       {
-        np_tree = MaxSampleSize;
+        np_tree = MaxSampleSize + Nunsample;
 
         ESnap.SetMassUpscaleFactor(1.); /* To get true particle mass */
-        HBTReal MassUpscaleFactor = GetMassUpscaleFactor(ESnap, Nlast, Mlast, MaxSampleSize);
+        HBTReal MassUpscaleFactor = GetMassUpscaleFactor(ESnap, Nlast, Mlast, MaxSampleSize, Nunsample);
         ESnap.SetMassUpscaleFactor(MassUpscaleFactor);
       }
 
@@ -472,9 +507,12 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
        * in the next unbinding iteration. */
       ESnap.SetMassUpscaleFactor(1.);
     }
-    Nbound = PartitionBindingEnergy(Elist, Nlast); // TODO: parallelize this.
-#ifdef NO_STRIPPING
-    Nbound = Nlast;
+
+    /* If we disable stripping, the we do no update Nbound nor Nunsample, and 
+     * they retain the values assigned before the first unbinding iteration. */
+#ifndef NO_STRIPPING
+    Nbound = RemoveUnboundParticles(Elist, Nlast); // TODO: parallelize this.
+    Nunsample = CountUnsampledParticles(Elist, Particles, Nunsample);
 #endif
 
     // Count the number of bound tracer particles
