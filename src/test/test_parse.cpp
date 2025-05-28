@@ -6,7 +6,7 @@ using namespace std;
 #include <string>
 
 #include "../boost_mpi.h"
-#include "../config_parser.h"
+#include "../config/config_parser.h"
 #include "../datatypes.h"
 #include "../mymath.h"
 

@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "config_parser.h"
+#include "./config/config_parser.h"
 #include "geometric_tree.h"
 #include "mymath.h"
 

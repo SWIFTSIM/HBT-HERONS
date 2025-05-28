@@ -7,7 +7,7 @@
 #include "../mpi_wrapper.h"
 #include "../snapshot_number.h"
 #include "../subhalo.h"
-#include "../config_parser.h"
+#include "../config/config_parser.h"
 #include "git_version_info.h"
 
 void SubhaloSnapshot_t::BuildHDFDataType()

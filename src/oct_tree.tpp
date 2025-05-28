@@ -4,7 +4,7 @@
 // #include <cstring>
 
 #include "mymath.h"
-#include "config_parser.h"
+#include "./config/config_parser.h"
 
 template <class T>
 inline void OctTree_t<T>::AppendCell()

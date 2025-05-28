@@ -12,7 +12,7 @@ using namespace std;
 #include <string>
 #include <typeinfo>
 #include <stdexcept>
-#include "../config_parser.h"
+#include "../config/config_parser.h"
 #include "../hdf_wrapper.h"
 #include "../mymath.h"
 #include "../snapshot.h"

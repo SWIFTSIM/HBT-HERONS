@@ -1,8 +1,8 @@
 #ifndef CONFIG_PARSER_H_INCLUDED
 #define CONFIG_PARSER_H_INCLUDED
 
-#include "datatypes.h"
-#include "mpi_wrapper.h"
+#include "../datatypes.h"
+#include "../mpi_wrapper.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>

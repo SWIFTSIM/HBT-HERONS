@@ -93,7 +93,7 @@ endif(HBT_USE_GSL)
 # Headers are found automatically by cmake.
 #
 set(HBT_SRC 
-  src/config_parser.cpp
+  src/config/config_parser.cpp
   src/geometric_tree.cpp
   src/gravity_tree.cpp
   src/halo.cpp
