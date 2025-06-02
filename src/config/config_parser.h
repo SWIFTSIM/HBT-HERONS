@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "./parameters.h"
 
 #define HBT_VERSION "1.16.1.MPI"
 
@@ -22,74 +23,12 @@ extern HBTReal H0;
 class Parameter_t
 { /*!remember to register members in BroadCast() and SetParameterValue() functions if you change them!*/
 public:
-  // remember to update SetParameterValue() and DumpParameters() accordingly if you change any parameter definition.
-  /*compulsory parameters*/
-  string SnapshotPath;
-  string HaloPath;
-  string SubhaloPath;
-  string SnapshotFileBase;
-  int MaxSnapshotIndex;
-  HBTReal BoxSize; // to check the unit of snapshot according to the BoxSize in header
-  HBTReal SofteningHalo;
-  HBTReal MaxPhysicalSofteningHalo;
-  vector<bool> IsSet;
 
-  /*optional*/
-  string SnapshotDirBase;
-  string SnapshotFormat;
-  string GroupFileFormat;
-  int MaxConcurrentIO;
-  int MinSnapshotIndex;
-  int MinNumPartOfSub;
-  int MinNumTracerPartOfSub;
-  int NumTracerHostFinding;
-  int NumTracersForDescendants;
-  long GroupParticleIdMask; // only used for a peculiar gadget format.
-  HBTReal MassInMsunh;
-  HBTReal LengthInMpch;
-  HBTReal VelInKmS;
-  bool PeriodicBoundaryOn;
-  bool SnapshotHasIdBlock; // set to False when your snapshot is sorted according to particle id so that no id block is
-                           // present.
-  bool ParticleIdNeedHash;
-  bool SnapshotIdUnsigned;
-  bool SaveBoundParticleProperties;
-  bool SaveBoundParticleBindingEnergies;
-  bool SaveBoundParticlePotentialEnergies;
-  bool MergeTrappedSubhalos; // whether to MergeTrappedSubhalos, see code paper for more info.
-  vector<int> SnapshotIdList;
-  vector<int> TracerParticleTypes;
-  vector<int> DoNotSubsampleParticleTypes; /* Which particles types cannot be subsampled. */
-  vector<string> SnapshotNameList;
-
-  HBTReal MajorProgenitorMassRatio;
-  HBTReal BoundMassPrecision;
-  HBTReal SourceSubRelaxFactor;
-  HBTReal SubCoreSizeFactor; // coresize=Nbound*CoreSizeFactor, to get center coordinates for the KineticDistance test.
-  HBTInt SubCoreSizeMin;     // Minimum coresize
-
-  HBTReal TreeAllocFactor;
-  HBTReal TreeNodeOpenAngle;
-  HBTInt TreeMinNumOfCells;
-  HBTInt ParticleNullGroupId;
-
-  HBTInt MaxSampleSizeOfPotentialEstimate;
-  bool RefineMostBoundParticle; // whether to further improve mostbound particle accuracy in case a
-                                // MaxSampleSizeOfPotentialEstimate is used. this introduces some overhead if true, but
-                                // leads to more accuracy mostbound particle
-  float BoundFractionCenterRefinement; /* The fraction of most bound particles to use if the most bound particle will be
-                                          refined */
-
-  int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
-  int DoNotSubsampleParticleBitMask; /* Bitmask used to identify which particle type cannot be subsampled */
-  int ParticlesSplit;        /* Whether baryonic particles are able to split. Relevant to swift simulations */
-
-  /*derived parameters; do not require user input*/
-  HBTReal TreeNodeOpenAngleSquare;
-  HBTReal TreeNodeResolution;
-  HBTReal TreeNodeResolutionHalf;
-  HBTReal BoxHalf;
-  bool GroupLoadedFullParticle; // whether group particles are loaded with full particle properties or just ids.
+  /* Automatic member declaration based on what is in parameters.h */ 
+#define X(type, name) type name;
+  AVAILABLE_PARAMETERS
+  DERIVED_PARAMETERS
+#undef X
 
   Parameter_t() : IsSet(NumberOfCompulsaryConfigEntries, false), SnapshotIdList(), SnapshotNameList()
   {
