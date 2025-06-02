@@ -4,20 +4,20 @@
   /* Path where the particle data are saved. */                              \
   PARAMETER(std::string, SnapshotPath)                                           \
   /* Path where the information used to assign a FoF to each particle are 
-    * saved. */                                                               \
+   * saved. */                                                               \
   PARAMETER(std::string, HaloPath)                                           \
   /* Path where the catalogues will be saved. */                             \
   PARAMETER(std::string, SubhaloPath)                                           \
   /* Base string used to generate the names of each particle snapshot. */    \
   PARAMETER(std::string, SnapshotFileBase)                                           \
   /* Maximum physical gravitational softening length (used for all 
-    * particles). */                                                          \
+   * particles). */                                                          \
   PARAMETER(std::string,      SnapshotDirBase)                                    \
   /* Format of the particle snapshot, generally dependent on the code used 
-    * to generate them. */                                                    \
+   * to generate them. */                                                    \
   PARAMETER(std::string,      SnapshotFormat)                                     \
   /* Format of the FoF catalogues, generally dependent on the code used to
-    * generate them. */                                                       \
+   * generate them. */                                                       \
   PARAMETER(std::string,      GroupFileFormat)                                    \
   /* Total number of snapshots that will be analysed. */                     \
   PARAMETER(int,         MaxSnapshotIndex)                                           \
@@ -26,7 +26,7 @@
   /* Comoving gravitational softening length (used for all particles). */    \
   PARAMETER(HBTReal,      SofteningHalo)                                          \
   /* Maximum physical gravitational softening length (used for all 
-    * particles). */                                                          \
+   * particles). */                                                          \
   PARAMETER(HBTReal,      MaxPhysicalSofteningHalo)                               \
   PARAMETER(int,          MaxConcurrentIO)                                        \
   /* Snapshot to start the analysis from. */                                 \
@@ -34,7 +34,7 @@
   /* Minimum number of bound particles for a subhalo to be resolved. */      \
   PARAMETER(int,          MinNumPartOfSub)                                        \
   /* Minimum number of bound tracer particles for a subhalo to be 
-    * resolved. */                                                            \
+   * resolved. */                                                            \
   PARAMETER(int,          MinNumTracerPartOfSub)                                  \
   /* Number of tracer particles used to assign FoF hosts to subhaloes */     \
   PARAMETER(int,          NumTracerHostFinding)                                   \
@@ -47,35 +47,35 @@
   PARAMETER(bool, ParticleIdNeedHash)                                                \
   PARAMETER(bool, SnapshotIdUnsigned)                                                \
   /* Whether to also save mass, position, velocity (and internal energy) of 
-    * all particles bound to subhaloes. */                                    \
+   * all particles bound to subhaloes. */                                    \
   PARAMETER(bool, SaveBoundParticleProperties)                                       \
   /* Whether to also  save mass, position, velocity (and internal energy) of 
-    * all particles bound to subhaloes. */                                    \
+   * all particles bound to subhaloes. */                                    \
   PARAMETER(bool, SaveBoundParticleBindingEnergies)                                  \
   /* Whether to also  save mass, position, velocity (and internal energy) of 
-    * all particles bound to subhaloes. */                                    \
+   * all particles bound to subhaloes. */                                    \
   PARAMETER(bool, SaveBoundParticlePotentialEnergies)                                \
   /* Whether to manually merge subhaloes that overlap in phase-space */      \
   PARAMETER(bool, MergeTrappedSubhalos)                                              \
   /* If snapshots will not be analysed consecutively, this vector tells the 
-    * code which numbers will be read. */                                     \
+   * code which numbers will be read. */                                     \
   PARAMETER(vector<int>, SnapshotIdList)                                             \
   /* Particle types used to trace the host FoF of subhaloes (and orphans) */ \
   PARAMETER(vector<int>, TracerParticleTypes)                                        \
   /* Particle types that cannot be subsampled when unbinding */              \
   PARAMETER(vector<int>, DoNotSubsampleParticleTypes)                                \
   /* If snapshots are named differently within the same run. Otherwise better 
-    * to use SnapshotFileBase. */                                             \
+   * to use SnapshotFileBase. */                                             \
   PARAMETER(vector<string>, SnapshotNameList)                                        \
   /* Mass threshold above which subhaloes are candidates to become centrals
-    * of their FoF group. Expressed relative to the bound mass of the most
-    * massive subhalo. */                                                     \
+   * of their FoF group. Expressed relative to the bound mass of the most
+   * massive subhalo. */                                                     \
   PARAMETER(HBTReal, MajorProgenitorMassRatio)                                       \
   /* Threshold ratio in the number of bound particles between consecutive
-    * unbinding iterations to deem the unbinding as converged. */             \
+   * unbinding iterations to deem the unbinding as converged. */             \
   PARAMETER(HBTReal, BoundMassPrecision)                                             \
   /* Maximum number of particles a subhalo can keep track of, relative to its
-    * number of bound particles. */                                           \
+   * number of bound particles. */                                           \
   PARAMETER(HBTReal, SourceSubRelaxFactor)                                           \
   PARAMETER(HBTReal, TreeAllocFactor)                                                \
   PARAMETER(HBTReal, TreeNodeOpenAngle)                                              \
@@ -83,22 +83,22 @@
   /* Value used to identify which particles do not belong to any FoF group */\
   PARAMETER(HBTInt, ParticleNullGroupId)                                             \
   /* Maximum number of particles that can be subsampled used during unbinding.
-    * Triggers subsampling if MaxSampleSizeOfPotentialEstimate is less than 
-    * the number of particles that can be subsampled. */                      \
+   * Triggers subsampling if MaxSampleSizeOfPotentialEstimate is less than 
+   * the number of particles that can be subsampled. */                      \
   PARAMETER(HBTInt, MaxSampleSizeOfPotentialEstimate)                                \
   /* Compute the self-binding energy of the most bound subset of particles if     
-    subsampling is enabled, to refine the subhalo coordinates. */            \
+   * subsampling is enabled, to refine the subhalo coordinates. */            \
   PARAMETER(bool, RefineMostBoundParticle)                                           \
   /* Minimum fraction of most bound particles used to refine the subhalo 
-    * coordinates */                                                          \
+   * coordinates */                                                          \
   PARAMETER(float, BoundFractionCenterRefinement)                                    \
   /* If baryonic particles can split. Relevant to swift simulations */       \
   PARAMETER(int, ParticlesSplit)                                                     \
   /* Fraction of most bound particles used to estimate position and velocity
-    * when doing merger checks. */                                            \
+   * when doing merger checks. */                                            \
   PARAMETER(HBTReal, SubCoreSizeFactor)                                              \
   /* Minimum number of most bound particles used to estimate position and 
-    * velocity when doing merger checks. */                                   \
+   * velocity when doing merger checks. */                                   \
   PARAMETER(HBTInt, SubCoreSizeMin)                                                  \
 
 /* This macro contains the definition of configuration-related parameters that
