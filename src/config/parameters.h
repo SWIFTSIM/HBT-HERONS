@@ -60,14 +60,14 @@
   PARAMETER(bool, MergeTrappedSubhalos, true)                                  \
   /* If snapshots will not be analysed consecutively, this vector tells the 
    * code which snapshot numbers will be analysed. */                          \
-  PARAMETER(vector<int>, SnapshotIdList)                                       \
+  PARAMETER(std::vector<int>, SnapshotIdList)                                  \
   /* Particle types used to trace the host FoF of subhaloes (and orphans) */   \
-  PARAMETER(vector<int>, TracerParticleTypes,  (std::vector<int>{1, 4}))       \
+  PARAMETER(std::vector<int>, TracerParticleTypes,  (std::vector<int>{1, 4}))  \
   /* Particle types that cannot be subsampled when unbinding */                \
-  PARAMETER(vector<int>, DoNotSubsampleParticleTypes, (std::vector<int>{5}))   \
+  PARAMETER(std::vector<int>, DoNotSubsampleParticleTypes, (std::vector<int>{5}))\
   /* If snapshots are named differently within the same run. Otherwise better 
    * to use SnapshotFileBase. */                                               \
-  PARAMETER(vector<string>, SnapshotNameList)                                  \
+  PARAMETER(std::vector<string>, SnapshotNameList)                             \
   /* Mass threshold above which subhaloes are candidates to become centrals
    * of their FoF group. Expressed relative to the bound mass of the most
    * massive subhalo. */                                                       \
@@ -107,7 +107,7 @@
  * Type, name, default value. */
 #define DERIVED_PARAMETERS(PARAMETER)                                          \
   /* Used to determine if mandatory parameters have been set. */               \
-  PARAMETER(vector<bool>, IsSet)                                               \
+  PARAMETER(std::vector<bool>, IsSet)                                          \
   /* Base units of the simulation */                                           \
   PARAMETER(HBTReal, MassInMsunh, 1e10)                                        \
   PARAMETER(HBTReal, LengthInMpch, 1)                                          \
