@@ -8,7 +8,7 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "config_parser.h"
+#include "./config/config_parser.h"
 #include "datatypes.h"
 #include "hash.h"
 #include "mpi_wrapper.h"

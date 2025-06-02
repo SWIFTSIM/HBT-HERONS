@@ -56,7 +56,7 @@ void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
 }
 
 #ifdef TEST_halo_io
-#include "../config_parser.h"
+#include "../config/config_parser.h"
 
 int main(int argc, char **argv)
 {

@@ -4,7 +4,7 @@ using namespace std;
 #include <omp.h>
 #include <string>
 
-#include "src/config_parser.h"
+#include "src/config/config_parser.h"
 #include "src/datatypes.h"
 #include "src/halo.h"
 #include "src/mpi_wrapper.h"

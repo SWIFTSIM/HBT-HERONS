@@ -450,9 +450,6 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   world.SyncVectorString(SnapshotNameList, root);
 
   _SyncReal(MajorProgenitorMassRatio);
-#ifdef ALLOW_BINARY_SYSTEM
-  _SyncReal(BinaryMassRatioLimit);
-#endif
   _SyncReal(BoundMassPrecision);
   _SyncReal(SourceSubRelaxFactor);
   _SyncReal(SubCoreSizeFactor);

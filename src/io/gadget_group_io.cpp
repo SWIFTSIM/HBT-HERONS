@@ -480,7 +480,7 @@ bool IsGadgetGroup(const string &GroupFileFormat)
 } // namespace GadgetGroup
 
 #ifdef TEST_halo_io
-#include "../config_parser.h"
+#include "../config/config_parser.h"
 
 int main(int argc, char **argv)
 {

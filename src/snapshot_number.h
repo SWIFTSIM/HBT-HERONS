@@ -8,7 +8,7 @@
 // #include <cstdlib>
 // #include <cstdio>
 // #include <unordered_map>
-#include "config_parser.h"
+#include "./config/config_parser.h"
 #include "datatypes.h"
 
 class SnapshotNumber_t

@@ -72,7 +72,7 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_
 }
 
 #ifdef TEST_snapshot_io
-#include "../config_parser.h"
+#include "../config/config_parser.h"
 
 int main(int argc, char **argv)
 {

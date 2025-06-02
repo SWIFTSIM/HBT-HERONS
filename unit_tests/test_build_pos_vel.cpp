@@ -2,7 +2,7 @@
 #include <iostream>
 #include <cmath>
 
-#include "config_parser.h"
+#include "./config/config_parser.h"
 #include "make_test_subhalo.h"
 #include "verify.h"
 #include "periodic_distance.h"
