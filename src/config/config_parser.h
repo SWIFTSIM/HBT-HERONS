@@ -24,11 +24,11 @@ class Parameter_t
 { /*!remember to register members in BroadCast() and SetParameterValue() functions if you change them!*/
 public:
 
-  /* Automatic member declaration based on what is in parameters.h */ 
-#define X(type, name) type name;
-  AVAILABLE_PARAMETERS
-  DERIVED_PARAMETERS
-#undef X
+  /* Automatic member declaration based on what is in parameters.h */
+#define DECLARE(type, name) type name;
+  AVAILABLE_PARAMETERS(DECLARE)
+  DERIVED_PARAMETERS(DECLARE)
+#undef DECLARE
 
   Parameter_t() : IsSet(NumberOfCompulsaryConfigEntries, false), SnapshotIdList(), SnapshotNameList()
   {
