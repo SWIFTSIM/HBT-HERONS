@@ -30,64 +30,22 @@ public:
 
   Parameter_t() : IsSet(NumberOfCompulsaryConfigEntries, false), SnapshotIdList(), SnapshotNameList()
   {
-    SnapshotDirBase = "";
-    SnapshotFormat = "gadget"; // see example config file for alternative formats
-    GroupFileFormat = "gadget3_int";
-    MaxConcurrentIO = 10;
-    MinSnapshotIndex = 0;
-    MinNumPartOfSub = 20;
-    MinNumTracerPartOfSub = 10;
-    NumTracerHostFinding = MinNumTracerPartOfSub;
-    NumTracersForDescendants = MinNumTracerPartOfSub;
-    GroupParticleIdMask = 0;
-    MassInMsunh = 1e10;
-    LengthInMpch = 1;
-    VelInKmS = 1.;
-    PeriodicBoundaryOn = true;
-    SnapshotHasIdBlock = true;
-    ParticleIdNeedHash = true;
-    SnapshotIdUnsigned = false;
-    SaveBoundParticleProperties = false;
-    SaveBoundParticleBindingEnergies = false;
-    SaveBoundParticlePotentialEnergies = false;
 #ifdef NO_STRIPPING
     MergeTrappedSubhalos = false;
-#else
-    MergeTrappedSubhalos = true;
 #endif
-    MajorProgenitorMassRatio = 0.8;
-    BoundMassPrecision = 0.995;
-    SourceSubRelaxFactor = 3.;
-    SubCoreSizeFactor = 0.25;
-    SubCoreSizeMin = 20;
-    TreeAllocFactor = 0.8; /* a value of 2 should be more than sufficient*/
-    TreeNodeOpenAngle = 0.45;
-    TreeMinNumOfCells = 10;
-    MaxSampleSizeOfPotentialEstimate = 1000; // set to 0 to disable sampling
-    RefineMostBoundParticle = true;
-    BoundFractionCenterRefinement = 0.1; /* Default values chosen based on tests */
-    GroupLoadedFullParticle = false;
-    MaxPhysicalSofteningHalo = -1; // Indicates no max. physical softening is used.
 
     /* Tracer-related parameters. If unset, only use collisionless particles (DM
      * + Stars) as tracer. Here we assume they correspond to particle types 1
      * and 4, respectively. */
-    TracerParticleTypes = vector<int>{1, 4};
     TracerParticleBitMask = 0;
     for (int i : TracerParticleTypes)
       TracerParticleBitMask += 1 << i;
 
     /* We default to not subsampling black holes, since they are generally very
      * massive relative to all other particle types. */
-    DoNotSubsampleParticleTypes = vector<int>{5};
     DoNotSubsampleParticleBitMask = 0;
     for (int i : DoNotSubsampleParticleTypes)
       DoNotSubsampleParticleBitMask += 1 << i;
- 
-    /* The value is negative to indicate whether the parameter has been set in the. If not,
-     * we will default to a value of 1 if this is a swift HYDRO run. This way we reminder the
-     * user to pre-process snapshots (toolbox/swiftsim/generate_splitting_information.py) */
-    ParticlesSplit = -1;
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);
