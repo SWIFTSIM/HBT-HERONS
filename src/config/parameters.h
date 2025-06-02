@@ -61,9 +61,9 @@
    * code which numbers will be read. */                                     \
   PARAMETER(vector<int>, SnapshotIdList)                                             \
   /* Particle types used to trace the host FoF of subhaloes (and orphans) */ \
-  PARAMETER(vector<int>, TracerParticleTypes, {1, 4})                                        \
+  PARAMETER(vector<int>, TracerParticleTypes,  (std::vector<int>{1, 4}))                                        \
   /* Particle types that cannot be subsampled when unbinding */              \
-  PARAMETER(vector<int>, DoNotSubsampleParticleTypes, {1})                                \
+  PARAMETER(vector<int>, DoNotSubsampleParticleTypes, (std::vector<int>{5}))                                \
   /* If snapshots are named differently within the same run. Otherwise better 
    * to use SnapshotFileBase. */                                             \
   PARAMETER(vector<string>, SnapshotNameList)                                        \
