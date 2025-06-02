@@ -123,3 +123,11 @@
   PARAMETER(HBTReal,TreeNodeResolutionHalf)                                            \
   PARAMETER(HBTReal,BoxHalf)                                                           \
   PARAMETER(bool, GroupLoadedFullParticle)
+
+/* This block of defines handles parameter declarations and their initial 
+ * default values. We omit the setting of parameters without 3 elements 
+ * (i.e. without specified default column) */
+#define DECLARE3(type, name, default_value) type name = default_value;
+#define DECLARE2(type, name) type name; /* no default assignment */
+#define GET_MACRO(_1, _2, _3, NAME, ...) NAME
+#define DECLARE(...) GET_MACRO(__VA_ARGS__, DECLARE3, DECLARE2)(__VA_ARGS__)

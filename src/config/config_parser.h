@@ -25,10 +25,8 @@ class Parameter_t
 public:
 
   /* Automatic member declaration based on what is in parameters.h */
-#define DECLARE(type, name) type name;
   AVAILABLE_PARAMETERS(DECLARE)
   DERIVED_PARAMETERS(DECLARE)
-#undef DECLARE
 
   Parameter_t() : IsSet(NumberOfCompulsaryConfigEntries, false), SnapshotIdList(), SnapshotNameList()
   {
