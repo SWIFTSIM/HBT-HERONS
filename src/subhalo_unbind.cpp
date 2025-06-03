@@ -277,6 +277,33 @@ public:
     SpecificAngularMomentum[1] = AMy / M;
     SpecificAngularMomentum[2] = AMz / M;
   }
+
+  /* Accumulates and returns the total mass per particle type between the Nstart 
+   * and Nfinish most bound particle types. */
+  std::vector<HBTReal> GetMboundType(const HBTInt &Nstart, const HBTInt &Nfinish)
+  {
+    std::vector<HBTReal> MboundType = std::vector<HBTReal>(TypeMax, 0);
+#pragma omp parallel for reduction(SumVectorElementwise:MboundType) if ((Nfinish - Nstart) > 1000)
+    for (HBTInt i = Nstart; i < Nfinish; i++)
+    {
+      MboundType[GetType(i)] += GetMass(i);
+    }
+    return MboundType;
+  }
+
+  /* Accumulates and returns the total mass of particles between the Nstart and 
+   * Nfinish most bound particle types. */
+   HBTReal GetMbound(const HBTInt &Nstart, const HBTInt &Nfinish)
+   {
+    HBTReal Mbound = 0;
+#pragma omp parallel for reduction(+:Mbound) if ((Nfinish - Nstart) > 1000)
+     for (HBTInt i = Nstart; i < Nfinish; i++)
+     {
+        Mbound += GetMass(i);
+     }
+     return Mbound;
+   }
+
 };
 
 inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, GravityTree_t &tree, HBTxyz &RefPos,
@@ -340,19 +367,6 @@ HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &Nlast,
   }
 
   return MsubsampleTrue / Msubsample;
-}
-
-/* Accumulates and returns the mass per particle type between the Nstart and Nfinish
- * most bound particle types. */
-std::vector<HBTReal> GetMboundType(const std::vector<ParticleEnergy_t> &Elist, const std::vector<Particle_t> &Particles, const HBTInt &Nstart, const HBTInt &Nfinish)
-{
-  std::vector<HBTReal> MboundType = std::vector<HBTReal>(TypeMax, 0);
-#pragma omp parallel for reduction(SumVectorElementwise:MboundType) if ((Nfinish - Nstart) > 1000)
-  for (HBTInt i = Nstart; i < Nfinish; i++)
-  {
-    MboundType[Elist.GetType()] += Elist.GetMass();
-  }
-  return MboundType;
 }
 
 /* Finds the factor by which the mass of particles need to be multiplied after
