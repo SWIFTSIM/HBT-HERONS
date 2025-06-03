@@ -147,18 +147,6 @@ public:
     return Particles[GetParticle(i)].ComovingPosition;
   }
 
-  /* Computes the total mass of the first NumPart most bound particles. */
-  double SumUpMass(HBTInt NumPart)
-  {
-    double msum = 0;
-#pragma omp parallel for reduction(+ : msum) if (NumPart > 100)
-    for (HBTInt i = 0; i < NumPart; i++)
-    {
-      msum += GetMass(i);
-    }
-    return msum;
-  }
-
   /* Mass-weighted average velocity */
   double AverageVelocity(HBTxyz &CoV, HBTInt NumPart)
   {
@@ -280,7 +268,7 @@ public:
 
   /* Accumulates and returns the total mass per particle type between the Nstart 
    * and Nfinish most bound particle types. */
-  std::vector<HBTReal> GetMboundType(const HBTInt &Nstart, const HBTInt &Nfinish)
+  std::vector<HBTReal> AccumulateMassPerType(const HBTInt &Nstart, const HBTInt &Nfinish)
   {
     std::vector<HBTReal> MboundType = std::vector<HBTReal>(TypeMax, 0);
 #pragma omp parallel for reduction(SumVectorElementwise:MboundType) if ((Nfinish - Nstart) > 1000)
@@ -293,7 +281,7 @@ public:
 
   /* Accumulates and returns the total mass of particles between the Nstart and 
    * Nfinish most bound particle types. */
-   HBTReal GetMbound(const HBTInt &Nstart, const HBTInt &Nfinish)
+   HBTReal AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish)
    {
     HBTReal Mbound = 0;
 #pragma omp parallel for reduction(+:Mbound) if ((Nfinish - Nstart) > 1000)
@@ -506,7 +494,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   EnergySnapshot_t ESnap(Elist.data(), Elist.size(), Particles, epoch);
 
   /* Associated mass of the starting number of particles. */
-  Mbound = ESnap.SumUpMass(Nbound);
+  Mbound = ESnap.AccumulateMass(0, Nbound);
 
   /* Used to determine when iterative unbinding has converged to within the 
    * specified accuracy. */
