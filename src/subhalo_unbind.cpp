@@ -350,8 +350,7 @@ std::vector<HBTReal> GetMboundType(const std::vector<ParticleEnergy_t> &Elist, c
 #pragma omp parallel for reduction(SumVectorElementwise:MboundType) if ((Nfinish - Nstart) > 1000)
   for (HBTInt i = Nstart; i < Nfinish; i++)
   {
-    auto &particle = Particles[Elist[i].ParticleIndex];
-    MboundType[particle.Type] += particle.Mass;
+    MboundType[Elist.GetType()] += Elist.GetMass();
   }
   return MboundType;
 }
