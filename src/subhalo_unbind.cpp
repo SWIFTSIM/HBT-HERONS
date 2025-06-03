@@ -46,6 +46,8 @@ static HBTInt RemoveUnboundParticles(vector<ParticleEnergy_t> &Elist, const size
 
 class EnergySnapshot_t : public Snapshot_t
 {
+
+  /* Index in the Particles vector of the ith most bound particle. */
   HBTInt GetParticle(HBTInt i) const
   {
     return Elist[i].ParticleIndex;
@@ -65,14 +67,22 @@ public:
     Cosmology = epoch.Cosmology;
   };
 
+  /* Used within the gravitational tree construction. */
   HBTInt size() const
   {
     return N;
   }
 
+  /* Particle ID of the ith most bound particle. */
   HBTInt GetId(HBTInt i) const
   {
     return Particles[GetParticle(i)].Id;
+  }
+
+  /* Particle type of the ith most bound particle. */
+  HBTInt GetType(HBTInt i) const
+  {
+    return Particles[GetParticle(i)].Type;
   }
 
   /* Sets how much more massive subsampled particles are. */
@@ -81,7 +91,7 @@ public:
     MassFactor = factor;
   }
 
-  /* Returns the (scaled) mass of a particle. It will be larger than the true
+  /* Scaled mass of the ith most bound particle. It will be larger than the true
    * mass if the particles are being subsampled. */
   HBTReal GetMass(HBTInt i) const
   {
@@ -91,6 +101,7 @@ public:
       return Particles[GetParticle(i)].Mass * MassFactor;
   }
 
+  /* Internal energy of the ith most bound particle. */
   HBTReal GetInternalEnergy(HBTInt i) const
   {
 #ifdef HAS_THERMAL_ENERGY
@@ -100,6 +111,7 @@ public:
 #endif
   }
 
+  /* Potential energy of the ith most bound particle. */
   HBTReal GetPotentialEnergy(HBTInt i, const HBTxyz &refPos, const HBTxyz &refVel) const
   {
     // Load the total binding energy of the particle, then remove the thermal
@@ -123,11 +135,13 @@ public:
     return E;
   }
 
+  /* Physical velocity of the ith most bound particle. */
   const HBTxyz GetPhysicalVelocity(HBTInt i) const
   {
     return Particles[GetParticle(i)].GetPhysicalVelocity();
   }
 
+  /* Comoving position of the ith most bound particle. */
   const HBTxyz &GetComovingPosition(HBTInt i) const
   {
     return Particles[GetParticle(i)].ComovingPosition;
