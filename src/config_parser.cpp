@@ -75,7 +75,8 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(SnapshotHasIdBlock);
   TrySetPar(MaxPhysicalSofteningHalo);
   TrySetPar(ParticlesSplit);
-
+  TrySetPar(ReassignParticles);
+  TrySetPar(NumNeighboursForReassignment);
 #undef TrySetPar
 
   if (ParameterName == "GroupParticleIdMask")
@@ -478,6 +479,8 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncAtom(TracerParticleBitMask, MPI_INT);
   _SyncAtom(DoNotSubsampleParticleBitMask, MPI_INT);
   _SyncAtom(ParticlesSplit, MPI_INT);
+  _SyncAtom(ReassignParticles, MPI_INT);
+  _SyncAtom(NumNeighboursForReassignment, MPI_INT);
   //---------------end sync params-------------------------//
 
   _SyncReal(PhysicalConst::G);
@@ -608,6 +611,8 @@ void Parameter_t::DumpParameters()
   }
   DumpPar(MergeTrappedSubhalos);
   DumpPar(MajorProgenitorMassRatio);
+  DumpPar(ReassignParticles);
+  DumpPar(NumNeighboursForReassignment);
 
 #undef DumpPar
 #undef DumpHeader
