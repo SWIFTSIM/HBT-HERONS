@@ -589,6 +589,13 @@ void Parameter_t::DumpParameters()
     DumpPar(BoundFractionCenterRefinement);
   DumpPar(MaxSampleSizeOfPotentialEstimate);
   DumpPar(PotentialEstimateUpscaleMassesPerType);
+  if (DoNotSubsampleParticleTypes.size())
+  {
+    version_file << "DoNotSubsampleParticleTypes";
+    for (auto &&i : DoNotSubsampleParticleTypes)
+      version_file << " " << i;
+    version_file << endl;
+  }
 
   DumpHeader("Subhalo Tracking");
   DumpPar(MinNumPartOfSub);
@@ -599,13 +606,6 @@ void Parameter_t::DumpParameters()
   {
     version_file << "TracerParticleTypes";
     for (auto &&i : TracerParticleTypes)
-      version_file << " " << i;
-    version_file << endl;
-  }
-  if (DoNotSubsampleParticleTypes.size())
-  {
-    version_file << "DoNotSubsampleParticleTypes";
-    for (auto &&i : DoNotSubsampleParticleTypes)
       version_file << " " << i;
     version_file << endl;
   }
