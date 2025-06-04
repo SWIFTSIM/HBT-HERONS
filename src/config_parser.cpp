@@ -506,7 +506,7 @@ void Parameter_t::DumpParameters()
   }
   version_file << "#VERSION " << HBT_VERSION << endl;
 
-#define DumpPar(var) version_file << #var << "  " << var << endl;
+#define DumpPar(var) version_file << #var << " " << var << endl;
 #define DumpComment(var)                                                                                               \
   {                                                                                                                    \
     version_file << "#";                                                                                               \
