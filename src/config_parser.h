@@ -57,6 +57,8 @@ public:
   bool SaveBoundParticleBindingEnergies;
   bool SaveBoundParticlePotentialEnergies;
   bool MergeTrappedSubhalos; // whether to MergeTrappedSubhalos, see code paper for more info.
+  bool PotentialEstimateUpscaleMassesPerType;
+
   vector<int> SnapshotIdList;
   vector<int> TracerParticleTypes;
   vector<int> DoNotSubsampleParticleTypes; /* Which particles types cannot be subsampled. */
@@ -127,6 +129,7 @@ public:
     TreeNodeOpenAngle = 0.45;
     TreeMinNumOfCells = 10;
     MaxSampleSizeOfPotentialEstimate = 1000; // set to 0 to disable sampling
+    PotentialEstimateUpscaleMassesPerType = 1;
     RefineMostBoundParticle = true;
     BoundFractionCenterRefinement = 0.1; /* Default values chosen based on tests */
     GroupLoadedFullParticle = false;

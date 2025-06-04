@@ -57,6 +57,7 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(SaveBoundParticleBindingEnergies);
   TrySetPar(SaveBoundParticlePotentialEnergies);
   TrySetPar(MergeTrappedSubhalos);
+  TrySetPar(PotentialEstimateUpscaleMassesPerType);
   TrySetPar(MajorProgenitorMassRatio);
   TrySetPar(BoundMassPrecision);
   TrySetPar(SourceSubRelaxFactor);
@@ -446,6 +447,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncBool(SaveBoundParticleBindingEnergies);
   _SyncBool(SaveBoundParticlePotentialEnergies);
   _SyncBool(MergeTrappedSubhalos);
+  _SyncBool(PotentialEstimateUpscaleMassesPerType);
   _SyncVec(SnapshotIdList, MPI_INT);
   world.SyncVectorString(SnapshotNameList, root);
 
@@ -586,6 +588,7 @@ void Parameter_t::DumpParameters()
   if (RefineMostBoundParticle)
     DumpPar(BoundFractionCenterRefinement);
   DumpPar(MaxSampleSizeOfPotentialEstimate);
+  DumpPar(PotentialEstimateUpscaleMassesPerType);
 
   DumpHeader("Subhalo Tracking");
   DumpPar(MinNumPartOfSub);
