@@ -261,6 +261,7 @@ private:
   void RegisterNewTracks(MpiWorker_t &world);
   void DecideCentrals(const HaloSnapshot_t &halo_snap);
   void FeedCentrals(HaloSnapshot_t &halo_snap);
+  void FeedSubhalos(Halo_t &host, MemberShipTable_t::MemberList_t &Members);
   void BuildHDFDataType();
   void BuildMPIDataType();
   void PurgeMostBoundParticles();
