@@ -4,7 +4,6 @@
 #include <new>
 #include <omp.h>
 
-#include "mymath.h"
 #include "datatypes.h"
 #include "gravity_tree.h"
 #include "snapshot_number.h"
@@ -266,30 +265,39 @@ public:
     SpecificAngularMomentum[2] = AMz / M;
   }
 
-  /* Accumulates and returns the total mass per particle type between the Nstart 
-   * and Nfinish most bound particle types. */
-  std::vector<HBTReal> AccumulateMassPerType(const HBTInt &Nstart, const HBTInt &Nfinish)
-  {
-    std::vector<HBTReal> MboundType = std::vector<HBTReal>(TypeMax, 0);
-#pragma omp parallel for reduction(SumVectorElementwise:MboundType) if ((Nfinish - Nstart) > 1000)
-    for (HBTInt i = Nstart; i < Nfinish; i++)
-    {
-      MboundType[GetType(i)] += GetMass(i);
-    }
-    return MboundType;
-  }
-
-  /* Accumulates and returns the total mass of particles between the Nstart and 
-   * Nfinish most bound particle types. */
-   HBTReal AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish)
+  /* Accumulates the total mass of particles between the Nstart and Nfinish most
+   * bound particle. */
+   void AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish, float &Mass)
    {
-    HBTReal Mbound = 0;
-#pragma omp parallel for reduction(+:Mbound) if ((Nfinish - Nstart) > 1000)
-     for (HBTInt i = Nstart; i < Nfinish; i++)
-     {
-        Mbound += GetMass(i);
-     }
-     return Mbound;
+      Mass = 0;
+#pragma omp parallel for reduction(+:Mass) if ((Nfinish - Nstart) > 1000)
+      for (HBTInt i = Nstart; i < Nfinish; i++)
+        Mass += GetMass(i);
+   }
+
+  /* Accumulates the total mass per particle type between the Nstart and Nfinish
+   * most bound particles. */
+   void AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish, float MassPerType[])
+   {
+      for(int i = 0; i < TypeMax; i++)
+        MassPerType[i] = 0;
+
+#pragma omp parallel for reduction(+:MassPerType[:TypeMax]) if ((Nfinish - Nstart) > 1000)
+      for (HBTInt i = Nstart; i < Nfinish; i++)
+        MassPerType[GetType(i)] += GetMass(i);
+   }
+
+  /* Accumulates the total mass of particles and per particle type between the 
+   * Nstart and Nfinish most bound particle. */
+   void AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish, float &Mass, float MassPerType[])
+   {
+      /* Compute mass per type */
+      AccumulateMass(Nstart, Nfinish, MassPerType);
+
+      /* Sum over all types to get total */
+      Mass = 0;
+      for(int i = 0; i < TypeMax; i++)
+        Mass += MassPerType[i];
    }
 
 };
@@ -494,7 +502,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   EnergySnapshot_t ESnap(Elist.data(), Elist.size(), Particles, epoch);
 
   /* Associated mass of the starting number of particles. */
-  Mbound = ESnap.AccumulateMass(0, Nbound);
+  ESnap.AccumulateMass(0, Nbound, Mbound, MboundType);
 
   /* Used to determine when iterative unbinding has converged to within the 
    * specified accuracy. */
