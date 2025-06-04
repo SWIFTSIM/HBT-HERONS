@@ -52,7 +52,7 @@ class EnergySnapshot_t : public Snapshot_t
     return Elist[i].ParticleIndex;
   }
 
-  HBTReal MassFactor;
+  vector<HBTReal> MassFactor;
 
 public:
   ParticleEnergy_t *Elist;
@@ -61,7 +61,7 @@ public:
   const ParticleList_t &Particles;
 
   EnergySnapshot_t(ParticleEnergy_t *e, HBTInt n, const ParticleList_t &particles, const Snapshot_t &epoch)
-    : Elist(e), N(n), Particles(particles), MassFactor(1.)
+    : Elist(e), N(n), Particles(particles), MassFactor(TypeMax, 1.)
   {
     Cosmology = epoch.Cosmology;
   };
@@ -84,12 +84,6 @@ public:
     return Particles[GetParticle(i)].Type;
   }
 
-  /* Sets how much more massive subsampled particles are. */
-  void SetMassUpscaleFactor(HBTReal factor)
-  {
-    MassFactor = factor;
-  }
-
   /* Scaled mass of the ith most bound particle. It will be larger than the true
    * mass if the particles are being subsampled. */
   HBTReal GetMass(HBTInt i) const
@@ -97,7 +91,7 @@ public:
     if(IsNotSubsampleParticleType(Particles[GetParticle(i)]))
       return Particles[GetParticle(i)].Mass;
     else
-      return Particles[GetParticle(i)].Mass * MassFactor;
+      return Particles[GetParticle(i)].Mass * MassFactor[GetType(i)];
   }
 
   /* Internal energy of the ith most bound particle. */
@@ -284,10 +278,43 @@ public:
    }
 
   /* Finds the factor by which the mass of particles need to be multiplied after
+   * subsampling, to ensure mass conservation. */
+  std::vector<HBTReal> GetMassUpscaleFactor(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
+  {
+    ResetMassUpscaleFactor(); /* To get true particle mass */
+
+    /* Compute the total mass of particles that are not subsampled, to subtract
+     * contribution from Mlast and hence get total true mass of subsampled 
+     * particles. */
+    HBTReal Munsampled = 0;
+    if(Nunsample > 0)
+    {
+#pragma omp parallel for if (Nunsample > 100) reduction(+:Munsampled)
+      for (HBTInt i = 0; i < Nunsample; i++)
+        Munsampled += GetMass(i);
+    }
+
+    /* This is the mass value that we need to convert when doing subsampling. */
+    HBTReal MsubsampleTrue = Mlast - Munsampled;
+
+    /* Total mass of the subsampled particle set. */
+    HBTReal Msubsample = 0;
+#pragma omp parallel for if (MaxSampleSize > 100) reduction(+:Msubsample)
+    for (HBTInt i = Nunsample; i < (Nunsample + MaxSampleSize); i++)
+    {
+      Msubsample += GetMass(i);
+    }
+
+    return std::vector<HBTReal> (TypeMax, MsubsampleTrue / Msubsample);
+  }
+
+  /* Finds the factor by which the mass of particles need to be multiplied after
    * subsampling, to ensure mass conservation. Contrary to GetMassUpscaleFactor, 
    * we define the upscale factor based on a particle type level. */
   std::vector<HBTReal> GetMassUpscaleFactorPerParticleType(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
   {
+    ResetMassUpscaleFactor(); /* To get true particle mass */
+
     /* Mass of particles in the subsampled set */
     float MassPerTypeSubsample[TypeMax];
     AccumulateMass(Nunsample, Nunsample + MaxSampleSize, MassPerTypeSubsample);
@@ -310,6 +337,25 @@ public:
         MassUpscaleFactor[type] = MassPerTypeTotal[type] / MassPerTypeSubsample[type];
 
     return MassUpscaleFactor;
+  }
+
+  /* Makes it so GetMass(i) returns the true mass of the ith most bound 
+   * particle. */
+  void ResetMassUpscaleFactor()
+  {
+    std::fill(MassFactor.begin(), MassFactor.end(), 1.);
+  }
+
+  /* Upscales the masses of particles when they are subsampled for potential
+   * calculation purposes. */
+  void SetMassUpscaleFactor(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
+  {
+    ResetMassUpscaleFactor(); /* To get true particle mass */
+
+    if(HBTConfig.PotentialEstimateUpscaleMassesPerType)
+      MassFactor = GetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
+    else
+      MassFactor = GetMassUpscaleFactorPerParticleType(Nlast, Mlast, MaxSampleSize, Nunsample);
   }
 
 };
@@ -344,37 +390,6 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
       Elist[i] = Einner[i];
     }
   }
-}
-
-/* Finds the factor by which the mass of particles need to be multiplied after
- * subsampling, to ensure mass conservation. */
-HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
-{
-  /* Compute the total mass of particles that are not subsampled, to subtract
-   * contribution from Mlast and hence get total true mass of subsampled 
-   * particles. */
-  HBTReal Munsampled = 0;
-  if(Nunsample > 0)
-  {
-#pragma omp parallel for if (Nunsample > 100) reduction(+:Munsampled)
-    for (HBTInt i = 0; i < Nunsample; i++)
-    {
-      Munsampled += ESnap.GetMass(i);
-    }
-  }
-
-  /* This is the mass value that we need to convert when doing subsampling. */
-  HBTReal MsubsampleTrue = Mlast - Munsampled;
-
-  /* Total mass of the subsampled particle set. */
-  HBTReal Msubsample = 0;
-#pragma omp parallel for if (MaxSampleSize > 100) reduction(+:Msubsample)
-  for (HBTInt i = Nunsample; i < (Nunsample + MaxSampleSize); i++)
-  {
-    Msubsample += ESnap.GetMass(i);
-  }
-
-  return MsubsampleTrue / Msubsample;
 }
 
 /* Randomly shuffles the particles whose type are eligible to be subsampled 
@@ -532,10 +547,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       if ((MaxSampleSize > 0) && (Nlast > (MaxSampleSize + Nunsample)))
       {
         np_tree = MaxSampleSize + Nunsample;
-
-        ESnap.SetMassUpscaleFactor(1.); /* To get true particle mass */
-        HBTReal MassUpscaleFactor = GetMassUpscaleFactor(ESnap, Nlast, Mlast, MaxSampleSize, Nunsample);
-        ESnap.SetMassUpscaleFactor(MassUpscaleFactor);
+        ESnap.SetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
       }
 
       tree.Build(ESnap, np_tree);
@@ -557,7 +569,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
       /* This ensures we use the true particle mass if there is no subsampling 
        * in the next unbinding iteration. */
-      ESnap.SetMassUpscaleFactor(1.);
+      ESnap.ResetMassUpscaleFactor();
     }
 
     /* If we disable stripping, the we do no update Nbound nor Nunsample, and 
