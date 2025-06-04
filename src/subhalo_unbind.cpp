@@ -283,6 +283,35 @@ public:
         Mass += MassPerType[i];
    }
 
+  /* Finds the factor by which the mass of particles need to be multiplied after
+   * subsampling, to ensure mass conservation. Contrary to GetMassUpscaleFactor, 
+   * we define the upscale factor based on a particle type level. */
+  std::vector<HBTReal> GetMassUpscaleFactorPerParticleType(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
+  {
+    /* Mass of particles in the subsampled set */
+    float MassPerTypeSubsample[TypeMax];
+    AccumulateMass(Nunsample, Nunsample + MaxSampleSize, MassPerTypeSubsample);
+
+    /* Compute mass of particles that are not in the subsampled set. */
+    float MassPerTypeTotal[TypeMax];
+    AccumulateMass(Nunsample + MaxSampleSize, Nlast, MassPerTypeTotal);
+
+    /* Add both together to get **actual** total mass */
+    for(int type = 0; type < TypeMax; type++)
+      MassPerTypeTotal[type] += MassPerTypeSubsample[type];
+
+    /* Ratio of both gives the mass upscale factor for each particle type.
+     * We do not set values with zero particle types, but those particle types 
+     * would not contribute to potential since by definition there are none in 
+     * the subsampled set. */
+    std::vector<HBTReal> MassUpscaleFactor = std::vector<HBTReal>(TypeMax, 0);
+    for(int type = 0; type < TypeMax; type++)
+      if(MassPerTypeSubsample[type])
+        MassUpscaleFactor[type] = MassPerTypeTotal[type] / MassPerTypeSubsample[type];
+
+    return MassUpscaleFactor;
+  }
+
 };
 
 inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, GravityTree_t &tree, HBTxyz &RefPos,
@@ -348,44 +377,6 @@ HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &Nlast,
   return MsubsampleTrue / Msubsample;
 }
 
-/* Finds the factor by which the mass of particles need to be multiplied after
- * subsampling, to ensure mass conservation. Contrary to GetMassUpscaleFactor, 
- * we define the upscale factor based on a particle type level. */
- std::vector<HBTReal> GetMassUpscaleFactorPerParticleType(const vector<ParticleEnergy_t> &Elist, const vector<Particle_t> &Particles, const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
- {
-   /* We start with the mass of the subsampled set, since we can then continue 
-    * with the remaining particles in a second loop */
-   std::vector<HBTReal> MBoundTypeSubsample = std::vector<HBTReal>(TypeMax, 0);
- #pragma omp parallel for reduction(+:MBoundTypeSubsample[:TypeMax]) if (MaxSampleSize > 1000)
-   for (HBTInt i = Nunsample; i < (Nunsample + MaxSampleSize); i++)
-   {
-     auto &particle = Particles[Elist[i].ParticleIndex];
-     MBoundTypeSubsample[particle.Type] += particle.Mass;
-   }
- 
-   /* Add the mass of the remaining particles, which are those which were not in 
-    * the subsampled set. */
-   std::vector<HBTReal> MBoundTypeTrue = std::vector<HBTReal>(TypeMax, 0);
- #pragma omp parallel for reduction(+:MBoundTypeTrue[:TypeMax]) if (Nlast > 1000)
-   for (HBTInt i = (Nunsample + MaxSampleSize); i < Nlast; i++)
-   {
-     auto &particle = Particles[Elist[i].ParticleIndex];
-     MBoundTypeTrue[particle.Type] += particle.Mass;
-   }
- 
-   /* Ratio of both values gives us the mass upscale factor for each particle
-    * type. We omit setting values with zero particle types to prevent infinities 
-    * from appearing (although by definition those particle types would not 
-    * contribute to potential since by definition there are none in the 
-    * subsampled set). */
-   std::vector<HBTReal> MassUpscaleFactor = std::vector<HBTReal>(TypeMax, 0);
-   for(int type = 0; type < TypeMax; type++)
-     if(MBoundTypeSubsample[type])
-      MassUpscaleFactor[type] = MBoundTypeTrue[type] / MBoundTypeSubsample[type];
- 
-   return MassUpscaleFactor;
- }
- 
 /* Randomly shuffles the particles whose type are eligible to be subsampled 
  * during unbinding. Particles types that are not eligible will be placed at the
  * start of the vector. */
