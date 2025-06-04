@@ -52,7 +52,7 @@ class EnergySnapshot_t : public Snapshot_t
     return Elist[i].ParticleIndex;
   }
 
-  vector<HBTReal> MassFactor;
+  vector<HBTReal> MassUpscaleFactor;
 
 public:
   ParticleEnergy_t *Elist;
@@ -61,7 +61,7 @@ public:
   const ParticleList_t &Particles;
 
   EnergySnapshot_t(ParticleEnergy_t *e, HBTInt n, const ParticleList_t &particles, const Snapshot_t &epoch)
-    : Elist(e), N(n), Particles(particles), MassFactor(TypeMax, 1.)
+    : Elist(e), N(n), Particles(particles), MassUpscaleFactor(TypeMax, 1.)
   {
     Cosmology = epoch.Cosmology;
   };
@@ -91,7 +91,7 @@ public:
     if(IsNotSubsampleParticleType(Particles[GetParticle(i)]))
       return Particles[GetParticle(i)].Mass;
     else
-      return Particles[GetParticle(i)].Mass * MassFactor[GetType(i)];
+      return Particles[GetParticle(i)].Mass * MassUpscaleFactor[GetType(i)];
   }
 
   /* Internal energy of the ith most bound particle. */
@@ -343,7 +343,7 @@ public:
    * particle. */
   void ResetMassUpscaleFactor()
   {
-    std::fill(MassFactor.begin(), MassFactor.end(), 1.);
+    std::fill(MassUpscaleFactor.begin(), MassUpscaleFactor.end(), 1.);
   }
 
   /* Upscales the masses of particles when they are subsampled for potential
@@ -351,9 +351,9 @@ public:
   void SetMassUpscaleFactor(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
   {
     if(HBTConfig.PotentialEstimateUpscaleMassesPerType)
-      MassFactor = GetMassUpscaleFactorPerParticleType(Nlast, Mlast, MaxSampleSize, Nunsample);
+      MassUpscaleFactor = GetMassUpscaleFactorPerParticleType(Nlast, Mlast, MaxSampleSize, Nunsample);
     else
-      MassFactor = GetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
+      MassUpscaleFactor = GetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
   }
 
 };
