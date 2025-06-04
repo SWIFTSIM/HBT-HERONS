@@ -146,72 +146,55 @@ public:
     return Particles[GetParticle(i)].ComovingPosition;
   }
 
-  /* Mass-weighted average velocity */
-  double AverageVelocity(HBTxyz &CoV, HBTInt NumPart)
+  /* Updates the location and velocity of the centre of mass of the NumPart most
+   * bound particles. */
+  double CentreOfMassReferenceFrame(HBTxyz &CentreOfMassPosition, HBTxyz &CentreOfMassVelocity, HBTInt NumPart)
   {
-    HBTInt i;
-    double svx = 0, svy = 0, svz = 0, msum = 0.;
+    double TotalMass = 0, WeightedPosition[3] = {0,0,0}, WeightedVelocity[3] = {0,0,0};
 
-#pragma omp parallel for reduction(+ : msum, svx, svy, svz) if (NumPart > 100)
-    for (i = 0; i < NumPart; i++)
-    {
-      HBTReal m = GetMass(i);
-      const HBTxyz v = GetPhysicalVelocity(i);
-      msum += m;
-      svx += v[0] * m;
-      svy += v[1] * m;
-      svz += v[2] * m;
-    }
-
-    CoV[0] = svx / msum;
-    CoV[1] = svy / msum;
-    CoV[2] = svz / msum;
-    return msum;
-  }
-
-  /* Mass-weighted average position*/
-  double AveragePosition(HBTxyz &CoM, HBTInt NumPart)
-  {
-    HBTInt i;
-    double sx = 0, sy = 0, sz = 0, msum = 0;
-
-    double origin[3];
+    /* Need a reference point to centre if we have periodic boundary conditions */
+    double ReferencePosition[3] = {0,0,0};
     if (HBTConfig.PeriodicBoundaryOn)
-      for (int j = 0; j < 3; j++)
-        origin[j] = GetComovingPosition(0)[j];
+      for(int dimension = 0; dimension < 3; dimension++)
+        ReferencePosition[dimension] = GetComovingPosition(0)[dimension];
 
-#pragma omp parallel for reduction(+ : msum, sx, sy, sz) if (NumPart > 100)
-    for (i = 0; i < NumPart; i++)
+#pragma omp parallel for reduction(+ : TotalMass, WeightedPosition[:3], WeightedVelocity[:3]) if (NumPart > 100)
+    for (HBTInt i = 0; i < NumPart; i++)
     {
-      HBTReal m = GetMass(i);
-      const HBTxyz &x = GetComovingPosition(i);
-      msum += m;
-      if (HBTConfig.PeriodicBoundaryOn)
+      const HBTReal mass = GetMass(i);
+      const HBTxyz position = GetComovingPosition(i);
+      const HBTxyz velocity = GetPhysicalVelocity(i);
+
+      TotalMass += mass;
+
+      for(int dimension = 0; dimension < 3; dimension++)
       {
-        sx += NEAREST(x[0] - origin[0]) * m;
-        sy += NEAREST(x[1] - origin[1]) * m;
-        sz += NEAREST(x[2] - origin[2]) * m;
-      }
-      else
-      {
-        sx += x[0] * m;
-        sy += x[1] * m;
-        sz += x[2] * m;
+        WeightedPosition[dimension] += HBTConfig.PeriodicBoundaryOn ? \
+                                       NEAREST(position[dimension] - ReferencePosition[dimension]) * mass \
+                                     : position[dimension] * mass;
+        WeightedVelocity[dimension] += velocity[dimension] * mass;
       }
     }
-    sx /= msum;
-    sy /= msum;
-    sz /= msum;
-    if (HBTConfig.PeriodicBoundaryOn)
+
+    /* Remove mass factor */
+    for(int dimension = 0;  dimension < 3; dimension++)
     {
-      sx += origin[0];
-      sy += origin[1];
-      sz += origin[2];
+      WeightedPosition[dimension] /= TotalMass;
+      WeightedVelocity[dimension] /= TotalMass;
     }
-    CoM[0] = sx;
-    CoM[1] = sy;
-    CoM[2] = sz;
-    return msum;
+
+    /* Express centre of mass in box coordinates. */
+    if (HBTConfig.PeriodicBoundaryOn)
+      for(int dimension = 0; dimension < 3; dimension++)
+        WeightedPosition[dimension] += ReferencePosition[dimension];
+
+    for(int dimension = 0;  dimension < 3; dimension++)
+    {
+      CentreOfMassPosition[dimension] = WeightedPosition[dimension];
+      CentreOfMassVelocity[dimension] = WeightedVelocity[dimension];
+    }
+
+    return TotalMass;
   }
 
   void AverageKinematics(float &SpecificPotentialEnergy, float &SpecificKineticEnergy, float SpecificAngularMomentum[3],
@@ -499,6 +482,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   for (HBTInt i = 0; i < Particles.size(); i++)
     Elist[i].ParticleIndex = i;
 
+  /* To access particles in binding energy order and most methods related to
+   * unbinding */
   EnergySnapshot_t ESnap(Elist.data(), Elist.size(), Particles, epoch);
 
   /* Associated mass of the starting number of particles. */
@@ -642,9 +627,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       }
     }
 
-    /* The centre of mass frame is updated here */
-    Mbound = ESnap.AverageVelocity(PhysicalAverageVelocity, Nbound);
-    ESnap.AveragePosition(ComovingAveragePosition, Nbound);
+    /* The centre of mass frame is updated here. We return bound mass because we
+     * already need to calculate it, so we save another loop. */
+    Mbound = ESnap.CentreOfMassReferenceFrame(ComovingAveragePosition, PhysicalAverageVelocity, Nbound);
 
     /* We have converged according to the user specified threshold. */
     if (Nbound >= Nlast * BoundMassPrecision)
