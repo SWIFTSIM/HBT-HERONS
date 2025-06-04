@@ -350,12 +350,10 @@ public:
    * calculation purposes. */
   void SetMassUpscaleFactor(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
   {
-    ResetMassUpscaleFactor(); /* To get true particle mass */
-
     if(HBTConfig.PotentialEstimateUpscaleMassesPerType)
-      MassFactor = GetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
-    else
       MassFactor = GetMassUpscaleFactorPerParticleType(Nlast, Mlast, MaxSampleSize, Nunsample);
+    else
+      MassFactor = GetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
   }
 
 };
