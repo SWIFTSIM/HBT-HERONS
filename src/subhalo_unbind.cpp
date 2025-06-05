@@ -336,6 +336,18 @@ public:
       if(MassPerTypeSubsample[type])
         MassUpscaleFactor[type] = MassPerTypeTotal[type] / MassPerTypeSubsample[type];
 
+    /* Ensure total mass conservation if we are missing a particle type from 
+     * our subsampled set. */
+    float TotalScaledMass = 0, TotalTrueMass = 0;
+    for(int type = 0; type < TypeMax; type++)
+    {
+      TotalTrueMass += MassPerTypeTotal[type];
+      TotalScaledMass += MassPerTypeSubsample[type] * MassUpscaleFactor[type];
+    }
+
+    for(int type = 0; type < TypeMax; type++)
+      MassUpscaleFactor[type] *= TotalTrueMass / TotalScaledMass;
+
     return MassUpscaleFactor;
   }
 
