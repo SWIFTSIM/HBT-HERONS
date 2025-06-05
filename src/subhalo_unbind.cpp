@@ -346,14 +346,22 @@ public:
     std::fill(MassUpscaleFactor.begin(), MassUpscaleFactor.end(), 1.);
   }
 
-  /* Upscales the masses of particles when they are subsampled for potential
-   * calculation purposes. */
-  void SetMassUpscaleFactor(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
+  /* Upscales the masses of particles if they are subsampled for potential
+   * calculation purposes, or leaves them as is if the subhalo is small. 
+   * Returns the number of particles that will be gravity sources. */
+  HBTInt SetMassUpscaleFactor(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
   {
+    /* Subsampling disabled by user or the subhalo does not cross the threshold 
+     * to subsample. Use all currently bound particles in tree. */
+    if((MaxSampleSize == 0) || (Nlast < (MaxSampleSize + Nunsample)))
+      return Nlast;
+
     if(HBTConfig.PotentialEstimateUpscaleMassesPerType)
       MassUpscaleFactor = GetMassUpscaleFactorPerParticleType(Nlast, Mlast, MaxSampleSize, Nunsample);
     else
       MassUpscaleFactor = GetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
+
+    return MaxSampleSize + Nunsample;
   }
 
 };
@@ -538,23 +546,18 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     {
       Nlast = Nbound;
       Mlast = Mbound;
-      HBTInt np_tree = Nlast;
 
-      /* If we subsample, then we need to upscale the masses of particles that
-       * will be subsampled when doing potential calculations. */
-      if ((MaxSampleSize > 0) && (Nlast > (MaxSampleSize + Nunsample)))
-      {
-        np_tree = MaxSampleSize + Nunsample;
-        ESnap.SetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
-      }
+      /* Checks whether subhalo will be subsampled, and if so, scales the masses
+       * of subsampled particles to conserve mass. */
+      HBTInt NGravitySources = ESnap.SetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
+      tree.Build(ESnap, NGravitySources);
 
-      tree.Build(ESnap, np_tree);
 #pragma omp parallel for if (Nlast > 100)
       for (HBTInt i = 0; i < Nlast; i++)
       {
         /* Non-zero masses for particles in the tree because we need to remove
          * their self-gravity. */
-        HBTReal particle_mass = (i < np_tree) ? ESnap.GetMass(i) : 0.;
+        HBTReal particle_mass = (i < NGravitySources) ? ESnap.GetMass(i) : 0.;
 
         HBTInt index = Elist[i].ParticleIndex;
         Elist[i].Energy = tree.BindingEnergy(Particles[index].ComovingPosition, 
