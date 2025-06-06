@@ -45,12 +45,14 @@ static HBTInt RemoveUnboundParticles(vector<ParticleEnergy_t> &Elist, const size
 
 class EnergySnapshot_t : public Snapshot_t
 {
+
+  /* Index in the Particles vector of the ith most bound particle. */
   HBTInt GetParticle(HBTInt i) const
   {
     return Elist[i].ParticleIndex;
   }
 
-  HBTReal MassFactor;
+  vector<HBTReal> MassUpscaleFactor;
 
 public:
   ParticleEnergy_t *Elist;
@@ -59,37 +61,40 @@ public:
   const ParticleList_t &Particles;
 
   EnergySnapshot_t(ParticleEnergy_t *e, HBTInt n, const ParticleList_t &particles, const Snapshot_t &epoch)
-    : Elist(e), N(n), Particles(particles), MassFactor(1.)
+    : Elist(e), N(n), Particles(particles), MassUpscaleFactor(TypeMax, 1.)
   {
     Cosmology = epoch.Cosmology;
   };
 
+  /* Used within the gravitational tree construction. */
   HBTInt size() const
   {
     return N;
   }
 
+  /* Particle ID of the ith most bound particle. */
   HBTInt GetId(HBTInt i) const
   {
     return Particles[GetParticle(i)].Id;
   }
 
-  /* Sets how much more massive subsampled particles are. */
-  void SetMassUpscaleFactor(HBTReal factor)
+  /* Particle type of the ith most bound particle. */
+  HBTInt GetType(HBTInt i) const
   {
-    MassFactor = factor;
+    return Particles[GetParticle(i)].Type;
   }
 
-  /* Returns the (scaled) mass of a particle. It will be larger than the true
+  /* Scaled mass of the ith most bound particle. It will be larger than the true
    * mass if the particles are being subsampled. */
   HBTReal GetMass(HBTInt i) const
   {
     if(IsNotSubsampleParticleType(Particles[GetParticle(i)]))
       return Particles[GetParticle(i)].Mass;
     else
-      return Particles[GetParticle(i)].Mass * MassFactor;
+      return Particles[GetParticle(i)].Mass * MassUpscaleFactor[GetType(i)];
   }
 
+  /* Internal energy of the ith most bound particle. */
   HBTReal GetInternalEnergy(HBTInt i) const
   {
 #ifdef HAS_THERMAL_ENERGY
@@ -99,6 +104,7 @@ public:
 #endif
   }
 
+  /* Potential energy of the ith most bound particle. */
   HBTReal GetPotentialEnergy(HBTInt i, const HBTxyz &refPos, const HBTxyz &refVel) const
   {
     // Load the total binding energy of the particle, then remove the thermal
@@ -122,94 +128,67 @@ public:
     return E;
   }
 
+  /* Physical velocity of the ith most bound particle. */
   const HBTxyz GetPhysicalVelocity(HBTInt i) const
   {
     return Particles[GetParticle(i)].GetPhysicalVelocity();
   }
 
+  /* Comoving position of the ith most bound particle. */
   const HBTxyz &GetComovingPosition(HBTInt i) const
   {
     return Particles[GetParticle(i)].ComovingPosition;
   }
 
-  /* Computes the total mass of the first NumPart most bound particles. */
-  double SumUpMass(HBTInt NumPart)
+  /* Updates the location and velocity of the centre of mass of the NumPart most
+   * bound particles. */
+  double CentreOfMassReferenceFrame(HBTxyz &CentreOfMassPosition, HBTxyz &CentreOfMassVelocity, HBTInt NumPart)
   {
-    double msum = 0;
-#pragma omp parallel for reduction(+ : msum) if (NumPart > 100)
+    double TotalMass = 0, WeightedPosition[3] = {0,0,0}, WeightedVelocity[3] = {0,0,0};
+
+    /* Need a reference point to centre if we have periodic boundary conditions */
+    double ReferencePosition[3] = {0,0,0};
+    if (HBTConfig.PeriodicBoundaryOn)
+      for(int dimension = 0; dimension < 3; dimension++)
+        ReferencePosition[dimension] = GetComovingPosition(0)[dimension];
+
+#pragma omp parallel for reduction(+ : TotalMass, WeightedPosition[:3], WeightedVelocity[:3]) if (NumPart > 100)
     for (HBTInt i = 0; i < NumPart; i++)
     {
-      msum += GetMass(i);
-    }
-    return msum;
-  }
+      const HBTReal mass = GetMass(i);
+      const HBTxyz position = GetComovingPosition(i);
+      const HBTxyz velocity = GetPhysicalVelocity(i);
 
-  /* Mass-weighted average velocity */
-  double AverageVelocity(HBTxyz &CoV, HBTInt NumPart)
-  {
-    HBTInt i;
-    double svx = 0, svy = 0, svz = 0, msum = 0.;
+      TotalMass += mass;
 
-#pragma omp parallel for reduction(+ : msum, svx, svy, svz) if (NumPart > 100)
-    for (i = 0; i < NumPart; i++)
-    {
-      HBTReal m = GetMass(i);
-      const HBTxyz v = GetPhysicalVelocity(i);
-      msum += m;
-      svx += v[0] * m;
-      svy += v[1] * m;
-      svz += v[2] * m;
-    }
-
-    CoV[0] = svx / msum;
-    CoV[1] = svy / msum;
-    CoV[2] = svz / msum;
-    return msum;
-  }
-
-  /* Mass-weighted average position*/
-  double AveragePosition(HBTxyz &CoM, HBTInt NumPart)
-  {
-    HBTInt i;
-    double sx = 0, sy = 0, sz = 0, msum = 0;
-
-    double origin[3];
-    if (HBTConfig.PeriodicBoundaryOn)
-      for (int j = 0; j < 3; j++)
-        origin[j] = GetComovingPosition(0)[j];
-
-#pragma omp parallel for reduction(+ : msum, sx, sy, sz) if (NumPart > 100)
-    for (i = 0; i < NumPart; i++)
-    {
-      HBTReal m = GetMass(i);
-      const HBTxyz &x = GetComovingPosition(i);
-      msum += m;
-      if (HBTConfig.PeriodicBoundaryOn)
+      for(int dimension = 0; dimension < 3; dimension++)
       {
-        sx += NEAREST(x[0] - origin[0]) * m;
-        sy += NEAREST(x[1] - origin[1]) * m;
-        sz += NEAREST(x[2] - origin[2]) * m;
-      }
-      else
-      {
-        sx += x[0] * m;
-        sy += x[1] * m;
-        sz += x[2] * m;
+        WeightedPosition[dimension] += HBTConfig.PeriodicBoundaryOn ? \
+                                       NEAREST(position[dimension] - ReferencePosition[dimension]) * mass \
+                                     : position[dimension] * mass;
+        WeightedVelocity[dimension] += velocity[dimension] * mass;
       }
     }
-    sx /= msum;
-    sy /= msum;
-    sz /= msum;
-    if (HBTConfig.PeriodicBoundaryOn)
+
+    /* Remove mass factor */
+    for(int dimension = 0;  dimension < 3; dimension++)
     {
-      sx += origin[0];
-      sy += origin[1];
-      sz += origin[2];
+      WeightedPosition[dimension] /= TotalMass;
+      WeightedVelocity[dimension] /= TotalMass;
     }
-    CoM[0] = sx;
-    CoM[1] = sy;
-    CoM[2] = sz;
-    return msum;
+
+    /* Express centre of mass in box coordinates. */
+    if (HBTConfig.PeriodicBoundaryOn)
+      for(int dimension = 0; dimension < 3; dimension++)
+        WeightedPosition[dimension] += ReferencePosition[dimension];
+
+    for(int dimension = 0;  dimension < 3; dimension++)
+    {
+      CentreOfMassPosition[dimension] = WeightedPosition[dimension];
+      CentreOfMassVelocity[dimension] = WeightedVelocity[dimension];
+    }
+
+    return TotalMass;
   }
 
   void AverageKinematics(float &SpecificPotentialEnergy, float &SpecificKineticEnergy, float SpecificAngularMomentum[3],
@@ -262,6 +241,141 @@ public:
     SpecificAngularMomentum[1] = AMy / M;
     SpecificAngularMomentum[2] = AMz / M;
   }
+
+  /* Accumulates the total mass of particles between the Nstart and Nfinish most
+   * bound particle. */
+   void AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish, float &Mass)
+   {
+      Mass = 0;
+#pragma omp parallel for reduction(+:Mass) if ((Nfinish - Nstart) > 1000)
+      for (HBTInt i = Nstart; i < Nfinish; i++)
+        Mass += GetMass(i);
+   }
+
+  /* Accumulates the total mass per particle type between the Nstart and Nfinish
+   * most bound particles. */
+   void AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish, float MassPerType[])
+   {
+      for(int i = 0; i < TypeMax; i++)
+        MassPerType[i] = 0;
+
+#pragma omp parallel for reduction(+:MassPerType[:TypeMax]) if ((Nfinish - Nstart) > 1000)
+      for (HBTInt i = Nstart; i < Nfinish; i++)
+        MassPerType[GetType(i)] += GetMass(i);
+   }
+
+  /* Accumulates the total mass of particles and per particle type between the 
+   * Nstart and Nfinish most bound particle. */
+   void AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish, float &Mass, float MassPerType[])
+   {
+      /* Compute mass per type */
+      AccumulateMass(Nstart, Nfinish, MassPerType);
+
+      /* Sum over all types to get total */
+      Mass = 0;
+      for(int i = 0; i < TypeMax; i++)
+        Mass += MassPerType[i];
+   }
+
+  /* Finds the factor by which the mass of particles need to be multiplied after
+   * subsampling, to ensure mass conservation. */
+  std::vector<HBTReal> GetMassUpscaleFactor(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
+  {
+    ResetMassUpscaleFactor(); /* To get true particle mass */
+
+    /* Compute the total mass of particles that are not subsampled, to subtract
+     * contribution from Mlast and hence get total true mass of subsampled 
+     * particles. */
+    HBTReal Munsampled = 0;
+    if(Nunsample > 0)
+    {
+#pragma omp parallel for if (Nunsample > 100) reduction(+:Munsampled)
+      for (HBTInt i = 0; i < Nunsample; i++)
+        Munsampled += GetMass(i);
+    }
+
+    /* This is the mass value that we need to convert when doing subsampling. */
+    HBTReal MsubsampleTrue = Mlast - Munsampled;
+
+    /* Total mass of the subsampled particle set. */
+    HBTReal Msubsample = 0;
+#pragma omp parallel for if (MaxSampleSize > 100) reduction(+:Msubsample)
+    for (HBTInt i = Nunsample; i < (Nunsample + MaxSampleSize); i++)
+    {
+      Msubsample += GetMass(i);
+    }
+
+    return std::vector<HBTReal> (TypeMax, MsubsampleTrue / Msubsample);
+  }
+
+  /* Finds the factor by which the mass of particles need to be multiplied after
+   * subsampling, to ensure mass conservation. Contrary to GetMassUpscaleFactor, 
+   * we define the upscale factor based on a particle type level. */
+  std::vector<HBTReal> GetMassUpscaleFactorPerParticleType(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
+  {
+    ResetMassUpscaleFactor(); /* To get true particle mass */
+
+    /* Mass of particles in the subsampled set */
+    float MassPerTypeSubsample[TypeMax];
+    AccumulateMass(Nunsample, Nunsample + MaxSampleSize, MassPerTypeSubsample);
+
+    /* Compute mass of particles that are not in the subsampled set. */
+    float MassPerTypeTotal[TypeMax];
+    AccumulateMass(Nunsample + MaxSampleSize, Nlast, MassPerTypeTotal);
+
+    /* Add both together to get **actual** total mass */
+    for(int type = 0; type < TypeMax; type++)
+      MassPerTypeTotal[type] += MassPerTypeSubsample[type];
+
+    /* Ratio of both gives the mass upscale factor for each particle type.
+     * We do not set values with zero particle types, but those particle types 
+     * would not contribute to potential since by definition there are none in 
+     * the subsampled set. */
+    std::vector<HBTReal> MassUpscaleFactor = std::vector<HBTReal>(TypeMax, 0);
+    for(int type = 0; type < TypeMax; type++)
+      if(MassPerTypeSubsample[type])
+        MassUpscaleFactor[type] = MassPerTypeTotal[type] / MassPerTypeSubsample[type];
+
+    /* Ensure total mass conservation if we are missing a particle type from 
+     * our subsampled set. */
+    float TotalScaledMass = 0, TotalTrueMass = 0;
+    for(int type = 0; type < TypeMax; type++)
+    {
+      TotalTrueMass += MassPerTypeTotal[type];
+      TotalScaledMass += MassPerTypeSubsample[type] * MassUpscaleFactor[type];
+    }
+
+    for(int type = 0; type < TypeMax; type++)
+      MassUpscaleFactor[type] *= TotalTrueMass / TotalScaledMass;
+
+    return MassUpscaleFactor;
+  }
+
+  /* Makes it so GetMass(i) returns the true mass of the ith most bound 
+   * particle. */
+  void ResetMassUpscaleFactor()
+  {
+    std::fill(MassUpscaleFactor.begin(), MassUpscaleFactor.end(), 1.);
+  }
+
+  /* Upscales the masses of particles if they are subsampled for potential
+   * calculation purposes, or leaves them as is if the subhalo is small. 
+   * Returns the number of particles that will be gravity sources. */
+  HBTInt SetMassUpscaleFactor(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
+  {
+    /* Subsampling disabled by user or the subhalo does not cross the threshold 
+     * to subsample. Use all currently bound particles in tree. */
+    if((MaxSampleSize == 0) || (Nlast < (MaxSampleSize + Nunsample)))
+      return Nlast;
+
+    if(HBTConfig.PotentialEstimateUpscaleMassesPerType)
+      MassUpscaleFactor = GetMassUpscaleFactorPerParticleType(Nlast, Mlast, MaxSampleSize, Nunsample);
+    else
+      MassUpscaleFactor = GetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
+
+    return MaxSampleSize + Nunsample;
+  }
+
 };
 
 inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, GravityTree_t &tree, HBTxyz &RefPos,
@@ -294,37 +408,6 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
       Elist[i] = Einner[i];
     }
   }
-}
-
-/* Finds the factor by which the mass of particles need to be multiplied after
- * subsampling, to ensure mass conservation. */
-HBTReal GetMassUpscaleFactor(const EnergySnapshot_t &ESnap, const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
-{
-  /* Compute the total mass of particles that are not subsampled, to subtract
-   * contribution from Mlast and hence get total true mass of subsampled 
-   * particles. */
-  HBTReal Munsampled = 0;
-  if(Nunsample > 0)
-  {
-#pragma omp parallel for if (Nunsample > 100) reduction(+:Munsampled)
-    for (HBTInt i = 0; i < Nunsample; i++)
-    {
-      Munsampled += ESnap.GetMass(i);
-    }
-  }
-
-  /* This is the mass value that we need to convert when doing subsampling. */
-  HBTReal MsubsampleTrue = Mlast - Munsampled;
-
-  /* Total mass of the subsampled particle set. */
-  HBTReal Msubsample = 0;
-#pragma omp parallel for if (MaxSampleSize > 100) reduction(+:Msubsample)
-  for (HBTInt i = Nunsample; i < (Nunsample + MaxSampleSize); i++)
-  {
-    Msubsample += ESnap.GetMass(i);
-  }
-
-  return MsubsampleTrue / Msubsample;
 }
 
 /* Randomly shuffles the particles whose type are eligible to be subsampled 
@@ -423,10 +506,12 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   for (HBTInt i = 0; i < Particles.size(); i++)
     Elist[i].ParticleIndex = i;
 
+  /* To access particles in binding energy order and most methods related to
+   * unbinding */
   EnergySnapshot_t ESnap(Elist.data(), Elist.size(), Particles, epoch);
 
   /* Associated mass of the starting number of particles. */
-  Mbound = ESnap.SumUpMass(Nbound);
+  ESnap.AccumulateMass(0, Nbound, Mbound, MboundType);
 
   /* Used to determine when iterative unbinding has converged to within the 
    * specified accuracy. */
@@ -473,26 +558,18 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     {
       Nlast = Nbound;
       Mlast = Mbound;
-      HBTInt np_tree = Nlast;
 
-      /* If we subsample, then we need to upscale the masses of particles that
-       * will be subsampled when doing potential calculations. */
-      if ((MaxSampleSize > 0) && (Nlast > (MaxSampleSize + Nunsample)))
-      {
-        np_tree = MaxSampleSize + Nunsample;
+      /* Checks whether subhalo will be subsampled, and if so, scales the masses
+       * of subsampled particles to conserve mass. */
+      HBTInt NGravitySources = ESnap.SetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
+      tree.Build(ESnap, NGravitySources);
 
-        ESnap.SetMassUpscaleFactor(1.); /* To get true particle mass */
-        HBTReal MassUpscaleFactor = GetMassUpscaleFactor(ESnap, Nlast, Mlast, MaxSampleSize, Nunsample);
-        ESnap.SetMassUpscaleFactor(MassUpscaleFactor);
-      }
-
-      tree.Build(ESnap, np_tree);
 #pragma omp parallel for if (Nlast > 100)
       for (HBTInt i = 0; i < Nlast; i++)
       {
         /* Non-zero masses for particles in the tree because we need to remove
          * their self-gravity. */
-        HBTReal particle_mass = (i < np_tree) ? ESnap.GetMass(i) : 0.;
+        HBTReal particle_mass = (i < NGravitySources) ? ESnap.GetMass(i) : 0.;
 
         HBTInt index = Elist[i].ParticleIndex;
         Elist[i].Energy = tree.BindingEnergy(Particles[index].ComovingPosition, 
@@ -505,7 +582,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
       /* This ensures we use the true particle mass if there is no subsampling 
        * in the next unbinding iteration. */
-      ESnap.SetMassUpscaleFactor(1.);
+      ESnap.ResetMassUpscaleFactor();
     }
 
     /* If we disable stripping, the we do no update Nbound nor Nunsample, and 
@@ -566,9 +643,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       }
     }
 
-    /* The centre of mass frame is updated here */
-    Mbound = ESnap.AverageVelocity(PhysicalAverageVelocity, Nbound);
-    ESnap.AveragePosition(ComovingAveragePosition, Nbound);
+    /* The centre of mass frame is updated here. We return bound mass because we
+     * already need to calculate it, so we save another loop. */
+    Mbound = ESnap.CentreOfMassReferenceFrame(ComovingAveragePosition, PhysicalAverageVelocity, Nbound);
 
     /* We have converged according to the user specified threshold. */
     if (Nbound >= Nlast * BoundMassPrecision)

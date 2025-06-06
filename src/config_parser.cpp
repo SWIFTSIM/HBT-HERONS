@@ -57,6 +57,7 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(SaveBoundParticleBindingEnergies);
   TrySetPar(SaveBoundParticlePotentialEnergies);
   TrySetPar(MergeTrappedSubhalos);
+  TrySetPar(PotentialEstimateUpscaleMassesPerType);
   TrySetPar(MajorProgenitorMassRatio);
   TrySetPar(BoundMassPrecision);
   TrySetPar(SourceSubRelaxFactor);
@@ -446,6 +447,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncBool(SaveBoundParticleBindingEnergies);
   _SyncBool(SaveBoundParticlePotentialEnergies);
   _SyncBool(MergeTrappedSubhalos);
+  _SyncBool(PotentialEstimateUpscaleMassesPerType);
   _SyncVec(SnapshotIdList, MPI_INT);
   world.SyncVectorString(SnapshotNameList, root);
 
@@ -504,7 +506,7 @@ void Parameter_t::DumpParameters()
   }
   version_file << "#VERSION " << HBT_VERSION << endl;
 
-#define DumpPar(var) version_file << #var << "  " << var << endl;
+#define DumpPar(var) version_file << #var << " " << var << endl;
 #define DumpComment(var)                                                                                               \
   {                                                                                                                    \
     version_file << "#";                                                                                               \
@@ -586,6 +588,14 @@ void Parameter_t::DumpParameters()
   if (RefineMostBoundParticle)
     DumpPar(BoundFractionCenterRefinement);
   DumpPar(MaxSampleSizeOfPotentialEstimate);
+  DumpPar(PotentialEstimateUpscaleMassesPerType);
+  if (DoNotSubsampleParticleTypes.size())
+  {
+    version_file << "DoNotSubsampleParticleTypes";
+    for (auto &&i : DoNotSubsampleParticleTypes)
+      version_file << " " << i;
+    version_file << endl;
+  }
 
   DumpHeader("Subhalo Tracking");
   DumpPar(MinNumPartOfSub);
@@ -596,13 +606,6 @@ void Parameter_t::DumpParameters()
   {
     version_file << "TracerParticleTypes";
     for (auto &&i : TracerParticleTypes)
-      version_file << " " << i;
-    version_file << endl;
-  }
-  if (DoNotSubsampleParticleTypes.size())
-  {
-    version_file << "DoNotSubsampleParticleTypes";
-    for (auto &&i : DoNotSubsampleParticleTypes)
       version_file << " " << i;
     version_file << endl;
   }
