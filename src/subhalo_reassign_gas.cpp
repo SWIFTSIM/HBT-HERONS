@@ -65,48 +65,16 @@ public:
 void SubhaloSnapshot_t::ReassignParticles(MpiWorker_t &world, HaloSnapshot_t &halo_snap)
 {
   HBTInt nr_reassigned = 0;
-  switch(HBTConfig.ReassignParticles)
-    {
-    case 0:
-      // We're not reassigning particles
-      if (world.rank() == 0)
-        cout << "  Not reassigning particles\n";
-      return;
-    case 1:
-      // Non-tracer-type particles are moved to tracer type neighbours
-      if (world.rank() == 0)
-        cout << "  Reassigning tracer type particles only\n";
-      nr_reassigned = ReassignNonTracerParticles();
-      break;
-    case 2:
-      // Particles of any type are moved if all neighbours are in another halo
-      if (world.rank() == 0)
-        cout << "  Reassigning all particle types\n";
-      nr_reassigned = ReassignParticlesOfAnyType();
-      break;
-    default:
-      // Invalid parameter value
-      std::cerr << "Invalid value for ReassignParticles" << std::endl;
-      std::abort();
-    }
-  HBTInt nr_reassigned_tot;
-  MPI_Allreduce(&nr_reassigned, &nr_reassigned_tot, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
-  if (world.rank() == 0)
-    cout << "  Total number of particles reassigned = " << nr_reassigned_tot << "\n";
-}
 
-/*
-  For each non-tracer type particle, identify the nearest tracer type particle
-  in any subhalo in the same FoF group and assign it to the subhalo the tracer
-  is bound to, if any.
+  // Check if particle reassignment is enabled
+  if(!HBTConfig.ReassignParticles) {
+    if (world.rank() == 0)
+      cout << "  Not reassigning particles\n";
+    return;
+  }
 
-  All non-tracer type particles, bound or not, are considered for reassignment.
-*/
-HBTInt SubhaloSnapshot_t::ReassignNonTracerParticles()
-{
   // Loop over FoF groups
   HBTInt NumHalos = MemberTable.SubGroups.size();
-  HBTInt nr_reassigned = 0;
 #pragma omp parallel for schedule(dynamic, 1) reduction(+:nr_reassigned)
   for (HBTInt haloid = 0; haloid < NumHalos; haloid++)
     {
@@ -220,121 +188,10 @@ HBTInt SubhaloSnapshot_t::ReassignNonTracerParticles()
         }
       // Next FoF halo
     }
-  // Done.
-  return nr_reassigned;
-}
 
-
-/*
-  For each particle, identify N nearest neighbours. If all neighbours
-  are in the same halo (but not the one the particle is in) then move
-  the particle to that halo.
-*/
-HBTInt SubhaloSnapshot_t::ReassignParticlesOfAnyType()
-{
-  // Loop over FoF groups
-  HBTInt NumHalos = MemberTable.SubGroups.size();
-  HBTInt nr_reassigned = 0;
-#pragma omp parallel for schedule(dynamic, 1) reduction(+:nr_reassigned)
-  for (HBTInt haloid = 0; haloid < NumHalos; haloid++)
-    {
-      // Get indexes of subhalos in this FoF group
-      auto &subgroup = MemberTable.SubGroups[haloid];
-
-      // Store the number of particles in each subhalo.
-      // This is so that moved particles can be appended to the particle
-      // arrays but we can still iterate over the original particles only.
-      HBTInt nr_tot = 0;
-      std::map<HBTInt,HBTInt> sublen;
-      for(auto subid : subgroup)
-        {
-          sublen[subid] = Subhalos[subid].Particles.size();
-          nr_tot += Subhalos[subid].Particles.size();
-        }
-
-      // Store position and subhalo index of all subhalo particles
-      std::vector<HBTxyz> part_pos(nr_tot);
-      std::vector<HBTInt> part_subid(nr_tot);
-      nr_tot = 0;
-      for(auto subid : subgroup)
-        {
-          for(HBTInt i=0; i<sublen[subid]; i+=1)
-            {
-              auto &part = Subhalos[subid].Particles[i];
-              assert(part.Id != SpecialConst::NullParticleId); // Should not have null particles at this point
-              part_pos[nr_tot] = part.ComovingPosition;
-              part_subid[nr_tot] = subid;
-              nr_tot += 1;
-            }
-        }
-
-      // If there are no particles (is that possible?), skip this FoF group
-      if(nr_tot > 0)
-        {
-          // Build a tree for the neighbour search
-          TracerSnapshot_t part_snap(part_pos);
-          GeoTree_t tree;
-          tree.Build(part_snap);
-
-          // Loop over subhalos in the FoF
-          for(auto subid : subgroup)
-            {
-              // Loop over particles in the subhalo
-              for(HBTInt i=0; i<sublen[subid]; i+=1)
-                {
-                  auto &part = Subhalos[subid].Particles[i];
-                  assert(part.Id != SpecialConst::NullParticleId); // Should not have null particles at this point
-
-                  // Find neighbours. Note that neighbour_list is in descending
-                  // order of distance and the last neighbour will usually be
-                  // the particle we're considering reassigning (but might not be
-                  // if several particles have identical coordinates).
-                  const HBTInt nr_ngbs = HBTConfig.NumNeighboursForReassignment;
-                  const HBTxyz centre = part.ComovingPosition;
-                  std::vector<HBTInt> neighbour_list = tree.NearestNeighbours(centre, nr_ngbs, HBTConfig.SofteningHalo*0.1);
-                  // Now check the what subhalos the neighbours are in. Here
-                  // we're going to store the subid of the first neighbour which
-                  // is in a different subhalo and count how many neighbours are in
-                  // that subhalo.
-                  HBTInt new_subid = -1;
-                  HBTInt new_subid_count = 0;
-                  for(auto ngb_idx : neighbour_list)
-                    {
-                      HBTInt ngb_subid = part_subid[ngb_idx];
-                      if(ngb_subid != subid)
-                        {
-                          // This particle is in a different subhalo
-                          if(new_subid == -1)new_subid = ngb_subid;
-                          assert(ngb_subid >= 0); // We only search for neighbours in subhalos
-                          assert(new_subid >= 0); // Should have been set now
-                          if(ngb_subid == new_subid)new_subid_count += 1;
-                        }
-                    }
-                  // The "neighbours" include the particle itself so if nr_ngbs-1
-                  // neighbours are in another subhalo, we move the particle.
-                  if((new_subid >= 0) && (new_subid_count==nr_ngbs-1))
-                    {
-                      // Append the particle to the other subhalo's source list
-                      Subhalos[new_subid].Particles.push_back(part);
-                      // Flag the particle for removal from this subhalo
-                      part.Id = SpecialConst::NullParticleId;
-                      nr_reassigned += 1;
-                    }
-                }
-            }
-
-          // Now tidy up any particles we flagged for removal
-          for(auto subid : subgroup)
-            {
-              // Ensure Nbound is not greater than the total number of particles
-              if(Subhalos[subid].Nbound > Subhalos[subid].Particles.size())
-                Subhalos[subid].Nbound = Subhalos[subid].Particles.size();
-              // Remove null particles and update tracer index
-              Subhalos[subid].KickNullParticles();
-            }
-        }
-      // Next FoF halo
-    }
-  // Done.
-  return nr_reassigned;
+  // Compute total number of particles which were reassigned
+  HBTInt nr_reassigned_tot;
+  MPI_Allreduce(&nr_reassigned, &nr_reassigned_tot, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  if (world.rank() == 0)
+    cout << "  Total number of particles reassigned = " << nr_reassigned_tot << "\n";
 }
