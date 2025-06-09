@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     std::vector<std::vector<HBTInt>> TestVector(number_vectors);
     for(int i = 0; i < number_vectors; i++)
     {
-      TestVector[i].reserve(vector_dimensions);
+      TestVector[i].resize(vector_dimensions);
       for(int j = 0; j < vector_dimensions; j++)
         TestVector[i][j] = random_values(rng);
     }
