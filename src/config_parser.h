@@ -159,8 +159,7 @@ public:
 
     /* Whether we move particles between subhalos based on nearest neighbours:
        0 = do nothing
-       1 = gas particles are moved based on nearest tracer type particles
-       2 = particles of any type are moved if all of their neighbours belong to another halo
+       1 = non-tracer type particles are moved based on nearest tracer type particles
      */
     ReassignParticles = 0;
     NumNeighboursForReassignment = 10;
