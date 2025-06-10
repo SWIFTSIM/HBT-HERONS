@@ -282,24 +282,4 @@ extern void logspace(double xmin, double xmax, int N, vector<float> &x);
 extern void EigenAxis(double Ixx, double Ixy, double Ixz, double Iyy, double Iyz, double Izz, float Axis[3][3]);
 #endif
 
-/* Sums two vectors in an elementwise manner and returns resulting vector. */
-template <class T>
-vector<T> SumElementwise(const vector<T> &x, const vector<T> &y)
-{
-  assert(x.size() == y.size());
- 
-  vector<T> OutputVector(x.size(), 0);
-  for(int index = 0; index < OutputVector.size();  index++)
-    OutputVector[index] = x[index] + y[index];
-  return OutputVector;
-}
-
-/* OMP implementations for the above function, one for HBTInt and another 
- * for HBTReal. */
-#pragma omp declare reduction(SumVectorElementwise: std::vector<HBTInt> : omp_out = SumElementwise(omp_out, omp_in))                     \
-initializer(omp_priv = decltype(omp_orig)(omp_orig.size(), 0))
-
-#pragma omp declare reduction(SumVectorElementwise: std::vector<HBTReal> : omp_out = SumElementwise(omp_out, omp_in))                     \
-initializer(omp_priv = decltype(omp_orig)(omp_orig.size(), 0))
-
 #endif
