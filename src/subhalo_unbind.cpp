@@ -653,7 +653,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       /* Since we have a resolved subhalo, we reset the death and sink 
        * information. */
       if (!IsAlive())
+      {
         SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
+        DescendantTrackId = SpecialConst::NullSnapshotId;
+      }
       if (IsTrapped())
       {
         SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
