@@ -204,7 +204,11 @@ void MergerTreeInfo::FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world)
         assert(sub_nr < Subhalos.size());
       }
       assert(Subhalos[subhalo_order[sub_nr]].TrackId == TrackId1);
-      Subhalos[subhalo_order[sub_nr]].DescendantTrackId = TrackId2;
+
+      /* Only update descendant for subhaloes that are disrupted but which
+       * do not have an assigned descendant already. */
+      if(!Subhalos[subhalo_order[sub_nr]].IsAlive() && Subhalos[subhalo_order[sub_nr]].DescendantTrackId == SpecialConst::NullTrackId)
+        Subhalos[subhalo_order[sub_nr]].DescendantTrackId = TrackId2;
     }
   }
 
