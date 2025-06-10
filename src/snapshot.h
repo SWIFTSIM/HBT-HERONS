@@ -95,6 +95,14 @@ struct Particle_t
     return (1 << Type) & HBTConfig.TracerParticleBitMask;
 #endif
   }
+  int DoNotSubsample() const
+  {
+#ifdef DM_ONLY
+    return 0;
+#else
+    return (1 << Type) & HBTConfig.DoNotSubsampleParticleBitMask;
+#endif
+  }
 };
 extern ostream &operator<<(ostream &o, Particle_t &p);
 

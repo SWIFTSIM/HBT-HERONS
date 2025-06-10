@@ -57,8 +57,11 @@ public:
   bool SaveBoundParticleBindingEnergies;
   bool SaveBoundParticlePotentialEnergies;
   bool MergeTrappedSubhalos; // whether to MergeTrappedSubhalos, see code paper for more info.
+  bool PotentialEstimateUpscaleMassesPerType;
+
   vector<int> SnapshotIdList;
   vector<int> TracerParticleTypes;
+  vector<int> DoNotSubsampleParticleTypes; /* Which particles types cannot be subsampled. */
   vector<string> SnapshotNameList;
 
   HBTReal MajorProgenitorMassRatio;
@@ -80,6 +83,7 @@ public:
                                           refined */
 
   int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
+  int DoNotSubsampleParticleBitMask; /* Bitmask used to identify which particle type cannot be subsampled */
   int ParticlesSplit;        /* Whether baryonic particles are able to split. Relevant to swift simulations */
 
   /*derived parameters; do not require user input*/
@@ -127,6 +131,7 @@ public:
     TreeNodeOpenAngle = 0.45;
     TreeMinNumOfCells = 10;
     MaxSampleSizeOfPotentialEstimate = 1000; // set to 0 to disable sampling
+    PotentialEstimateUpscaleMassesPerType = 1;
     RefineMostBoundParticle = true;
     BoundFractionCenterRefinement = 0.1; /* Default values chosen based on tests */
     GroupLoadedFullParticle = false;
@@ -140,6 +145,13 @@ public:
     for (int i : TracerParticleTypes)
       TracerParticleBitMask += 1 << i;
 
+    /* We default to not subsampling black holes, since they are generally very
+     * massive relative to all other particle types. */
+    DoNotSubsampleParticleTypes = vector<int>{5};
+    DoNotSubsampleParticleBitMask = 0;
+    for (int i : DoNotSubsampleParticleTypes)
+      DoNotSubsampleParticleBitMask += 1 << i;
+ 
     /* The value is negative to indicate whether the parameter has been set in the. If not,
      * we will default to a value of 1 if this is a swift HYDRO run. This way we reminder the
      * user to pre-process snapshots (toolbox/swiftsim/generate_splitting_information.py) */
@@ -156,7 +168,13 @@ public:
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);
   void SetParameterValue(const string &line);
-  void CheckUnsetParameters();
+
+  /* Functions that will check if the input parameter file contains all required
+   * parameters and that they have valid values. */
+  void CheckParameters();
+  void CheckRequiredParameters();
+  void CheckValidityParameters();
+
   void BroadCast(MpiWorker_t &world, int root);
   void BroadCast(MpiWorker_t &world, int root, int &snapshot_start, int &snapshot_end)
   {

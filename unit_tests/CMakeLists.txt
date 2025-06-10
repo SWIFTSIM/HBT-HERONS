@@ -32,6 +32,7 @@ foreach(TEST_NAME
     test_sort_by_hash
     test_neighbour_search
     test_multi_neighbour_search
+    test_omp_vector_reductions
   )
 
   add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
