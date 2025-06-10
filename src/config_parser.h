@@ -161,7 +161,11 @@ public:
        0 = do nothing
        1 = non-tracer type particles are moved based on nearest tracer type particles
      */
+#ifdef DM_ONLY
     ReassignParticles = 0;
+#else
+    ReassignParticles = 1; // Enabled by default in hydro runs
+#endif
     NumNeighboursForReassignment = 10;
   }
   void ReadSnapshotNameList();
