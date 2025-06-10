@@ -81,14 +81,63 @@ void GeoTree_t::UpdateInternalNodes(HBTInt no, HBTInt sib, double len, const dou
 HBTInt GeoTree_t::NearestNeighbour(const HBTxyz &cen, HBTReal rguess)
 // return the particle_index of the nearest neighbour
 {
-  NearestNeighbourCollector_t collector;
-  Search(cen, rguess, collector);
-  while (collector.IsEmpty()) // WARNING: dead loop if tree is empty.
-  {
-    rguess *= 1.26; // double the guess volume
+  if(NumberOfParticles == 0) {
+
+    // We have zero particles, so there is no neighbour
+    return -1;
+
+  } else if(NumberOfParticles == 1) {
+
+    // We have one particle, so it must be the neighbour
+    return 0;
+
+  } else {
+
+    // Search for the neighbours
+    NearestNeighbourCollector_t collector;
     Search(cen, rguess, collector);
+    while (collector.IsEmpty()) // WARNING: dead loop if tree is empty.
+      {
+        rguess *= 1.26; // double the guess volume
+        Search(cen, rguess, collector);
+      }
+    return collector.Index;
   }
-  return collector.Index;
+}
+
+std::vector<HBTInt> GeoTree_t::NearestNeighbours(const HBTxyz &cen, HBTInt max_neighbours, HBTReal rguess)
+// return the particle_index of (up to) max_neighbours nearest neighbours
+{
+  // Determine how many neighbours we should find
+  HBTInt nr_to_find =  std::min(NumberOfParticles, max_neighbours);
+
+  // Class to store indexes of identified neighbours
+  NumNearestNeighboursCollector_t collector(max_neighbours);
+
+  if(nr_to_find == 0)
+    {
+      // Nothing to do in this case
+    }
+  else
+    {
+      // Search for the neighbours
+      Search(cen, rguess, collector);
+      while (collector.NumberFound() < nr_to_find)
+        {
+          rguess *= 1.26; // double the guess volume
+          Search(cen, rguess, collector);
+        }
+    }
+
+  // Make a vector of neighbour indexes
+  std::vector<HBTInt> result;
+  while(collector.neighbours.size() > 0)
+    {
+      LocatedParticle_t lp = collector.neighbours.top();
+      result.push_back(lp.index);
+      collector.neighbours.pop();
+    }
+  return result;
 }
 
 void GeoTree_t::Search(const HBTxyz &searchcenter, HBTReal radius, ParticleCollector_t &collector)

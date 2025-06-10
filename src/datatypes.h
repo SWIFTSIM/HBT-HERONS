@@ -3,6 +3,8 @@
 #include <cstring>
 #include <iostream>
 #include <iterator>
+#include <queue>
+#include <cassert>
 using namespace std;
 #include <array>
 #include <vector>
@@ -250,6 +252,7 @@ public:
     Founds.clear();
   }
 };
+
 class NearestNeighbourCollector_t : public ParticleCollector_t
 // a collector for nearest neighbour search. keeps the nearest neighbour particle.
 {
@@ -261,7 +264,8 @@ public:
   }
   void Collect(HBTInt index, HBTReal d2)
   {
-    if (d2 < D2)
+    // Keep this neighbour if it's the first one found or it's the closest so far
+    if ((D2 < 0.0) || (d2 < D2))
     {
       D2 = d2;
       Index = index;
@@ -272,5 +276,55 @@ public:
     return D2 < 0.;
   }
 };
+
+class LocatedParticleIsLessThan
+{
+public:
+    bool operator() (const LocatedParticle_t &a, const LocatedParticle_t &b)
+    {
+      return a.d2 < b.d2;
+    }
+};
+
+class NumNearestNeighboursCollector_t : public ParticleCollector_t
+// a collector for nearest neighbour search. keeps the nr_neighbours nearest neighbour particles.
+{
+public:
+
+  HBTInt nr_neighbours;
+  std::priority_queue<LocatedParticle_t, std::vector<LocatedParticle_t>, LocatedParticleIsLessThan> neighbours;
+
+  NumNearestNeighboursCollector_t(HBTInt N)
+  {
+    nr_neighbours = N;
+  }
+
+  void Collect(HBTInt index, HBTReal d2)
+  {
+    LocatedParticle_t lp(index, d2);
+    if(neighbours.size() < nr_neighbours) {
+      // Haven't found enough neighbours yet, so store this one
+      neighbours.push(lp);
+    } else {
+      // Reached the limit, so need to check if this one is closer than any
+      // previously identified.
+      HBTReal d2_max = neighbours.top().d2; // current most distant neighbour
+      if(d2 < d2_max) {
+        neighbours.push(lp); // Store this neighbour
+        neighbours.pop(); // Remove the most distant neighbour
+        assert(neighbours.size() == nr_neighbours);
+      }
+    }
+  }
+  bool IsEmpty()
+  {
+    return neighbours.size() == 0;
+  }
+  HBTInt NumberFound() {
+    return neighbours.size();
+  }
+};
+
+
 #define DATATYPES_INCLUDED
 #endif

@@ -92,6 +92,8 @@ public:
   HBTReal TreeNodeResolutionHalf;
   HBTReal BoxHalf;
   bool GroupLoadedFullParticle; // whether group particles are loaded with full particle properties or just ids.
+  int ReassignParticles; // Move particles between subhalos based on neighbour search
+  int NumNeighboursForReassignment; // how many neighbours to search for
 
   Parameter_t() : IsSet(NumberOfCompulsaryConfigEntries, false), SnapshotIdList(), SnapshotNameList()
   {
@@ -154,6 +156,17 @@ public:
      * we will default to a value of 1 if this is a swift HYDRO run. This way we reminder the
      * user to pre-process snapshots (toolbox/swiftsim/generate_splitting_information.py) */
     ParticlesSplit = -1;
+
+    /* Whether we move particles between subhalos based on nearest neighbours:
+       0 = do nothing
+       1 = non-tracer type particles are moved based on nearest tracer type particles
+     */
+#ifdef DM_ONLY
+    ReassignParticles = 0;
+#else
+    ReassignParticles = 1; // Enabled by default in hydro runs
+#endif
+    NumNeighboursForReassignment = 10;
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);
