@@ -109,7 +109,7 @@ std::vector<HBTInt> GeoTree_t::NearestNeighbours(const HBTxyz &cen, HBTInt max_n
 // return the particle_index of (up to) max_neighbours nearest neighbours
 {
   // Determine how many neighbours we should find
-  HBTInt nr_to_find = (NumberOfParticles < max_neighbours) ? NumberOfParticles : max_neighbours;
+  HBTInt nr_to_find =  std::min(NumberOfParticles, max_neighbours);
 
   // Class to store indexes of identified neighbours
   NumNearestNeighboursCollector_t collector(max_neighbours);
