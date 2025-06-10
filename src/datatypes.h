@@ -282,10 +282,7 @@ class LocatedParticleIsLessThan
 public:
     bool operator() (const LocatedParticle_t &a, const LocatedParticle_t &b)
     {
-      if(a.d2 < b.d2)
-        return true;
-      else
-        return false;
+      return a.d2 < b.d2;
     }
 };
 
