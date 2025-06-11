@@ -103,12 +103,6 @@ class HBTReader:
         else:
             self.MinSnap = 0
 
-        try:
-            with self.Open(-1) as f:
-                self.ParticleMass = f['/Cosmology/ParticleMass'][0]
-        except:
-            print("Info: fail to get ParticleMass.")
-
         with self.Open(-1) as f:
             self.OmegaM0 = f['/Cosmology/OmegaM0'][0]
             self.OmegaLambda0 = f['/Cosmology/OmegaLambda0'][0]
