@@ -277,11 +277,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   HBTReal RHalfComoving;
 
   HBTReal R200CritComoving;
-  HBTReal R200MeanComoving;
-  HBTReal RVirComoving;
   HBTReal M200Crit;
-  HBTReal M200Mean;
-  HBTReal MVir;
    */
   if (Nbound <= 1)
   {
@@ -290,11 +286,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
     REncloseComoving = 0.;
     RHalfComoving = 0.;
     BoundR200CritComoving = 0.;
-    // 	R200MeanComoving=0.;
-    // 	RVirComoving=0.;
     BoundM200Crit = 0.;
-    // 	M200Mean=0.;
-    // 	MVir=0.;
     return;
   }
   HBTReal VelocityUnit = PhysicalConst::G / epoch.Cosmology.ScaleFactor;
