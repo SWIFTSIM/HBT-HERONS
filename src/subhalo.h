@@ -47,9 +47,9 @@ public:
   int SnapshotOfLastIsolation; // The last snapshot when it was a central, only considering past snapshots. -1 if
                                // the subhalo has always been a central
 
-  int SnapshotOfBirth; // when the subhalo first becomes resolved
+  int SnapshotOfBirth; // Snapshot when the subhalo was first resolved.
   int SnapshotOfDeath; // Snapshot when the subhalo became unresolved, or -1 if it is still resolved.
-  int SnapshotIndexOfSink;  // when the subhalo sinks
+  int SnapshotOfSink;  // Snapshot when the subhalo overlapped in phase-space with another one.
 
   // profile properties
   float RmaxComoving;
@@ -134,7 +134,7 @@ public:
     SnapshotOfLastMaxVmax = SpecialConst::NullSnapshotId;
     SnapshotOfBirth = SpecialConst::NullSnapshotId;
     SnapshotOfDeath = SpecialConst::NullSnapshotId;
-    SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
+    SnapshotOfSink = SpecialConst::NullSnapshotId;
     SinkTrackId = SpecialConst::NullTrackId;
     DescendantTrackId = SpecialConst::NullTrackId;
     MostBoundParticleId = SpecialConst::NullParticleId;
@@ -170,10 +170,6 @@ public:
   bool IsAlive()
   {
     return SnapshotOfDeath == SpecialConst::NullSnapshotId;
-  }
-  bool JustTrapped(int currentsnapshotindex)
-  {
-    return SnapshotIndexOfSink == currentsnapshotindex;
   }
   HBTInt GetTracerIndex()
   {

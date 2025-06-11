@@ -677,7 +677,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       }
       if (IsTrapped())
       {
-        SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
+        SnapshotOfSink = SpecialConst::NullSnapshotId;
         SinkTrackId = SpecialConst::NullTrackId;
       }
 
