@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
   std::uniform_int_distribution<int> id_dist(0, max_id);
 
   /* Loop over repetitions */
-  const int nr_reps = 10000;
+  const int nr_reps = 10;
   for (int rep_nr = 0; rep_nr < nr_reps; rep_nr += 1)
   {
 

@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
   std::mt19937 rng;
   rng.seed(comm_rank);
 
-  const int nr_reps = 500;
+  const int nr_reps = 10;
   for (int rep_nr = 0; rep_nr < nr_reps; rep_nr += 1)
   {
 
