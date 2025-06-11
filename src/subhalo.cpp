@@ -168,11 +168,7 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(REncloseComoving, MPI_FLOAT, 1);
   RegisterAttr(RHalfComoving, MPI_FLOAT, 1);
   RegisterAttr(BoundR200CritComoving, MPI_FLOAT, 1);
-  // RegisterAttr(R200MeanComoving, MPI_FLOAT, 1);
-  // RegisterAttr(RVirComoving, MPI_FLOAT, 1);
   RegisterAttr(BoundM200Crit, MPI_FLOAT, 1);
-  // RegisterAttr(M200Mean, MPI_FLOAT, 1);
-  // RegisterAttr(MVir, MPI_FLOAT, 1);
   RegisterAttr(SpecificSelfPotentialEnergy, MPI_FLOAT, 1);
   RegisterAttr(SpecificSelfKineticEnergy, MPI_FLOAT, 1);
   RegisterAttr(SpecificAngularMomentum[0], MPI_FLOAT, 3);

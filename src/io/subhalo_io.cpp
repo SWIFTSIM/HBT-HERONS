@@ -52,11 +52,7 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(REncloseComoving, H5T_NATIVE_FLOAT);
   InsertMember(RHalfComoving, H5T_NATIVE_FLOAT);
   InsertMember(BoundR200CritComoving, H5T_NATIVE_FLOAT);
-  //   InsertMember(R200MeanComoving, H5T_NATIVE_FLOAT);
-  //   InsertMember(RVirComoving, H5T_NATIVE_FLOAT);
   InsertMember(BoundM200Crit, H5T_NATIVE_FLOAT);
-  //   InsertMember(M200Mean, H5T_NATIVE_FLOAT);
-  //   InsertMember(MVir, H5T_NATIVE_FLOAT);
   InsertMember(SpecificSelfPotentialEnergy, H5T_NATIVE_FLOAT);
   InsertMember(SpecificSelfKineticEnergy, H5T_NATIVE_FLOAT);
   InsertMember(SpecificAngularMomentum, H5T_FloatVec3);

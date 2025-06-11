@@ -61,13 +61,9 @@ public:
   float REncloseComoving; // Radius of minimum sphere which contains all bound particles
   float RHalfComoving;
 
-  // SO properties using subhalo particles alone, meant for quick and dirty calculations
+  // SO properties using **BOUND** subhalo particles alone, meant for quick and dirty calculations
   float BoundR200CritComoving;
-  //   float R200MeanComoving;
-  //   float RVirComoving;
   float BoundM200Crit;
-  //   float M200Mean;
-  //   float MVir;
 
   // kinetic properties
   float SpecificSelfPotentialEnergy; // average specific potential energy of each particle, <phi/m>. the total potential
