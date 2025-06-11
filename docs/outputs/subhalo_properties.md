@@ -104,7 +104,7 @@ past evolution.
 
 | <div style="width:220px">Property</div> | <div style="width:827px">Description</div>                             |
 | :-------------------------------------  | :--------------------------------------------------------------------- |
-|         `SnapshotIndexOfBirth`          | The output when the subhalo was first identified.                      |
+|         `SnapshotOfBirth`          | The output when the subhalo was first identified.                      |
 |          `SnapshotIndexOfSink`          | If the subhalo has merged, the output when that happened.              |
 |         `SnapshotIndexOfDeath`          | If the subhalo has merged or disrupted, the output when that happened  |
 |     `SnapshotIndexOfLastIsolation`      | If the subhalo has been a satellite, when it was last isolated.        |

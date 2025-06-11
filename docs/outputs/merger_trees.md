@@ -12,7 +12,7 @@ We provide examples on how to use these datasets to follow the [complete evoluti
 
 ## Evolution of a single subhalo
 
-The `TrackId` of a subhalo is a unique identifier that persists in time throughout the simulation. Thus, following the evolution of a subhalo from the first output when it is found in the simulation (`SnapshotIndexOfBirth`) until the last output when it is resolved as self-bound (`SnapshotIndexOfDeath`) only requires knowing its `TrackId`. In fact, the subhalo can still be tracked as an orphan subhalo after its "death", but only a subset of properties are computed in that case. 
+The `TrackId` of a subhalo is a unique identifier that persists in time throughout the simulation. Thus, following the evolution of a subhalo from the first output when it is found in the simulation (`SnapshotOfBirth`) until the last output when it is resolved as self-bound (`SnapshotIndexOfDeath`) only requires knowing its `TrackId`. In fact, the subhalo can still be tracked as an orphan subhalo after its "death", but only a subset of properties are computed in that case. 
 
 <h4>Code example</h4>
 
@@ -33,7 +33,7 @@ We assume the simulation has 64 outputs throughout this example.
     # Get the TrackId of the most massive subhalo, when it was first identified and when it disrupted/merged.
     with h5py.File(catalogue_path.format(output_number = max_output_number)) as catalogue:
         TrackId_to_follow = catalogue['Subhalos']['Mbound'].argmax()
-        output_start = catalogue['Subhalos']['SnapshotIndexOfBirth'][TrackId_to_follow]
+        output_start = catalogue['Subhalos']['SnapshotOfBirth'][TrackId_to_follow]
         output_end   = catalogue['Subhalos']['SnapshotIndexOfDeath'][TrackId_to_follow]
 
     # If output_end is equal to -1, that means it is still resolved at the time when the output was saved. 

@@ -47,7 +47,7 @@ public:
   int SnapshotIndexOfLastIsolation; // the last snapshot when it was a central, only considering past snapshots. -1 if
                                     // the subhalo has always been a central
 
-  int SnapshotIndexOfBirth; // when the subhalo first becomes resolved
+  int SnapshotOfBirth; // when the subhalo first becomes resolved
   int SnapshotIndexOfDeath; // when the subhalo first becomes un-resolved; only set if
                             // currentsnapshot>=SnapshotIndexOfDeath.
   int SnapshotIndexOfSink;  // when the subhalo sinks
@@ -133,7 +133,7 @@ public:
     RmaxComovingOfLastMaxVmax = 0.;
     LastMaxVmaxPhysical = 0.;
     SnapshotIndexOfLastMaxVmax = SpecialConst::NullSnapshotId;
-    SnapshotIndexOfBirth = SpecialConst::NullSnapshotId;
+    SnapshotOfBirth = SpecialConst::NullSnapshotId;
     SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
     SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
     SinkTrackId = SpecialConst::NullTrackId;

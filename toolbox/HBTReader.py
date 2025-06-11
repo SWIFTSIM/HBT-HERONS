@@ -267,7 +267,7 @@ class HBTReader:
         track = []
         snaps = []
         scales = []
-        snapbirth = self.GetSub(trackId)['SnapshotIndexOfBirth']
+        snapbirth = self.GetSub(trackId)['SnapshotOfBirth']
         if hasattr(snapbirth, '__iter__'):
             snapbirth = snapbirth[0]
         snaps = np.arange(snapbirth, self.MaxSnap+1, dtype=int)
