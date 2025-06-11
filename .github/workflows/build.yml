@@ -23,7 +23,17 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build libhdf5-mpi-dev
 
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -G Ninja -DHBT_MPI_TEST_FLAGS="--oversubscribe" -DHBT_DM_ONLY=${{ matrix.dm_only }}
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DHBT_MPI_TEST_FLAGS="--oversubscribe"
+          -DHBT_DM_ONLY=${{ matrix.dm_only }}
+          -DHBT_INT8=ON
+          -DHBT_REAL8=ON
+          -DHBT_REAL4_MASS=ON
+          -DHBT_REAL4_VEL=ON
+          -DHBT_CHECK_TRACER_INDEX=ON
+          -DHBT_UNBIND_WITH_THERMAL_ENERGY=ON
 
       - name: Build
         run: cmake --build build
