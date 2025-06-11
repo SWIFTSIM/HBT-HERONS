@@ -24,7 +24,7 @@ void Subhalo_t::UpdateTrack(const Snapshot_t &epoch)
   }
   if (Mbound >= LastMaxMass)
   {
-    SnapshotIndexOfLastMaxMass = epoch.GetSnapshotIndex();
+    SnapshotOfLastMaxMass = epoch.GetSnapshotId();
     LastMaxMass = Mbound;
   }
 }

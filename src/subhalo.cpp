@@ -155,7 +155,7 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(Rank, MPI_HBT_INT, 1);
   RegisterAttr(Depth, MPI_INT, 1);
   RegisterAttr(LastMaxMass, MPI_FLOAT, 1);
-  RegisterAttr(SnapshotIndexOfLastMaxMass, MPI_INT, 1);
+  RegisterAttr(SnapshotOfLastMaxMass, MPI_INT, 1);
   RegisterAttr(SnapshotOfLastIsolation, MPI_INT, 1);
   RegisterAttr(SnapshotOfBirth, MPI_INT, 1);
   RegisterAttr(SnapshotIndexOfDeath, MPI_INT, 1);

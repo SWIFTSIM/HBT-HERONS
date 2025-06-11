@@ -43,7 +43,7 @@ public:
   HBTInt Rank; // 0 for central and field subs, >0 for satellites
   int Depth;   // depth of the subhalo: central=0, sub=1, sub-sub=2, ...
   float LastMaxMass;
-  int SnapshotIndexOfLastMaxMass; // the snapshot when it has the maximum subhalo mass, only considering past snapshots.
+  int SnapshotOfLastMaxMass; // the snapshot when it has the maximum subhalo mass, only considering past snapshots.
   int SnapshotOfLastIsolation; // The last snapshot when it was a central, only considering past snapshots. -1 if
                                // the subhalo has always been a central
 
@@ -128,7 +128,7 @@ public:
   {
     TrackId = SpecialConst::NullTrackId;
     SnapshotOfLastIsolation = SpecialConst::NullSnapshotId;
-    SnapshotIndexOfLastMaxMass = SpecialConst::NullSnapshotId;
+    SnapshotOfLastMaxMass = SpecialConst::NullSnapshotId;
     LastMaxMass = 0.;
     RmaxComovingOfLastMaxVmax = 0.;
     LastMaxVmaxPhysical = 0.;

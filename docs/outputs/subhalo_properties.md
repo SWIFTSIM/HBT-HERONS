@@ -109,7 +109,7 @@ past evolution.
 |         `SnapshotIndexOfDeath`          | If the subhalo has merged or disrupted, the output when that happened  |
 |     `SnapshotOfLastIsolation`      | If the subhalo has been a satellite, when it was last isolated.        |
 |      `SnapshotOfLastMaxVmax`       | The output when the subhalo reached its maximum value of VmaxPhysical. |
-|      `SnapshotIndexOfLastMaxMass`       | The output when the subhalo reached its maximum value of Mbound        |
+|      `SnapshotOfLastMaxMass`       | The output when the subhalo reached its maximum value of Mbound        |
 |              `LastMaxMass`              | The maximum mass that the subhalo has reached so far.                  |
 |          `LastMaxVmaxPhysical`          | The maximum VmaxPhysical that the subhalo has reached so far.          |
 
