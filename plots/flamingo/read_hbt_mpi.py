@@ -1,6 +1,6 @@
 #!/bin/env python
 #
-# Functions for parallel I/O on HBTplus+SWIFT output.
+# Functions for parallel I/O on HBT-HERONS output.
 #
 
 import virgo.mpi.parallel_hdf5 as phdf5

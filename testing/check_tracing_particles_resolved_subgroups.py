@@ -41,7 +41,7 @@ def check_tracing_resolved_subgroups(basedir, hbt_nr, snap_nr, snapshot_file):
 
     # Read in the input subhalos
     if comm_rank == 0:
-        print(f"Testing HBTplus tracing of resolved subgroups between snapshot index {hbt_nr} and {hbt_nr + 1}")
+        print(f"Testing HBT-HERONS tracing of resolved subgroups between snapshot index {hbt_nr} and {hbt_nr + 1}")
         
     #===========================================================================
     # Load catalogues for snapshot N 
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     from virgo.mpi.util import MPIArgumentParser
     
     parser = MPIArgumentParser(comm, description="Check correctness of the FOF hosts assigned to resolved subgroups by HBT")
-    parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
+    parser.add_argument("basedir", type=str, help="Location of the HBT-HERONS output")
     parser.add_argument("hbt_nr", type=int, help="Index of the HBT output to process")
     parser.add_argument("snap_nr", type=int, help="Index of the snapshot to process")
     parser.add_argument("--snapshot-file", type=str, help="Format string for snapshot files (f-string using {snap_nr}, {file_nr})")

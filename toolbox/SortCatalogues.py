@@ -150,7 +150,7 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, snapshot_file):
 
     # Read in the input subhalos
     if comm_rank == 0:
-        print(f"Reading HBTplus output for snapshot {snap_nr}")
+        print(f"Reading HBT-HERONS output for snapshot {snap_nr}")
     mf = phdf5.MultiFile(filenames, file_nr_dataset="NumberOfFiles", comm=comm)
     subhalos = mf.read("Subhalos")
     field_names = list(subhalos.dtype.fields)
@@ -269,8 +269,8 @@ if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
 
-    parser = MPIArgumentParser(comm, description="Reorganize HBTplus SubSnap outputs")
-    parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
+    parser = MPIArgumentParser(comm, description="Reorganize HBT-HERONS SubSnap outputs")
+    parser.add_argument("basedir", type=str, help="Location of the HBT-HERONS output")
     parser.add_argument("snap_nr", type=int, help="Index of the snapshot to process")
     parser.add_argument("outdir",  type=str, help="Directory in which to write the output")
     parser.add_argument("--with-particles", action="store_true", help="Also copy the particle IDs to the output")

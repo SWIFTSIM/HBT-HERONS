@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 #
 # Set project name and language
 #
-project(hbtplus)
+project(hbt-herons)
 enable_language(C)
 enable_language(CXX)
 include(CTest)
