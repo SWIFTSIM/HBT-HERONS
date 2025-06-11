@@ -148,6 +148,11 @@ hbt_option(HBT_CHECK_TRACER_INDEX      CHECK_TRACER_INDEX      "For debugging: c
 hbt_option(HBT_DISABLE_STRIPPING      NO_STRIPPING             "Prevents subhaloes from passing unbound particles to their parents." OFF)
 
 #
+# Allow passing in extra mpiexec flags for unit tests. Needed for github workflow.
+#
+set(HBT_MPI_TEST_FLAGS "" CACHE STRING "Extra mpiexec flags to use for unit tests")
+
+#
 # Determine if we're going to output git revision info
 #
 set(HAVE_GIT 0)
