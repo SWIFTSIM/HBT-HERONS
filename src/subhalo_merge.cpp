@@ -77,7 +77,7 @@ bool Subhalo_t::MergeRecursively(SubhaloList_t &Subhalos, const Snapshot_t &snap
       /* Flag if the subhalo was previously resolved, and hence the reference
        * subhalo will accrete particles resulting from the merger. We do not
        * overwrite the value in case we find a merger with an unresolved subhalo
-       * after finding a merger with a resolved subhalo.  */
+       * after finding a merger with a resolved subhalo. */
       ExperiencedMerger = Nbound > 1 | ExperiencedMerger;
 
       /* If enabled, pass the particles to the reference subhalo we merged to. */

@@ -103,19 +103,22 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   H5Tclose(H5T_FloatVec3);
   H5Tclose(H5T_HBTxyz);
 }
+
 string SubhaloSnapshot_t::GetSubDir()
 {
   stringstream formater;
-  formater << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << SnapshotIndex;
+  formater << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << SnapshotId;
   return formater.str();
 }
+
 void SubhaloSnapshot_t::GetSubFileName(string &filename, int iFile, const string &ftype)
 {
   stringstream formater;
-  formater << GetSubDir() << "/" + ftype + "Snap_" << setw(3) << setfill('0') << SnapshotIndex << "." << iFile
+  formater << GetSubDir() << "/" + ftype + "Snap_" << setw(3) << setfill('0') << SnapshotId << "." << iFile
            << ".hdf5"; // or use snapshotid
   filename = formater.str();
 }
+
 void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubReaderDepth_t depth)
 {
   if (snapshot_index < HBTConfig.MinSnapshotIndex)
@@ -157,8 +160,6 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
     }
   }
 
-  //   cout<<Subhalos.size()<<" subhaloes loaded at snapshot "<<SnapshotIndex<<"("<<SnapshotId<<")\n";
-
   HBTInt NumSubs = Subhalos.size(), NumSubsAll_loaded = 0;
   MPI_Reduce(&NumSubs, &NumSubsAll_loaded, 1, MPI_HBT_INT, MPI_SUM, 0, world.Communicator);
   if (world.rank() == 0)
@@ -170,7 +171,8 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
           << ", loaded=" << NumSubsAll_loaded << endl;
       throw runtime_error(msg.str().c_str());
     }
-    cout << TotNumberOfSubs << " subhalos loaded at snapshot " << SnapshotIndex << "(" << SnapshotId << ")\n";
+    std::cout << TotNumberOfSubs << " subhalos loaded from snapshot " << SnapshotId << " (SnapshotIndex = " \
+              << snapshot_index << ")" << std::endl;
   }
 
 #ifndef NDEBUG
@@ -188,6 +190,7 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
 #endif
 #endif
 }
+
 void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
 { // Read iFile for current snapshot.
 
@@ -297,7 +300,7 @@ void SubhaloSnapshot_t::WriteBoundFiles(MpiWorker_t &world, const int &number_ra
   MPI_Allreduce(&NumSubs, &NumSubsAll, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
 
   if (world.rank() == 0)
-    cout << "saving " << NumSubsAll << " subhalos to " << GetSubDir() << endl;
+    cout << "Saving " << NumSubsAll << " subhalos to " << GetSubDir() << endl;
 
   /* Allow a limited number of ranks per node to write simultaneously */
   int writes_done = 0;

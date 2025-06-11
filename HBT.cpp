@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 #endif
 
   int snapshot_start, snapshot_end;
-  if (0 == world.rank())
+  if (world.rank() == 0)
   {
     // Print information about the version being run.
     cout << "HBT compiled using git branch: " << branch_name << " and commit: " << commit_hash;
@@ -56,7 +56,6 @@ int main(int argc, char **argv)
   HBTConfig.BroadCast(world, 0, snapshot_start, snapshot_end);
 
   SubhaloSnapshot_t subsnap;
-
   subsnap.Load(world, snapshot_start - 1, SubReaderDepth_t::SrcParticles);
 
   if (world.rank() == 0)
@@ -183,7 +182,7 @@ int main(int argc, char **argv)
       }
       time_log << endl;
 
-      cout << "SnapshotIndex " << isnap << " done. It took " << total_time << " seconds." << endl;
+      cout << "Snapshot " << subsnap.GetSnapshotId() << " (SnapshotIndex = " << isnap << ")" << " done. It took " << total_time << " seconds." << endl;
       cout << endl;
     }
     global_timer.Reset();
