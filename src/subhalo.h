@@ -57,7 +57,7 @@ public:
   float RmaxComovingOfLastMaxVmax;
   float VmaxPhysical;
   float LastMaxVmaxPhysical;
-  int SnapshotIndexOfLastMaxVmax; // the snapshot when it has the maximum Vmax, only considering past snapshots.
+  int SnapshotOfLastMaxVmax; // the snapshot when it has the maximum Vmax, only considering past snapshots.
 
   float REncloseComoving; // Radius of minimum sphere which contains all bound particles
   float RHalfComoving;
@@ -132,7 +132,7 @@ public:
     LastMaxMass = 0.;
     RmaxComovingOfLastMaxVmax = 0.;
     LastMaxVmaxPhysical = 0.;
-    SnapshotIndexOfLastMaxVmax = SpecialConst::NullSnapshotId;
+    SnapshotOfLastMaxVmax = SpecialConst::NullSnapshotId;
     SnapshotOfBirth = SpecialConst::NullSnapshotId;
     SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
     SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
