@@ -935,7 +935,7 @@ void SubhaloSnapshot_t::SetNestedParentIds()
       if (Subhalos[child_index].SnapshotOfLastIsolation == SpecialConst::NullSnapshotId)
       {
         // Subhalo had been a central up to this snapshot
-        Subhalos[child_index].SnapshotOfLastIsolation = GetSnapshotIndex() - 1; // TODO: method to get previous snapshot number
+        Subhalos[child_index].SnapshotOfLastIsolation = GetSnapshotId(GetSnapshotIndex() - 1);
       }
       Subhalos[child_index].NestedParentTrackId = subhalo.TrackId;
     }
