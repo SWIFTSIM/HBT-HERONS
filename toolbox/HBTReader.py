@@ -27,7 +27,6 @@ import h5py
 import os.path
 import numpy as np
 from glob import glob
-
 # TODO: check whether they are required
 import numbers
 from numpy.lib.recfunctions import append_fields
@@ -92,68 +91,77 @@ class HBTReader:
     instead run the script "./SortCatalogues.py"
     """
 
-    def __init__(self, subhalo_path):
+    def __init__(self, base_path):
         """ 
-        Initialize HBTReader to read data from subhalo_path. A parameter file must
-        exist there (Parameters.log dumped by HBT-HERONS during runtime).
+        Initialize HBTReader to read data from base_path where all the outputs
+        are saved. A parameter file must exist there (Parameters.log dumped by 
+        HBT-HERONS during runtime).
         """
 
-        config_file = subhalo_path+'/Parameters.log'
-        self.Options = ConfigReader(config_file).Options
+        self.Options = ConfigReader(base_path +'/Parameters.log').Options
         self.rootdir = self.Options['SubhaloPath']
         self.MaxSnap = int(self.Options['MaxSnapshotIndex'])
         self.BoxSize = float(self.Options['BoxSize'])
         self.Softening = float(self.Options['SofteningHalo'])
 
-        try:
-            lastfile = sorted(glob(self.rootdir+'/SubSnap_*.hdf5'),
-                              key=get_hbt_snapnum)[-1]
-        except:
-            lastfile = sorted(glob(self.rootdir+'/*/SubSnap_*.hdf5'),
-                              key=get_hbt_snapnum)[-1]
-        extension = lastfile.rsplit('SubSnap_')[1].split('.')
-        MaxSnap = int(extension[0])
-        if MaxSnap != self.MaxSnap:
-            print("HBT run not finished yet, maxsnap %d found (expecting %d)"
-                  % (MaxSnap, self.MaxSnap))
-            self.MaxSnap = MaxSnap
+        # To know which files to open.
+        self.MinimumSnapshotIndex = int(self.Options['MinSnapshotIndex'])
+        self.MaximumSnapshotIndex = int(self.Options['MaxSnapshotIndex'])
+        if "SnapshotIdList" in self.Options:
+            self.SnapshotIdList = np.array(self.Options["SnapshotIdList"], int)
+        else:
+            self.SnapshotIdList = np.arange(self.MinimumSnapshotIndex, self.MaximumSnapshotIndex)
 
-        self.nfiles = 0
-        if len(extension) == 3:
-            self.nfiles = len(glob(
-                self.rootdir+'/%03d' % MaxSnap+'/SubSnap_%03d.*.hdf5' % MaxSnap))
-            print(self.nfiles, "subfiles per snapshot")
+        # Generate an f-formated list of files
+        file_list = sorted(glob(self.rootdir+'/*/SubSnap_*.0.hdf5'),key=get_hbt_snapnum)
+        file_list = [path.replace(".0.hdf5",".{subfile_nr}.hdf5") for path in file_list]
+
+        # Do we have the same number of files as we expect? 
+        if len(file_list) != len(self.SnapshotIdList):
+            print(f"HBT-HERONS run not finished yet. Only found {len(file_list)} outputs out of {len(self.SnapshotIdList)} total.")
+            # Remove the expect (and not-yet-done) catalogues.
+            self.SnapshotIdList = self.SnapshotIdList[:len(file_list)]
 
         if 'MinSnapshotIndex' in self.Options:
             self.MinSnap = int(self.Options['MinSnapshotIndex'])
         else:
             self.MinSnap = 0
 
-        with self.Open(-1) as f:
-            self.OmegaM0 = f['/Cosmology/OmegaM0'][0]
-            self.OmegaLambda0 = f['/Cosmology/OmegaLambda0'][0]
+    def GetFileName(self, snap_nr, subfile=0, filetype='Sub'):
+        """
+        Returns the path to a catalogue file.
 
-    def Snapshots(self):
-        return np.arange(self.MinSnap, self.MaxSnap+1)
-
-    def GetFileName(self, isnap, ifile=0, filetype='Sub'):
-        if isnap < 0:
-            isnap = self.MaxSnap+1+isnap
+        Parameters
+        ==========
+        snap_nr: int
+            The snapshot number of the catalogue we are interested in.
+        subfile: int, opt
+            The subfile we are interested in.
+        filetype: str, opt
+            Whether to load the bound subhalo information ('Sub') or the source
+            subhalo information ('Src').
+        """
+        if snap_nr < 0:
+            snap_nr = self.MaxSnap+1+snap_nr
         if self.nfiles:
             return self.rootdir+'/%03d/' % isnap+filetype+'Snap_%03d.%d.hdf5' \
-                % (isnap, ifile)
+                % (snap_nr, subfile)
         else:
-            return self.rootdir+'/'+filetype+'Snap_%03d.hdf5' % (isnap)
+            return self.rootdir+'/'+filetype+'Snap_%03d.hdf5' % (snap_nr)
 
-    def Open(self, isnap, ifile=0, filetype='Sub', mode='r'):
-        """return the opened hdf5 file"""
-        return h5py.File(self.GetFileName(isnap, ifile, filetype), mode)
+    def LoadNestedSubhalos(self, snap_nr=-1):
+        """
+        Returns the list of nested subhalo indices for each subhalo.
 
-    def LoadNestedSubhalos(self, isnap=-1, selection=None):
-        """load the list of nested subhalo indices for each subhalo"""
+        Parameters
+        ==========
+        snap_nr : int, opt
+            Snapshot number of the catalogue we are interested in. It defaults
+            to the last snapshot with currently available catalogues.
+        """
         nests = []
         for i in range(max(self.nfiles, 1)):
-            with h5py.File(self.GetFileName(isnap, i), 'r') as subfile:
+            with h5py.File(self.GetFileName(snap_nr, i), 'r') as subfile:
                 nests.extend(subfile['NestedSubhalos'][...])
         return np.array(nests)
 
@@ -211,11 +219,19 @@ class HBTReader:
             subhalos = np.array(subhalos)
         if show_progress:
             print()
-        # subhalos.sort(order=['HostHaloId','Nbound'])
         return subhalos
 
-    def GetNumberOfSubhalos(self, isnap=-1):
-        with h5py.File(self.GetFileName(isnap, 0), 'r') as f:
+    def GetNumberOfSubhalos(self, snap_nr=-1):
+        """
+        Returns the total number of subhaloes in a given catalogue output.
+
+        Parameters
+        ==========
+        snap_nr : int, opt
+            Snapshot number of the catalogue we are interested in. It defaults
+            to the last snapshot with currently available catalogues.
+        """
+        with h5py.File(self.GetFileName(snap_nr, 0), 'r') as f:
             if self.nfiles:
                 return f['TotalNumberOfSubhalosInAllFiles'][...]
             else:
@@ -307,38 +323,31 @@ class HBTReader:
         return append_fields(
             track, ['Snapshot', 'ScaleFactor'], [snaps, scales], usemask=False)
 
-    def GetScaleFactor(self, isnap):
-        try:
-            return h5py.File(self.GetFileName(isnap), 'r')['Cosmology/ScaleFactor'][0]
-        except:
-            return h5py.File(self.GetFileName(isnap), 'r')['ScaleFactor'][0]
+    def GetScaleFactor(self, snap_nr):
+        """
+        Returns the scale factor of a given catalogue output.
+
+        Parameters
+        ==========
+        snap_nr : int, opt
+            Snapshot number of the catalogue we are interested in.
+
+        Returns
+        =======
+        float
+            The scale factor of the snapshot.
+        """
+        return h5py.File(self.GetFileName(snap_nr), 'r')['Cosmology/ScaleFactor'][0]
 
     def GetScaleFactorDict(self):
-        """ 
-        return a dictionary that maps snapshot_index to ScaleFactor
+        """
+        Returns a dictionary mapping each snapshot number to its corresponding
+        scale factor.
+
+        Returns
+        =======
+        dict of (int, float)
+            Mapping between snapshot number and scale factor.
         """
         return dict([(i, self.GetScaleFactor(i))
                      for i in range(self.MinSnap, self.MaxSnap+1)])
-
-    def GetExclusiveParticles(self, isnap=-1):
-        """
-        return an exclusive set of particles for subhaloes at isnap, by assigning
-        duplicate particles to the lowest mass subhaloes
-        """
-        OriginPart = self.LoadParticles(isnap)
-        OriginPart = list(zip(list(range(len(OriginPart))), OriginPart))
-        def comp_mass(x): return len(x[1])
-        OriginPart.sort(key=comp_mass)
-        repo = set()
-        NewPart = []
-        for i, p in OriginPart:
-            if len(p) > 1:
-                p = set(p)
-                p.difference_update(repo)
-                repo.update(p)
-            NewPart.append((i, list(p)))
-
-        def comp_id(x): return x[0]
-        NewPart.sort(key=comp_id)
-        NewPart = [x[1] for x in NewPart]
-        return NewPart
