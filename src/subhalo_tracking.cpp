@@ -14,12 +14,12 @@ void Subhalo_t::UpdateTrack(const Snapshot_t &epoch)
   if (TrackId == SpecialConst::NullTrackId)
     return;
 
-  if (0 == Rank)
+  if (Rank == 0)
   {
-    if (SnapshotIndexOfLastIsolation != SpecialConst::NullSnapshotId)
+    if (SnapshotOfLastIsolation != SpecialConst::NullSnapshotId)
     {
       // Subhalo has been a satellite at some point in the past
-      SnapshotIndexOfLastIsolation = epoch.GetSnapshotIndex();
+      SnapshotOfLastIsolation = epoch.GetSnapshotId();
     }
   }
   if (Mbound >= LastMaxMass)
@@ -932,10 +932,10 @@ void SubhaloSnapshot_t::SetNestedParentIds()
     for (auto &nested_trackid : subhalo.NestedSubhalos)
     {
       HBTInt child_index = TrackHash.GetIndex(nested_trackid);
-      if (Subhalos[child_index].SnapshotIndexOfLastIsolation == SpecialConst::NullSnapshotId)
+      if (Subhalos[child_index].SnapshotOfLastIsolation == SpecialConst::NullSnapshotId)
       {
         // Subhalo had been a central up to this snapshot
-        Subhalos[child_index].SnapshotIndexOfLastIsolation = GetSnapshotIndex() - 1;
+        Subhalos[child_index].SnapshotOfLastIsolation = GetSnapshotIndex() - 1; // TODO: method to get previous snapshot number
       }
       Subhalos[child_index].NestedParentTrackId = subhalo.TrackId;
     }

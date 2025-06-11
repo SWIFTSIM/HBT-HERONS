@@ -44,8 +44,8 @@ public:
   int Depth;   // depth of the subhalo: central=0, sub=1, sub-sub=2, ...
   float LastMaxMass;
   int SnapshotIndexOfLastMaxMass; // the snapshot when it has the maximum subhalo mass, only considering past snapshots.
-  int SnapshotIndexOfLastIsolation; // the last snapshot when it was a central, only considering past snapshots. -1 if
-                                    // the subhalo has always been a central
+  int SnapshotOfLastIsolation; // The last snapshot when it was a central, only considering past snapshots. -1 if
+                               // the subhalo has always been a central
 
   int SnapshotOfBirth; // when the subhalo first becomes resolved
   int SnapshotIndexOfDeath; // when the subhalo first becomes un-resolved; only set if
@@ -127,7 +127,7 @@ public:
 #endif
   {
     TrackId = SpecialConst::NullTrackId;
-    SnapshotIndexOfLastIsolation = SpecialConst::NullSnapshotId;
+    SnapshotOfLastIsolation = SpecialConst::NullSnapshotId;
     SnapshotIndexOfLastMaxMass = SpecialConst::NullSnapshotId;
     LastMaxMass = 0.;
     RmaxComovingOfLastMaxVmax = 0.;
