@@ -1,6 +1,6 @@
 #!/bin/env python
 #
-# Compute mass function of HBTplus subhalos
+# Compute mass function of HBT-HERONS subhalos
 #
 
 import numpy as np

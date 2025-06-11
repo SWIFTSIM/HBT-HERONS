@@ -11,11 +11,11 @@ fi
 
 # Base folder of the simulation
 BASE_FOLDER="${1}"
-HBT_FOLDER=$BASE_FOLDER/HBTplus
+HBT_FOLDER=$BASE_FOLDER/HBT-HERONS/
 
 # There should be an HBT folder already there. If not, a path may be wrong.
 if [ ! -d $HBT_FOLDER ]; then
-    echo "No HBTplus folder found in provided path. Check whether path is correct, and if so, create an HBTplus folder first."
+    echo "No HBT-HERONS folder found in provided path. Check whether path is correct, and if so, create an HBT-HERONS folder first."
 fi
 
 # Where logs for particle splits and HBT will be saved
@@ -49,7 +49,7 @@ if [ $MAX_SNAPSHOT -eq  0 ]; then
   exit 1
 fi
 
-echo "Submitting an HBT+ job running from snapshots $MIN_SNAPSHOT to $(($MAX_SNAPSHOT - 1))"
+echo "Submitting an HBT-HERONS job running from snapshots $MIN_SNAPSHOT to $(($MAX_SNAPSHOT - 1))"
 
 # Copy the submission scripts into the HBT folders
 cp ./submission_scripts/submit_HBT.sh $HBT_FOLDER

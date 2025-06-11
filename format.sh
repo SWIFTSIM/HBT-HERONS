@@ -34,15 +34,15 @@ fi
 
 # Print the help
 function show_help {
-    echo -e "This script formats HBTPlus according to Microsoft style"
+    echo -e "This script formats HBT-HERONS according to Microsoft style"
     echo -e "  -h, --help \t Show this help"
-    echo -e "  -t, --test \t Test if HBTPlus is well formatted"
+    echo -e "  -t, --test \t Test if HBT-HERONS is well formatted"
     echo -e "  -c, --clean \t Remove formatting venv"
 }
 
 # Remove the virtual enviroment
 function remove_clang_venv {
-    echo "Removing python venv used to format HBTPlus"
+    echo "Removing python venv used to format HBT-HERONS"
     rm -rf clang_formatting_env
 }
 
@@ -85,7 +85,7 @@ then
     # Note trapping the exit status from both commands in the pipe. Also note
     # do not use -q in grep as that closes the pipe on first match and we get
     # a SIGPIPE error.
-    echo "Testing if HBTPlus is correctly formatted"
+    echo "Testing if HBT-HERONS is correctly formatted"
     $cmd -output-replacements-xml | grep "<replacement " > /dev/null
     status=("${PIPESTATUS[@]}")
 
@@ -106,7 +106,7 @@ then
         echo "...is correctly formatted"
     fi
 else
-    echo "Formatting HBTPlus"
+    echo "Formatting HBT-HERONS"
     $cmd -i
 fi
 

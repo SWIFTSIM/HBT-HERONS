@@ -29,7 +29,7 @@ int main(int argc, char **argv)
   if (0 == world.rank())
   {
     // Print information about the version being run.
-    cout << "HBT compiled using git branch: " << branch_name << " and commit: " << commit_hash;
+    cout << "HBT-HERONS compiled using git branch: " << branch_name << " and commit: " << commit_hash;
     if (uncommitted_changes)
       cout << " (with uncommitted changes)";
     else

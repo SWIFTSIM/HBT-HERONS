@@ -1,6 +1,6 @@
 #!/bin/env python
 #
-# Try to reproduce DescendantTrackId from merger_tree HBTplus branch
+# Try to reproduce DescendantTrackId from merger_tree HBT-HERONS branch
 #
 # Currently only correct for DMO runs and too slow for large runs.
 # Runs on FLAMINGO L1000N0900/DMO_FIDUCIAL in a few minutes.
@@ -110,7 +110,7 @@ def check_descendant_trackid(basedir, snap_nr):
                 descendant_count = fc
                 descendant_trackid = ft
         
-        # Check result agrees with DescendantTrackId from HBTplus
+        # Check result agrees with DescendantTrackId from HBT-HERONS
         hbt_desc_trackid = s2["DescendantTrackId"]
         if hbt_desc_trackid == descendant_trackid:
             nr_ok += 1

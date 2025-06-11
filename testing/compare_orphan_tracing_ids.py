@@ -39,7 +39,7 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
 
     # Read in the input subhalos
     if comm_rank == 0:
-        print(f"Testing orphan MostBoundParticleId consistency across two HBT+ catalogues")
+        print(f"Testing orphan MostBoundParticleId consistency across two HBT-HERONS catalogues")
         
     #===========================================================================
     # Load catalogues for snapshot N 
@@ -163,9 +163,9 @@ if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
     
-    parser = MPIArgumentParser(comm, description="Compare orphan tracer IDs between two HBTplus catalogues.")
-    parser.add_argument("basedir_1", type=str, help="Location of one of the HBTplus outputs")
-    parser.add_argument("basedir_2", type=str, help="Location of other HBTplus output to compare against")
+    parser = MPIArgumentParser(comm, description="Compare orphan tracer IDs between two HBT-HERONS catalogues.")
+    parser.add_argument("basedir_1", type=str, help="Location of one of the HBT-HERONS outputs")
+    parser.add_argument("basedir_2", type=str, help="Location of other HBT-HERONS output to compare against")
     parser.add_argument("hbt_nr", type=int, help="Index of the HBT output to process")
 
     args = parser.parse_args()
