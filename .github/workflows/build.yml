@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         build_type: [Debug, Release]
-        dm_only:    [ON, OFF]
+        dm_only:    [HBT_DM_ONLY=ON, HBT_DM_ONLY=OFF]
 
     steps:
       - name: Checkout repository
@@ -27,7 +27,7 @@ jobs:
           cmake -S . -B build -G Ninja
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -DHBT_MPI_TEST_FLAGS="--oversubscribe"
-          -DHBT_DM_ONLY=${{ matrix.dm_only }}
+          -D${{ matrix.dm_only }}
           -DHBT_INT8=ON
           -DHBT_REAL8=ON
           -DHBT_REAL4_MASS=ON
