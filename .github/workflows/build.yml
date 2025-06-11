@@ -23,7 +23,7 @@ jobs:
 
       - name: Configure
         run: >
-          cmake -S . -B build_${{ matrix.config.build_type }} -G Ninja
+          cmake -S . -B build_${{ matrix.config.build_type }} -G Ninja -DHBT_MPI_TEST_FLAGS="--oversubscribe"
 
       - name: Build
         run: cmake --build build_${{ matrix.config.build_type }}
