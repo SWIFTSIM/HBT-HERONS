@@ -1,0 +1,32 @@
+name: HBT-HERONS
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+  strategy:
+    matrix:
+      config:
+        - { build_type: Debug}
+        - { build_type: Release}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build libhdf5-dev
+
+    - name: Configure
+      run: >
+        cmake -S . -B build_${{ matrix.config.build_type }} -G Ninja
+
+    - name: Build
+      run: cmake --build build_${{ matrix.config.build_type }}
+
+    - name: Run Tests
+      run: cd build_${{ matrix.config.build_type }} && ctest --output-on-failure
