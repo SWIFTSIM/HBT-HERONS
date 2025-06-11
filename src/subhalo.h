@@ -48,8 +48,7 @@ public:
                                // the subhalo has always been a central
 
   int SnapshotOfBirth; // when the subhalo first becomes resolved
-  int SnapshotIndexOfDeath; // when the subhalo first becomes un-resolved; only set if
-                            // currentsnapshot>=SnapshotIndexOfDeath.
+  int SnapshotOfDeath; // Snapshot when the subhalo became unresolved, or -1 if it is still resolved.
   int SnapshotIndexOfSink;  // when the subhalo sinks
 
   // profile properties
@@ -111,7 +110,7 @@ public:
   bool AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo);
   float PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo);
   void GetCorePhaseSpaceProperties();
-  void SetMergerInformation(const HBTInt &ReferenceTrackId, const int &SnapshotIndex);
+  void SetMergerInformation(const HBTInt &ReferenceTrackId, const int &SnapshotId);
 
   /* Properties relating to the new merging approach */
   HBTxyz CoreComovingPosition;
@@ -134,7 +133,7 @@ public:
     LastMaxVmaxPhysical = 0.;
     SnapshotOfLastMaxVmax = SpecialConst::NullSnapshotId;
     SnapshotOfBirth = SpecialConst::NullSnapshotId;
-    SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
+    SnapshotOfDeath = SpecialConst::NullSnapshotId;
     SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
     SinkTrackId = SpecialConst::NullTrackId;
     DescendantTrackId = SpecialConst::NullTrackId;
@@ -170,7 +169,7 @@ public:
   }
   bool IsAlive()
   {
-    return SnapshotIndexOfDeath == SpecialConst::NullSnapshotId;
+    return SnapshotOfDeath == SpecialConst::NullSnapshotId;
   }
   bool JustTrapped(int currentsnapshotindex)
   {

@@ -12,7 +12,7 @@ We provide examples on how to use these datasets to follow the [complete evoluti
 
 ## Evolution of a single subhalo
 
-The `TrackId` of a subhalo is a unique identifier that persists in time throughout the simulation. Thus, following the evolution of a subhalo from the first output when it is found in the simulation (`SnapshotOfBirth`) until the last output when it is resolved as self-bound (`SnapshotIndexOfDeath`) only requires knowing its `TrackId`. In fact, the subhalo can still be tracked as an orphan subhalo after its "death", but only a subset of properties are computed in that case. 
+The `TrackId` of a subhalo is a unique identifier that persists in time throughout the simulation. Thus, following the evolution of a subhalo from the first output when it is found in the simulation (`SnapshotOfBirth`) until the last output when it is resolved as self-bound (`SnapshotOfDeath`) only requires knowing its `TrackId`. In fact, the subhalo can still be tracked as an orphan subhalo after its "death", but only a subset of properties are computed in that case. 
 
 <h4>Code example</h4>
 
@@ -34,7 +34,7 @@ We assume the simulation has 64 outputs throughout this example.
     with h5py.File(catalogue_path.format(output_number = max_output_number)) as catalogue:
         TrackId_to_follow = catalogue['Subhalos']['Mbound'].argmax()
         output_start = catalogue['Subhalos']['SnapshotOfBirth'][TrackId_to_follow]
-        output_end   = catalogue['Subhalos']['SnapshotIndexOfDeath'][TrackId_to_follow]
+        output_end   = catalogue['Subhalos']['SnapshotOfDeath'][TrackId_to_follow]
 
     # If output_end is equal to -1, that means it is still resolved at the time when the output was saved. 
     output_end = output_end if output_end != -1 else max_output_number
@@ -104,7 +104,7 @@ tracer particles end up primarly bound to the same subhalo of the previous examp
 
     # We get the time when the subhalo was last identified as self-bound.
     with h5py.File(<PATH_TO_CATALOGUE>) as catalogue:
-        output_end   = catalogue['Subhalos']['SnapshotIndexOfDeath'][TrackId_to_follow]
+        output_end   = catalogue['Subhalos']['SnapshotOfDeath'][TrackId_to_follow]
 
     # The disrupted subhalo is done 
     # Open that output, since it contains the most up to date information for its merger tree.

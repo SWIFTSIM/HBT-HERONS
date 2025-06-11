@@ -631,7 +631,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     {
       /* Store when it disrupted. */
       if (IsAlive())
-        SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
+        SnapshotOfDeath = epoch.GetSnapshotId();
 
       /* The most bound positions of the new orphan were found when updating
        * every subhalo particles. Copy over to the comoving ones. For future
@@ -672,7 +672,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
        * information. */
       if (!IsAlive())
       {
-        SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
+        SnapshotOfDeath = SpecialConst::NullSnapshotId;
         DescendantTrackId = SpecialConst::NullSnapshotId;
       }
       if (IsTrapped())

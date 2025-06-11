@@ -27,7 +27,7 @@ bool Subhalo_t::AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo)
 }
 
 /* Store information about the merger that has just occured. */
-void Subhalo_t::SetMergerInformation(const HBTInt &ReferenceTrackId, const int &CurrentSnapshotIndex)
+void Subhalo_t::SetMergerInformation(const HBTInt &ReferenceTrackId, const int &CurrentSnapshotId)
 {
   /* When this occured */
   SnapshotIndexOfSink = CurrentSnapshotIndex;
@@ -37,7 +37,7 @@ void Subhalo_t::SetMergerInformation(const HBTInt &ReferenceTrackId, const int &
 
   /* Death time if this merger caused it. */
   if (IsAlive())
-    SnapshotIndexOfDeath = CurrentSnapshotIndex;
+    SnapshotOfDeath = CurrentSnapshotId;
 }
 
 /* Recursively checks in a depth-first approach whether any of the subhaloes
@@ -72,7 +72,7 @@ bool Subhalo_t::MergeRecursively(SubhaloList_t &Subhalos, const Snapshot_t &snap
   {
     if (AreOverlappingInPhaseSpace(ReferenceSubhalo))
     {
-      SetMergerInformation(ReferenceSubhalo.TrackId, snap.GetSnapshotIndex());
+      SetMergerInformation(ReferenceSubhalo.TrackId, snap.GetSnapshotId());
 
       /* Flag if the subhalo was previously resolved, and hence the reference
        * subhalo will accrete particles resulting from the merger. We do not

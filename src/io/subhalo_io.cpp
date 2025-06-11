@@ -42,7 +42,7 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(SnapshotOfLastMaxMass, H5T_NATIVE_INT);
   InsertMember(SnapshotOfLastIsolation, H5T_NATIVE_INT);
   InsertMember(SnapshotOfBirth, H5T_NATIVE_INT);
-  InsertMember(SnapshotIndexOfDeath, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfDeath, H5T_NATIVE_INT);
   InsertMember(SnapshotIndexOfSink, H5T_NATIVE_INT);
   InsertMember(RmaxComoving, H5T_NATIVE_FLOAT);
   InsertMember(RmaxComovingOfLastMaxVmax, H5T_NATIVE_FLOAT);
