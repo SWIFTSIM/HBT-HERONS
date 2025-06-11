@@ -318,23 +318,3 @@ class HBTReader:
         NewPart.sort(key=comp_id)
         NewPart = [x[1] for x in NewPart]
         return NewPart
-
-if __name__ == '__main__':
-    import timeit
-    # apostle=HBTReader('../configs/Apostle_S1_LR.conf')
-    apostle = HBTReader(
-        '/cosma/home/jvbq85/data/HBT/data/apostle/S1_LR/subcat/VER1.8.1.param')
-    # apostle=HBTReader('/cosma/home/jvbq85/data/HBT/data/MilliMill/subcat2_full/VER1.8.1.param')
-    print(timeit.timeit("[apostle.LoadSubhalos(i, 1) for i in range(10,apostle.MaxSnap)]",
-                        setup="from __main__ import apostle", number=1))
-    #print(timeit.timeit("[apostle.LoadSubhalos(i, np.s_['Nbound','Rank']) for i in range(10,apostle.MaxSnap)]", setup="from __main__ import apostle,np", number=1))
-    print(timeit.timeit("[apostle.LoadSubhalos(i, 'Nbound') for i in range(10,apostle.MaxSnap)]",
-                        setup="from __main__ import apostle", number=1))
-    print(timeit.timeit("apostle.LoadSubhalos(-1, ('Nbound','Rank'))",
-                        setup="from __main__ import apostle", number=100))
-    print(timeit.timeit("[apostle.LoadSubhalos(i) for i in range(10,apostle.MaxSnap)]",
-                        setup="from __main__ import apostle", number=1))
-    print(timeit.timeit("apostle.GetTrack(12)",
-                        setup="from __main__ import apostle", number=1))
-    print(timeit.timeit("apostle.GetTrack(103)",
-                        setup="from __main__ import apostle", number=1))
