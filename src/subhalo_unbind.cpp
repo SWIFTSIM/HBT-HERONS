@@ -78,20 +78,26 @@ public:
     return Particles[GetParticle(i)].Id;
   }
 
+#ifndef DM_ONLY
   /* Particle type of the ith most bound particle. */
   HBTInt GetType(HBTInt i) const
   {
     return Particles[GetParticle(i)].Type;
   }
+#endif
 
   /* Scaled mass of the ith most bound particle. It will be larger than the true
    * mass if the particles are being subsampled. */
   HBTReal GetMass(HBTInt i) const
   {
+#ifdef DM_ONLY
+    return Particles[GetParticle(i)].Mass * MassUpscaleFactor[1];
+#else
     if(IsNotSubsampleParticleType(Particles[GetParticle(i)]))
       return Particles[GetParticle(i)].Mass;
     else
       return Particles[GetParticle(i)].Mass * MassUpscaleFactor[GetType(i)];
+#endif
   }
 
   /* Internal energy of the ith most bound particle. */
@@ -252,6 +258,7 @@ public:
         Mass += GetMass(i);
    }
 
+#ifndef DM_ONLY
   /* Accumulates the total mass per particle type between the Nstart and Nfinish
    * most bound particles. */
    void AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish, float MassPerType[])
@@ -276,6 +283,7 @@ public:
       for(int i = 0; i < TypeMax; i++)
         Mass += MassPerType[i];
    }
+#endif
 
   /* Finds the factor by which the mass of particles need to be multiplied after
    * subsampling, to ensure mass conservation. */
@@ -308,6 +316,7 @@ public:
     return std::vector<HBTReal> (TypeMax, MsubsampleTrue / Msubsample);
   }
 
+#ifndef DM_ONLY
   /* Finds the factor by which the mass of particles need to be multiplied after
    * subsampling, to ensure mass conservation. Contrary to GetMassUpscaleFactor, 
    * we define the upscale factor based on a particle type level. */
@@ -350,6 +359,7 @@ public:
 
     return MassUpscaleFactor;
   }
+#endif
 
   /* Makes it so GetMass(i) returns the true mass of the ith most bound 
    * particle. */
@@ -368,10 +378,14 @@ public:
     if((MaxSampleSize == 0) || (Nlast < (MaxSampleSize + Nunsample)))
       return Nlast;
 
+#ifdef DM_ONLY
+    MassUpscaleFactor = GetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
+#else
     if(HBTConfig.PotentialEstimateUpscaleMassesPerType)
       MassUpscaleFactor = GetMassUpscaleFactorPerParticleType(Nlast, Mlast, MaxSampleSize, Nunsample);
     else
       MassUpscaleFactor = GetMassUpscaleFactor(Nlast, Mlast, MaxSampleSize, Nunsample);
+#endif
 
     return MaxSampleSize + Nunsample;
   }
@@ -511,7 +525,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   EnergySnapshot_t ESnap(Elist.data(), Elist.size(), Particles, epoch);
 
   /* Associated mass of the starting number of particles. */
+#ifdef DM_ONLY
+  ESnap.AccumulateMass(0, Nbound, Mbound);
+#else
   ESnap.AccumulateMass(0, Nbound, Mbound, MboundType);
+#endif
 
   /* Used to determine when iterative unbinding has converged to within the 
    * specified accuracy. */
