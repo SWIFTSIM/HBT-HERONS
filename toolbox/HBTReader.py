@@ -18,17 +18,19 @@ To use it, initialize the reader with the parameter file under the subhalo direc
   track2=reader.GetTrack(2) #track 2
 
 """
+# TODO: check whether they are required (possibly Python2 leftover)
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import numpy as np
-import matplotlib.pyplot as plt
-import h5py
 import sys
+import h5py
 import os.path
-import glob
-from numpy.lib.recfunctions import append_fields
+import numpy as np
+from glob import glob
+
+# TODO: check whether they are required
 import numbers
+from numpy.lib.recfunctions import append_fields
 
 def PeriodicDistance(x, y, BoxSize, axis=-1):
     d = x-y
@@ -82,10 +84,10 @@ class HBTReader:
         self.Softening = float(self.Options['SofteningHalo'])
 
         try:
-            lastfile = sorted(glob.glob(self.rootdir+'/SubSnap_*.hdf5'),
+            lastfile = sorted(glob(self.rootdir+'/SubSnap_*.hdf5'),
                               key=get_hbt_snapnum)[-1]
         except:
-            lastfile = sorted(glob.glob(self.rootdir+'/*/SubSnap_*.hdf5'),
+            lastfile = sorted(glob(self.rootdir+'/*/SubSnap_*.hdf5'),
                               key=get_hbt_snapnum)[-1]
         extension = lastfile.rsplit('SubSnap_')[1].split('.')
         MaxSnap = int(extension[0])
@@ -96,7 +98,7 @@ class HBTReader:
 
         self.nfiles = 0
         if len(extension) == 3:
-            self.nfiles = len(glob.glob(
+            self.nfiles = len(glob(
                 self.rootdir+'/%03d' % MaxSnap+'/SubSnap_%03d.*.hdf5' % MaxSnap))
             print(self.nfiles, "subfiles per snapshot")
 
