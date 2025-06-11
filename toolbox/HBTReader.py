@@ -45,19 +45,41 @@ class ConfigReader:
     """
     Class to read the HBT-HERONS configuration files.
     """
+    Options = {}
 
-    def __init__(self, config_file):
-        self.Options = {}
-        with open(config_file, 'r') as f:
-            for line in f:
-                pair = line.lstrip().split("#", 1)[0].split("[", 1)[0].split()
-                if len(pair) == 2:
-                    self.Options[pair[0]] = pair[1]
-                elif len(pair) > 2:
-                    self.Options[pair[0]] = pair[1:]
+    def __init__(self, path_to_config_file):
+        """
+        Loads which options are present in the HBT-HERONS parameter file, and
+        their values.
+        
+        Parameters
+        ==========
+        path_to_config_file: str
+            Path to the HBT-HERONS configuration file.
+        """
 
-    def __getitem__(self, index):
-        return self.Options[index]
+        with open(path_to_config_file, 'r') as file:
+            for line in file:
+                self.__parse_line(line)
+
+    def __parse_line(self, line):
+        """
+        Extracts the name and value of a HBT-HERONS parameter, if it is present
+        in the provided line.
+
+        Parameters
+        ==========
+        line: str
+            A single line of a parameter file.
+        """
+        pair = line.lstrip().split("#", 1)[0].split("[", 1)[0].split()
+        if len(pair) == 2:
+            self.Options[pair[0]] = pair[1]
+        elif len(pair) > 2:
+            self.Options[pair[0]] = pair[1:]
+
+    def __getitem__(self, ParameterName):
+        return self.Options[ParameterName]
 
 def get_hbt_snapnum(snapname):
     return int(snapname.rsplit('SubSnap_')[1].split('.')[0])
