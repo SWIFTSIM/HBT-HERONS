@@ -327,48 +327,6 @@ class HBTReader:
 
         return subhalo_particles
 
-    def GetParticleProperties(self, subhalo_selection, snap_nr=None):
-        """
-        Load the subhalo particle properties for the specified subhalo.
-
-        Parameters
-        ==========
-        subhalo_selection: int
-            The array entry to load from the subhalo catalogues. Note 
-            that this does NOT correspond to the TrackId of the subhalo, as
-            the catalogues are not sorted in TrackId.
-        snap_nr : int, opt
-            Snapshot number of the catalogue we are interested in. It defaults
-            to the last snapshot with currently available catalogues.
-
-        Returns
-        =======
-        np.ndarray
-            Properties of particles bound to the subhalo in the specified entry.
-            The array can contains multiple dtypes, which each corresponding to 
-            a different particle property. They can be accessed 
-            via indexing.
-        """
-
-        if snap_nr is None:
-            snap_nr = self.SnapshotIdList.max()
-
-        # Determine number of files for requested output
-        with h5py.File(self.GetFileName(snap_nr), 'r') as subfile:
-            number_subfiles = subfile['NumberOfFiles'][0]
-
-        # Check if we are out of bounds
-        if subhalo_selection >= self.GetNumberOfSubhalos(snap_nr):
-            raise ValueError(f"Selected subhalo entry ({subhalo_selection}) is larger than the number of subhaloes ({self.GetNumberOfSubhalos(snap_nr)})")
-
-        offset = 0
-        for subfile_nr in range(max(number_subfiles, 1)):
-            with h5py.File(self.GetFileName(snap_nr, subfile_nr), 'r') as subfile:
-                nsub = subfile['Subhalos'].shape[0]
-                if offset+nsub > subhalo_selection:
-                    return subfile['ParticleProperties'][subhalo_selection-offset]
-                offset += nsub
-
     def GetTrackSnapshot(self, TrackId, snap_nr=None, fields=None):
         """ 
         Load the properties of a given TrackId in the specified snapshot.
