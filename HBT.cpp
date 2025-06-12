@@ -42,10 +42,9 @@ int main(int argc, char **argv)
     cout << argv[0] << " run using " << world.size() << " mpi tasks";
 #ifdef _OPENMP
 #pragma omp parallel
-    cout << endl;
 #pragma omp master
-    cout << endl;
     cout << ", each with " << omp_get_num_threads() << " threads";
+    cout << endl;
 #endif
     cout << endl;
     cout << "Configured with the following data type sizes (bytes):" << endl;
