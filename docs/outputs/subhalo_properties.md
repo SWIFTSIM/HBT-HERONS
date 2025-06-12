@@ -104,12 +104,12 @@ past evolution.
 
 | <div style="width:220px">Property</div> | <div style="width:827px">Description</div>                             |
 | :-------------------------------------  | :--------------------------------------------------------------------- |
-|         `SnapshotIndexOfBirth`          | The output when the subhalo was first identified.                      |
-|          `SnapshotIndexOfSink`          | If the subhalo has merged, the output when that happened.              |
-|         `SnapshotIndexOfDeath`          | If the subhalo has merged or disrupted, the output when that happened  |
-|     `SnapshotIndexOfLastIsolation`      | If the subhalo has been a satellite, when it was last isolated.        |
-|      `SnapshotIndexOfLastMaxVmax`       | The output when the subhalo reached its maximum value of VmaxPhysical. |
-|      `SnapshotIndexOfLastMaxMass`       | The output when the subhalo reached its maximum value of Mbound        |
+|         `SnapshotOfBirth`          | The output when the subhalo was first identified.                      |
+|          `SnapshotOfSink`          | If the subhalo has merged, the output when that happened.              |
+|         `SnapshotOfDeath`          | If the subhalo has merged or disrupted, the output when that happened  |
+|     `SnapshotOfLastIsolation`      | If the subhalo has been a satellite, when it was last isolated.        |
+|      `SnapshotOfLastMaxVmax`       | The output when the subhalo reached its maximum value of VmaxPhysical. |
+|      `SnapshotOfLastMaxMass`       | The output when the subhalo reached its maximum value of Mbound        |
 |              `LastMaxMass`              | The maximum mass that the subhalo has reached so far.                  |
 |          `LastMaxVmaxPhysical`          | The maximum VmaxPhysical that the subhalo has reached so far.          |
 
