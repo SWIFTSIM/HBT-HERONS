@@ -85,9 +85,7 @@ class HBTReader:
         """
 
         self.Options = ConfigReader(base_path +'/Parameters.log').Options
-        self.rootdir = self.Options['SubhaloPath']
-        self.BoxSize = float(self.Options['BoxSize'])
-        self.Softening = float(self.Options['SofteningHalo'])
+        self.base_dir = self.Options['SubhaloPath']
 
         # To know which files to open.
         self.MinimumSnapshotIndex = int(self.Options['MinSnapshotIndex'])
@@ -98,7 +96,7 @@ class HBTReader:
             self.SnapshotIdList = np.arange(self.MinimumSnapshotIndex, self.MaximumSnapshotIndex)
 
         # Generate an f-formated list of files
-        self._file_list = sorted(glob(self.rootdir+'/*/SubSnap_*.0.hdf5'),key=get_hbt_snapnum)
+        self._file_list = sorted(glob(self.base_dir+'/*/SubSnap_*.0.hdf5'),key=get_hbt_snapnum)
         self._file_list = [path.replace(".0.hdf5",".{subfile_nr}.hdf5") for path in self._file_list]
 
         # Do we have the same number of files as we expect? If not, remove the
@@ -116,10 +114,10 @@ class HBTReader:
         snap_nr: int
             The snapshot number of the catalogue we are interested in.
         subfile_nr: int, opt
-            The subfile_nr we are interested in.
+            The subfile_nr we are interested in. Defaults to 0.
         filetype: str, opt
             Whether to load the bound subhalo information ('Sub') or the source
-            subhalo information ('Src').
+            subhalo information ('Src'). Defaults to 'Sub'.
 
         Returns
         =======
@@ -149,7 +147,7 @@ class HBTReader:
                 nests.extend(subfile['NestedSubhalos'][...])
         return np.array(nests)
 
-    def LoadSubhalos(self, snap_nr=None, subhalo_selection=None, property_selection=None, show_progress=False):
+    def LoadSubhalos(self, snap_nr=None, subhalo_index=None, property_selection=None, show_progress=False):
         """
         Load subhalos from a single snapshot, with the option to load a subset
         of properties and subhaloes.
@@ -159,7 +157,7 @@ class HBTReader:
         snap_nr: int, opt
             The snapshot number we are interested in. It defaults to the 
             latest snapshot with available catalogues.
-        subhalo_selection: int, opt
+        subhalo_index: int, opt
             If specified, only load the subhalo in the specified entry. Note 
             that this does NOT correspond to the TrackId of the subhalo, as
             the catalogues are not sorted in TrackId. If not provided, all 
@@ -175,7 +173,7 @@ class HBTReader:
         =======
         subhalos: np.ndarray
             Specified properties for the requested subhaloes at the snapshot
-            of interest. The array contains multiple dtypes, which each 
+            of interest. The array contains multiple dtypes, with each 
             corresponding to a different subhalo property. They can be accessed 
             via indexing, e.g. subhalos["PROPERTY_NAME"]
         """
@@ -183,12 +181,12 @@ class HBTReader:
         if snap_nr is None:
             snap_nr = self.SnapshotIdList.max()
 
-        load_single_subhalo = subhalo_selection is not None 
+        load_single_subhalo = subhalo_index is not None 
         if (load_single_subhalo): 
-            if not isinstance(subhalo_selection, (np.integer, int)):
-                raise TypeError("Parameter subhalo_selection is not of the required type (int).")
-            if subhalo_selection >= self.GetNumberOfSubhalos(snap_nr):
-                raise ValueError(f"Selected subhalo entry ({subhalo_selection}) is larger than the number of existing subhaloes ({self.GetNumberOfSubhalos(snap_nr)})")
+            if not isinstance(subhalo_index, (np.integer, int)):
+                raise TypeError("Parameter subhalo_index is not of the required type (int).")
+            if subhalo_index >= self.GetNumberOfSubhalos(snap_nr):
+                raise ValueError(f"Selected subhalo entry ({subhalo_index}) is larger than the number of existing subhaloes ({self.GetNumberOfSubhalos(snap_nr)})")
 
         # Handle defaults, and list inputs
         if property_selection is None:
@@ -216,8 +214,8 @@ class HBTReader:
 
                 # Keep iterating over subfiles until we find our target entry.
                 if load_single_subhalo:
-                    if (offset+nsub > subhalo_selection):
-                        subhalos.append(subfile['Subhalos'][property_selection][subhalo_selection-offset])
+                    if (offset+nsub > subhalo_index):
+                        subhalos.append(subfile['Subhalos'][property_selection][subhalo_index-offset])
                         break
                     else:
                         offset += nsub
@@ -259,7 +257,7 @@ class HBTReader:
         with h5py.File(self.GetFileName(snap_nr, 0), 'r') as file:
             return file["NumberOfSubhalosInAllFiles"][0]
 
-    def LoadParticleIDs(self, snap_nr=None, subhalo_selection=None, filetype='Sub'):
+    def LoadParticleIDs(self, snap_nr=None, subhalo_index=None, filetype='Sub'):
         """
         Load the particles that are bound or are part of the source subhalo
         for the specified subhalo.
@@ -269,7 +267,7 @@ class HBTReader:
         snap_nr : int, opt
             Snapshot number of the catalogue we are interested in. It defaults
             to the last snapshot with currently available catalogues.
-        subhalo_selection: int
+        subhalo_index: int
             The array entry to load from the subhalo catalogues. Note 
             that this does NOT correspond to the TrackId of the subhalo, as
             the catalogues are not sorted in TrackId.
@@ -286,12 +284,12 @@ class HBTReader:
         if snap_nr is None:
             snap_nr = self.SnapshotIdList.max()
 
-        load_single_subhalo = subhalo_selection is not None 
+        load_single_subhalo = subhalo_index is not None 
         if (load_single_subhalo): 
-            if not isinstance(subhalo_selection, (np.integer, int)):
-                raise TypeError("Parameter subhalo_selection is not of the required type (int).")
-            if subhalo_selection >= self.GetNumberOfSubhalos(snap_nr):
-                raise ValueError(f"Selected subhalo entry ({subhalo_selection}) is larger than the number of existing subhaloes ({self.GetNumberOfSubhalos(snap_nr)})")
+            if not isinstance(subhalo_index, (np.integer, int)):
+                raise TypeError("Parameter subhalo_index is not of the required type (int).")
+            if subhalo_index >= self.GetNumberOfSubhalos(snap_nr):
+                raise ValueError(f"Selected subhalo entry ({subhalo_index}) is larger than the number of existing subhaloes ({self.GetNumberOfSubhalos(snap_nr)})")
 
         # Determine number of files for requested output
         with h5py.File(self.GetFileName(snap_nr), 'r') as subfile:
@@ -313,8 +311,8 @@ class HBTReader:
 
                 # Keep iterating over subfiles until we find our target entry.
                 if load_single_subhalo:
-                    if (offset+nsub > subhalo_selection):
-                        subhalo_particles.append(subfile['SubhaloParticles'][subhalo_selection-offset])
+                    if (offset+nsub > subhalo_index):
+                        subhalo_particles.append(subfile['SubhaloParticles'][subhalo_index-offset])
                         break
                     else:
                         offset += nsub
@@ -344,12 +342,12 @@ class HBTReader:
 
         # Find the  index location of the requested TrackId. If we do not find 
         # it, it does not exist at this point.
-        subhalo_location = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection='TrackId') == TrackId)
-        if len(subhalo_location) == 0:
+        subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection='TrackId') == TrackId)
+        if len(subhalo_index) == 0:
             raise LookupError("The requested TrackId does not exist in the snapshot of interest.")
-        subhalo_location = subhalo_location[0]
+        subhalo_index = subhalo_index[0]
 
-        subhalo = self.LoadSubhalos(snap_nr, subhalo_selection=subhalo_location, property_selection=fields)
+        subhalo = self.LoadSubhalos(snap_nr, subhalo_index=subhalo_index, property_selection=fields)
 
         return subhalo
 
