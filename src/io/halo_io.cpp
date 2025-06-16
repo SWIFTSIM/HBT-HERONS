@@ -64,7 +64,7 @@ int main(int argc, char **argv)
   MpiWorker_t world(MPI_COMM_WORLD);
 
   int snapshot_start, snapshot_end;
-  if (0 == world.rank())
+  if (world.rank() == 0)
     ParseHBTParams(argc, argv, HBTConfig, snapshot_start, snapshot_end);
   HBTConfig.BroadCast(world, 0, snapshot_start, snapshot_end);
 
