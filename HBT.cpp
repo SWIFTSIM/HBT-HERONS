@@ -185,11 +185,12 @@ int main(int argc, char **argv)
 
       /* Done. */
       TimeLog.close();
-      global_timer.Reset();
 
       std::cout << "SnapshotIndex " << subsnap.GetSnapshotIndex()  << " done. It took " << TotalTime << " seconds." << std::endl;
       std::cout << std::endl;
     }
+    global_timer.Reset();
+
   }
 
   MPI_Finalize();
