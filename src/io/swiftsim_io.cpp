@@ -1042,7 +1042,7 @@ bool IsSwiftSimGroup(const string &GroupFileFormat)
 
 bool IsBonsaiSimGroup(const string &GroupFileFormat)
 {
-  return GroupFileFormat.substr(0, 7) == "Bonsai";
+  return GroupFileFormat.substr(0, 6) == "Bonsai";
 }
 
 /* Returns the path to the file containing information about which
