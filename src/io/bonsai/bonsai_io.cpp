@@ -106,28 +106,20 @@ void BonsaiSimReader_t::GetSnapshotFileName(std::string &filename)
   filename = SnapshotName;
 }
 
-hid_t BonsaiSimReader_t::OpenFile(int ifile)
+void BonsaiSimReader_t::OpenFile(std::ifstream &file)
 {
+  /* Get the file name */
   string filename;
-
-  H5E_auto_t err_func;
-  char *err_data;
-  H5Eget_auto(H5E_DEFAULT, &err_func, (void **)&err_data);
-  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
-
-  /* Try filename with index first (e.g. snap_0001.0.hdf5) */
   GetSnapshotFileName(filename);
-  hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
-  if (file < 0)
+  /* Open in binary mode */
+  file.open(filename, std::ios::in | std::ios::binary);
+
+  if (file.fail() < 0)
   {
     cout << "Failed to open file: " << filename << "\n";
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
-
-  H5Eset_auto(H5E_DEFAULT, err_func, (void *)err_data);
-
-  return file;
 }
 
 void BonsaiSimReader_t::ReadHeader(int ifile, BonsaiSimHeader_t &header)

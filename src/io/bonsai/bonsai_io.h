@@ -44,7 +44,7 @@ class BonsaiSimReader_t
   vector<HBTInt> np_file;
   vector<HBTInt> offset_file;
   BonsaiSimHeader_t Header;
-  hid_t OpenFile(int ifile);
+  void OpenFile(std::ifstream &file);
   void ReadHeader(int ifile, BonsaiSimHeader_t &header);
   void ReadUnits(HBTReal &MassInMsunh, HBTReal &LengthInMpch, HBTReal &VelInKmS);
   HBTInt CompileFileOffsets(int nfiles);
