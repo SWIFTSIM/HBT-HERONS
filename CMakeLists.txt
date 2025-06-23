@@ -92,7 +92,7 @@ endif(HBT_USE_GSL)
 # List of HBT source files.
 # Headers are found automatically by cmake.
 #
-set(HBT_SRC 
+set(HBT_SRC
   src/config_parser.cpp
   src/geometric_tree.cpp
   src/gravity_tree.cpp
@@ -116,6 +116,7 @@ set(HBT_SRC
   src/io/gadget_group_io.cpp
   src/io/gadget_io.cpp
   src/io/swiftsim_io.cpp
+  src/io/bonsai/bonsai_io.cpp
   src/io/halo_io.cpp
   src/io/snapshot_io.cpp
   src/io/subhalo_io.cpp
@@ -174,7 +175,7 @@ if(STORE_REVISION_INFO)
   add_custom_command(
     OUTPUT ${GIT_VERSION_INFO_FILE}
     COMMAND /bin/sh ${CMAKE_BINARY_DIR}/git_version_info.sh > ${GIT_VERSION_INFO_FILE}
-    DEPENDS HBT.cpp ${HBT_SRC} ${CMAKE_BINARY_DIR}/git_version_info.sh CMakeLists.txt 
+    DEPENDS HBT.cpp ${HBT_SRC} ${CMAKE_BINARY_DIR}/git_version_info.sh CMakeLists.txt
             ${CMAKE_SOURCE_DIR}/.git/HEAD ${CMAKE_SOURCE_DIR}/.git/index
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   )

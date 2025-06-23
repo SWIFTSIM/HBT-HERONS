@@ -883,10 +883,10 @@ void SubhaloSnapshot_t::RegisterNewTracks(MpiWorker_t &world)
   MPI_Scan(&NBirth, &TrackIdOffset, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
   TrackIdOffset = TrackIdOffset + GlobalNumberOfSubs - NBirth;
 
-  /* Sort the new subhaloes according to their local ranking of FoF group ID. Since 
+  /* Sort the new subhaloes according to their local ranking of FoF group ID. Since
    * these are new tracks, the are guaranteed to have a host FOF group. */
   {
-    
+
     struct
     {
         bool operator()(const Subhalo_t &sub_a, const Subhalo_t &sub_b) const { return sub_a.HostHaloId < sub_b.HostHaloId;}

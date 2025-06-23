@@ -16,6 +16,7 @@
 #include "apostle_io.h"
 #include "gadget_group_io.h"
 #include "swiftsim_io.h"
+#include "./bonsai/bonsai_io.h"
 
 void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
 {

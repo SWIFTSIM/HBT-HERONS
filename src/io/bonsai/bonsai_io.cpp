@@ -2,7 +2,6 @@ using namespace std;
 #include <iostream>
 #include <numeric>
 #include <cassert>
-// #include <iomanip>
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -12,17 +11,17 @@ using namespace std;
 #include <string>
 #include <typeinfo>
 #include <stdexcept>
-#include "../config_parser.h"
-#include "../hdf_wrapper.h"
-#include "../mymath.h"
-#include "../snapshot.h"
-#include "swiftsim_io.h"
-#include "exchange_and_merge.h"
+#include "../../config_parser.h"
+#include "../../hdf_wrapper.h"
+#include "../../mymath.h"
+#include "../../snapshot.h"
+#include "bonsai_io.h"
+#include "../exchange_and_merge.h"
 
-void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
+void create_BonsaiSimHeader_MPI_type(MPI_Datatype &dtype)
 {
   /*to create the struct data type for communication*/
-  SwiftSimHeader_t p;
+  BonsaiSimHeader_t p;
 #define NumAttr 18
   MPI_Datatype oldtypes[NumAttr];
   int blockcounts[NumAttr];
@@ -56,8 +55,6 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
   RegisterAttr(NullGroupId, MPI_HBT_INT, 1);
   RegisterAttr(DM_comoving_softening, MPI_DOUBLE, 1);
   RegisterAttr(DM_maximum_physical_softening, MPI_DOUBLE, 1);
-  RegisterAttr(baryon_comoving_softening, MPI_DOUBLE, 1);
-  RegisterAttr(baryon_maximum_physical_softening, MPI_DOUBLE, 1);
 
 #undef RegisterAttr
   assert(i <= NumAttr);
@@ -68,7 +65,7 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
 #undef NumAttr
 }
 
-void SwiftSimReader_t::SetSnapshot(int snapshotId)
+void BonsaiSimReader_t::SetSnapshot(int snapshotId)
 {
   if (HBTConfig.SnapshotNameList.empty())
   {
@@ -82,7 +79,7 @@ void SwiftSimReader_t::SetSnapshot(int snapshotId)
     SnapshotName = HBTConfig.SnapshotNameList[snapshotId];
 }
 
-void SwiftSimReader_t::GetFileName(int ifile, string &filename)
+void BonsaiSimReader_t::GetFileName(int ifile, string &filename)
 {
   stringstream formatter;
   if (ifile < 0)
@@ -92,7 +89,7 @@ void SwiftSimReader_t::GetFileName(int ifile, string &filename)
   filename = formatter.str();
 }
 
-hid_t SwiftSimReader_t::OpenFile(int ifile)
+hid_t BonsaiSimReader_t::OpenFile(int ifile)
 {
   string filename;
 
@@ -124,7 +121,7 @@ hid_t SwiftSimReader_t::OpenFile(int ifile)
   return file;
 }
 
-void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
+void BonsaiSimReader_t::ReadHeader(int ifile, BonsaiSimHeader_t &header)
 {
   double BoxSize_3D[3];
   int NumPartTypes;
@@ -135,7 +132,7 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   ReadAttribute(file, "Header", "BoxSize", H5T_NATIVE_DOUBLE, BoxSize_3D);
   if (BoxSize_3D[0] != BoxSize_3D[1] || BoxSize_3D[0] != BoxSize_3D[2])
   {
-    cout << "Swift simulation box must have equal size in each dimension!\n";
+    cout << "Bonsai simulation box must have equal size in each dimension!\n";
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
   Header.BoxSize = BoxSize_3D[0]; // Can only handle cubic boxes
@@ -145,16 +142,16 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   ReadAttribute(file, "Cosmology", "Omega_lambda", H5T_NATIVE_DOUBLE, &Header.OmegaLambda0);
   ReadAttribute(file, "Cosmology", "h", H5T_NATIVE_DOUBLE, &Header.h);
   for (int i = 0; i < TypeMax; i += 1)
-    Header.mass[i] = 0.0; // Swift particles always have individual masses
+    Header.mass[i] = 0.0; // Bonsai particles always have individual masses
 
-  /* Read physical constants assumed by SWIFT */
+  /* Read physical constants assumed by Bonsai */
   double parsec_cgs;
   ReadAttribute(file, "PhysicalConstants/CGS", "parsec", H5T_NATIVE_DOUBLE, &parsec_cgs);
   double solar_mass_cgs;
   ReadAttribute(file, "PhysicalConstants/CGS", "solar_mass", H5T_NATIVE_DOUBLE, &solar_mass_cgs);
   const double km_cgs = 1.0e5;
 
-  /* Read unit system used by SWIFT */
+  /* Read unit system used by Bonsai */
   double length_cgs;
   ReadAttribute(file, "Units", "Unit length in cgs (U_L)", H5T_NATIVE_DOUBLE, &length_cgs);
   double mass_cgs;
@@ -181,7 +178,7 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
 
      There may be more than TypeMax particle types. Here we ignore
      any extra types (e.g. neutrinos). The number of types we use
-     is the smaller of Swift's NumPartTypes and HBT's TypeMax.
+     is the smaller of Bonsai's NumPartTypes and HBT's TypeMax.
   */
   int NumPart_ThisFile[NumPartTypes]; // same size as attributes in the file
   ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, NumPart_ThisFile);
@@ -197,7 +194,7 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
       Header.npartTotal[i] = 0;
   }
 
-  /* Read softening values used by SWIFT */
+  /* Read softening values used by Bonsai */
   // NOTE: Whenever reading "Parameters", we need to use a string to load into.
 
   // DM softening
@@ -217,7 +214,7 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   H5Fclose(file);
 }
 
-void SwiftSimReader_t::GetParticleCountInFile(hid_t file, int np[])
+void BonsaiSimReader_t::GetParticleCountInFile(hid_t file, int np[])
 {
   int NumPartTypes;
   ReadAttribute(file, "Header", "NumPartTypes", H5T_NATIVE_INT, &NumPartTypes);
@@ -235,7 +232,7 @@ void SwiftSimReader_t::GetParticleCountInFile(hid_t file, int np[])
 #endif
 }
 
-HBTInt SwiftSimReader_t::CompileFileOffsets(int nfiles)
+HBTInt BonsaiSimReader_t::CompileFileOffsets(int nfiles)
 {
   HBTInt offset = 0;
   np_file.reserve(nfiles);
@@ -266,7 +263,7 @@ static void check_id_size(hid_t loc)
   H5Dclose(dset);
 }
 
-void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count)
+void BonsaiSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count)
 {
   hid_t file = OpenFile(ifile);
   vector<int> np_this(TypeMax);
@@ -454,7 +451,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
   H5Fclose(file);
 }
 
-void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count,
+void BonsaiSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count,
                                           bool FlagReadParticleId)
 {
   hid_t file = OpenFile(ifile);
@@ -638,7 +635,7 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile
   H5Fclose(file);
 }
 
-void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles,
+void BonsaiSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles,
                                     Cosmology_t &Cosmology)
 {
 
@@ -659,7 +656,7 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
     CompileFileOffsets(Header.NumberOfFiles);
   }
 
-  MPI_Bcast(&Header, 1, MPI_SwiftSimHeader_t, root, world.Communicator);
+  MPI_Bcast(&Header, 1, MPI_BonsaiSimHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
 
@@ -680,15 +677,24 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   HBTConfig.LengthInMpch = Header.LengthInMpch;
   HBTConfig.VelInKmS = Header.VelInKmS;
 
-  /* Update the gravitational constant and H based on the units loaded from
-   * swift */
-  PhysicalConst::G =
-    43.0071 * (HBTConfig.MassInMsunh / 1e10) / HBTConfig.VelInKmS / HBTConfig.VelInKmS / HBTConfig.LengthInMpch;
-  PhysicalConst::H0 = 100. * (1. / HBTConfig.VelInKmS) / (1. / HBTConfig.LengthInMpch);
+  /* Virial units and cosmological simulations  */
+  PhysicalConst::G = 1;
+  PhysicalConst::H0 = 0;
+
+  // PhysicalConst::G =
+    // 43.0071 * (HBTConfig.MassInMsunh / 1e10) / HBTConfig.VelInKmS / HBTConfig.VelInKmS / HBTConfig.LengthInMpch;
+  // PhysicalConst::H0 = 100. * (1. / HBTConfig.VelInKmS) / (1. / HBTConfig.LengthInMpch);
 
   /* Set the cosmological parameters */
   Cosmology.Set_Hz(Header.Hz);
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
+
+  /* FOR BOOMPJE: make the gravitational constant equal 1, as the units
+   * are virial */
+  if(HBTConfig.SnapshotFormat == "Bonsai")
+  {
+    PhysicalConst::G = 1;
+  }
 
   /* This will be used to determine which particles are hostless when
    * constraining subhaloes to their assigned hosts. */
@@ -819,7 +825,7 @@ inline bool CompParticleHost(const Particle_t &a, const Particle_t &b)
   return a.HostId < b.HostId;
 }
 
-void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo_t> &Halos)
+void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo_t> &Halos)
 { // read in particle properties at the same time, to avoid particle look-up at later stage.
   SetSnapshot(snapshotId);
 
@@ -835,7 +841,7 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
     ReadHeader(0, Header);
     CompileFileOffsets(Header.NumberOfFiles);
   }
-  MPI_Bcast(&Header, 1, MPI_SwiftSimHeader_t, root, world.Communicator);
+  MPI_Bcast(&Header, 1, MPI_BonsaiSimHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
 
@@ -1028,14 +1034,14 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
   HBTConfig.GroupLoadedFullParticle = true;
 }
 
-bool IsSwiftSimGroup(const string &GroupFileFormat)
+bool IsBonsaiSimGroup(const string &GroupFileFormat)
 {
-  return GroupFileFormat.substr(0, 8) == "swiftsim";
+  return GroupFileFormat.substr(0, 6) == "Bonsai";
 }
 
 /* Returns the path to the file containing information about which
  * particles have split between the current and previous output. */
-void SwiftSimReader_t::GetParticleSplitFileName(int snapshotId, string &filename)
+void BonsaiSimReader_t::GetParticleSplitFileName(int snapshotId, string &filename)
 {
   stringstream formatter;
   formatter << HBTConfig.SubhaloPath << "/ParticleSplits/particle_splits_" << setw(4) << setfill('0') << snapshotId
@@ -1044,7 +1050,7 @@ void SwiftSimReader_t::GetParticleSplitFileName(int snapshotId, string &filename
 }
 
 /* Opens the file containing the split particle information */
-hid_t SwiftSimReader_t::OpenParticleSplitFile(int snapshotId)
+hid_t BonsaiSimReader_t::OpenParticleSplitFile(int snapshotId)
 {
   H5E_auto_t err_func;
   char *err_data;
@@ -1069,7 +1075,7 @@ hid_t SwiftSimReader_t::OpenParticleSplitFile(int snapshotId)
 
 /* This function loads the keys and values of the particle IDs that have been involved
  * in splits. */
-void SwiftSimReader_t::ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &ParticleSplitMap, int snapshotId)
+void BonsaiSimReader_t::ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &ParticleSplitMap, int snapshotId)
 {
   /* Open the file. */
   hid_t file = OpenParticleSplitFile(snapshotId);
