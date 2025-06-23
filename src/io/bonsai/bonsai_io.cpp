@@ -1033,5 +1033,5 @@ void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Ha
 
 bool IsBonsaiSimGroup(const string &GroupFileFormat)
 {
-  return GroupFileFormat.substr(0, 6) == "Bonsai";
+  return GroupFileFormat.substr(0, 6) == "bonsai";
 }

@@ -758,7 +758,7 @@ void SubhaloSnapshot_t::DecideCentrals(const HaloSnapshot_t &halo_snap)
     {
       /* In Bonsai, we force the first TrackID to always be the central. In the
        * setup we use, it will always correspond to the primary. */
-      if(HBTConfig.SnapshotFormat == "Bonsai")
+      if(HBTConfig.SnapshotFormat == "bonsai")
       {
         bool needs_swap = Subhalos[List[0]].TrackId > Subhalos[List[1]].TrackId;
         if(needs_swap)
