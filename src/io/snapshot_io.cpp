@@ -16,6 +16,7 @@ using namespace std;
 #include "apostle_io.h"
 #include "gadget_io.h"
 #include "swiftsim_io.h"
+#include "./bonsai/bonsai_io.h"
 
 void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_particle_hash)
 {
@@ -44,7 +45,7 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_
   }
   else if (HBTConfig.SnapshotFormat == "bonsai")
   {
-    SwiftSimReader_t().LoadSnapshot(world, SnapshotId, Particles, Cosmology);
+    BonsaiSimReader_t().LoadSnapshot(world, SnapshotId, Particles, Cosmology);
   }
   else if (HBTConfig.SnapshotFormat == "mysnapshot")
   { /*insert your snapshot reader here, and include relevant header in the header if necessary
