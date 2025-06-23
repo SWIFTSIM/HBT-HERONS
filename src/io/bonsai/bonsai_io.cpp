@@ -11,6 +11,7 @@ using namespace std;
 #include <string>
 #include <typeinfo>
 #include <stdexcept>
+#include <glob.h>
 #include "../../config_parser.h"
 #include "../../hdf_wrapper.h"
 #include "../../mymath.h"
@@ -65,28 +66,43 @@ void create_BonsaiSimHeader_MPI_type(MPI_Datatype &dtype)
 #undef NumAttr
 }
 
-void BonsaiSimReader_t::SetSnapshot(int snapshotId)
+/* Uses glob to return the file names that match the string pattern */
+std::vector<std::string> GlobVector(const std::string &pattern)
 {
-  if (HBTConfig.SnapshotNameList.empty())
+  glob_t GlobResult;
+  glob(pattern.c_str(), GLOB_TILDE, NULL, &GlobResult);
+
+  std::vector<std::string> files;
+  for(int i = 0; i<GlobResult.gl_pathc; i++)
   {
-    stringstream formatter;
-    if (HBTConfig.SnapshotDirBase.length() > 0)
-      formatter << HBTConfig.SnapshotDirBase << "_" << setw(4) << setfill('0') << snapshotId << "/";
-    formatter << HBTConfig.SnapshotFileBase << "_" << setw(4) << setfill('0') << snapshotId;
-    SnapshotName = formatter.str();
+    files.push_back(string(GlobResult.gl_pathv[i]));
   }
-  else
-    SnapshotName = HBTConfig.SnapshotNameList[snapshotId];
+  globfree(&GlobResult);
+
+  return files;
 }
 
-void BonsaiSimReader_t::GetFileName(int ifile, string &filename)
+void BonsaiSimReader_t::SetSnapshotFileName(int snapshotId)
 {
-  stringstream formatter;
-  if (ifile < 0)
-    formatter << HBTConfig.SnapshotPath << "/" << SnapshotName << ".hdf5";
+  if(HBTConfig.SnapshotNameList.empty())
+  {
+    /* Since BONSAI names files according to output time, we will use glob to
+     * get their path. */
+    stringstream formatter;
+    formatter << HBTConfig.SnapshotPath << "/" << HBTConfig.SnapshotFileBase << "_*";
+
+    std::vector<std::string> SnapshotNameList = GlobVector(formatter.str());
+    SnapshotName = SnapshotNameList[snapshotId];
+  }
   else
-    formatter << HBTConfig.SnapshotPath << "/" << SnapshotName << "." << ifile << ".hdf5";
-  filename = formatter.str();
+  {
+    SnapshotName = HBTConfig.SnapshotNameList[snapshotId];
+  }
+}
+
+void BonsaiSimReader_t::GetSnapshotFileName(std::string &filename)
+{
+  filename = SnapshotName;
 }
 
 hid_t BonsaiSimReader_t::OpenFile(int ifile)
@@ -99,16 +115,8 @@ hid_t BonsaiSimReader_t::OpenFile(int ifile)
   H5Eset_auto(H5E_DEFAULT, NULL, NULL);
 
   /* Try filename with index first (e.g. snap_0001.0.hdf5) */
-  GetFileName(ifile, filename);
+  GetSnapshotFileName(filename);
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-
-  /* If that failed, try without an index (e.g. snap_0001.hdf5),
-     but only if we're reading file 0 */
-  if (file < 0 && ifile == 0)
-  {
-    GetFileName(-1, filename);
-    file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-  }
 
   if (file < 0)
   {
@@ -647,7 +655,7 @@ void BonsaiSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<
   if (nr_reading < 1)
     nr_reading = 1; // Always at least one per node
 
-  SetSnapshot(snapshotId);
+  SetSnapshotFileName(snapshotId);
 
   const int root = 0;
   if (world.rank() == root)
@@ -677,24 +685,13 @@ void BonsaiSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<
   HBTConfig.LengthInMpch = Header.LengthInMpch;
   HBTConfig.VelInKmS = Header.VelInKmS;
 
-  /* Virial units and cosmological simulations  */
+  /* Only dealing with virial units and non-cosmological simulations  */
   PhysicalConst::G = 1;
   PhysicalConst::H0 = 0;
-
-  // PhysicalConst::G =
-    // 43.0071 * (HBTConfig.MassInMsunh / 1e10) / HBTConfig.VelInKmS / HBTConfig.VelInKmS / HBTConfig.LengthInMpch;
-  // PhysicalConst::H0 = 100. * (1. / HBTConfig.VelInKmS) / (1. / HBTConfig.LengthInMpch);
 
   /* Set the cosmological parameters */
   Cosmology.Set_Hz(Header.Hz);
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
-
-  /* FOR BOOMPJE: make the gravitational constant equal 1, as the units
-   * are virial */
-  if(HBTConfig.SnapshotFormat == "Bonsai")
-  {
-    PhysicalConst::G = 1;
-  }
 
   /* This will be used to determine which particles are hostless when
    * constraining subhaloes to their assigned hosts. */
@@ -827,7 +824,7 @@ inline bool CompParticleHost(const Particle_t &a, const Particle_t &b)
 
 void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo_t> &Halos)
 { // read in particle properties at the same time, to avoid particle look-up at later stage.
-  SetSnapshot(snapshotId);
+  SetSnapshotFileName(snapshotId);
 
   // Decide how many ranks per node read simultaneously
   int nr_nodes = (world.size() / world.MaxNodeSize);
@@ -868,7 +865,7 @@ void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Ha
   vector<Particle_t> ParticleHosts;
   ParticleHosts.resize(np_local);
 
-  bool FlagReadId = true; //! HBTConfig.GroupLoadedIndex;
+  bool FlagReadId = true;
 
   // Allow a limited number of ranks per node to read simultaneously
   int reads_done = 0;
@@ -1037,71 +1034,4 @@ void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Ha
 bool IsBonsaiSimGroup(const string &GroupFileFormat)
 {
   return GroupFileFormat.substr(0, 6) == "Bonsai";
-}
-
-/* Returns the path to the file containing information about which
- * particles have split between the current and previous output. */
-void BonsaiSimReader_t::GetParticleSplitFileName(int snapshotId, string &filename)
-{
-  stringstream formatter;
-  formatter << HBTConfig.SubhaloPath << "/ParticleSplits/particle_splits_" << setw(4) << setfill('0') << snapshotId
-            << ".hdf5";
-  filename = formatter.str();
-}
-
-/* Opens the file containing the split particle information */
-hid_t BonsaiSimReader_t::OpenParticleSplitFile(int snapshotId)
-{
-  H5E_auto_t err_func;
-  char *err_data;
-  H5Eget_auto(H5E_DEFAULT, &err_func, (void **)&err_data);
-  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
-
-  /* Open file with split information, which is contained in a single HDF5 file. */
-  string filename;
-  GetParticleSplitFileName(snapshotId, filename);
-  hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-
-  if (file < 0)
-  {
-    cout << "Failed to open file (see toolbox/swiftsim on how to generate): " << filename << "\n";
-    MPI_Abort(MPI_COMM_WORLD, 1);
-  }
-
-  H5Eset_auto(H5E_DEFAULT, err_func, (void *)err_data);
-
-  return file;
-}
-
-/* This function loads the keys and values of the particle IDs that have been involved
- * in splits. */
-void BonsaiSimReader_t::ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &ParticleSplitMap, int snapshotId)
-{
-  /* Open the file. */
-  hid_t file = OpenParticleSplitFile(snapshotId);
-
-  /* Get the number of splits that occured in this snapshot. Exit if none have occured */
-  HBTInt NumberSplits = 0;
-  ReadAttribute(file, "SplitInformation", "NumberSplits", H5T_HBTInt, &NumberSplits);
-  if (NumberSplits == 0)
-    return;
-
-  /* Open the HDF5 group */
-  stringstream grpname;
-  grpname << "SplitInformation";
-  hid_t split_data = H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
-
-  /* Load keys and values */
-  vector<HBTInt> SplitKeys(NumberSplits);
-  ReadDataset(split_data, "Keys", H5T_HBTInt, SplitKeys.data());
-
-  vector<HBTInt> SplitValues(NumberSplits);
-  ReadDataset(split_data, "Values", H5T_HBTInt, SplitValues.data());
-
-  /* Populate the map */
-  for (std::size_t i = 0; i < NumberSplits; ++i)
-    ParticleSplitMap[SplitKeys[i]] = SplitValues[i];
-
-  /* Close the file */
-  H5Fclose(file);
 }

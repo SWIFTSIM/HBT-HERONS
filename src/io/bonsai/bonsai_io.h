@@ -3,7 +3,7 @@
  * To specify a list of snapshot, list the snapshot directories (one per line) in snapshotlist.txt and place it under
  * your subhalo output directory.
  *
- * To use this IO, in the config file, set SnapshotFormat to Bonsaisim,  and set GroupFileFormat to Bonsaisim or
+ * To use this IO, in the config file, set SnapshotFormat to Bonsaisim, and set GroupFileFormat to Bonsaisim or
  * Bonsaisim_particle_index.
  *
  * The groups loaded are already filled with particle properties, and the halos are distributed to processors according
@@ -51,13 +51,9 @@ class BonsaiSimReader_t
   void ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count);
   void ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count,
                           bool FlagReadParticleId);
-  void GetFileName(int ifile, string &filename);
-  void SetSnapshot(int snapshotId);
+  void GetSnapshotFileName(std::string &filename);
+  void SetSnapshotFileName(int snapshotId);
   void GetParticleCountInFile(hid_t file, int np[]);
-
-  /* To load information about particle splits */
-  void GetParticleSplitFileName(int snapshotId, string &filename);
-  hid_t OpenParticleSplitFile(int snapshotId);
 
   MPI_Datatype MPI_BonsaiSimHeader_t;
 
@@ -72,7 +68,6 @@ public:
   }
   void LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles, Cosmology_t &Cosmology);
   void LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo_t> &Halos);
-  void ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &ParticleSplitMap, int snapshotId);
 };
 
 extern bool IsBonsaiSimGroup(const string &GroupFileFormat);
