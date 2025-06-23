@@ -92,6 +92,7 @@ void BonsaiSimReader_t::SetSnapshotFileName(int snapshotId)
     formatter << HBTConfig.SnapshotPath << "/" << HBTConfig.SnapshotFileBase << "_*";
 
     std::vector<std::string> SnapshotNameList = GlobVector(formatter.str());
+    std::sort(SnapshotNameList.begin(), SnapshotNameList.end());
     SnapshotName = SnapshotNameList[snapshotId];
   }
   else
