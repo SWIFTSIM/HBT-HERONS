@@ -156,190 +156,45 @@ static void check_id_size(hid_t loc)
 
 void BonsaiSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count)
 {
-  hid_t file = OpenFile(ifile);
-  vector<int> np_this(TypeMax);
-  vector<HBTInt> offset_this(TypeMax);
-  GetParticleCountInFile(file, np_this.data());
-  CompileOffsets(np_this, offset_this);
 
-  HBTReal boxsize = Header.BoxSize;
-  auto ParticlesToRead = ParticlesInFile;
-  for (int itype = 0; itype < TypeMax; itype++)
+  /* We will skip the header and then directly to the particles we are supposed
+   * to read. */
+  std::streamoff HeaderSize = sizeof(TipsyHeader_t);
+  std::streamoff ParticleSize = sizeof(TipsyDarkMatterParticle_t);
+  std::streamoff FileOffset = HeaderSize + ParticleSize * file_start;
+
+  /* Need to pass by reference to handle binary inputs */
+  std::ifstream file;
+  OpenFile(file);
+  file.seekg(FileOffset, std::ios::beg);
+  if (!file)
   {
-
-    // Find the range of offsets in the file for particles of this type
-    HBTInt type_first_offset = offset_this[itype];
-    HBTInt type_last_offset = type_first_offset + np_this[itype] - 1;
-
-    // Find the range of offsets in the file we actually want to read
-    HBTInt read_first_offset = file_start;
-    HBTInt read_last_offset = file_start + file_count - 1;
-
-    // The overlap of these two ranges contains the particles we will read now.
-    HBTInt i1 = type_first_offset;
-    if (read_first_offset > i1)
-      i1 = read_first_offset;
-    HBTInt i2 = type_last_offset;
-    if (read_last_offset < i2)
-      i2 = read_last_offset;
-
-    // Compute range of particles of this type to read from this file
-    HBTInt read_offset = i1 - offset_this[itype];
-    HBTInt read_count = i2 - i1 + 1;
-    if (read_count <= 0)
-      continue;
-    assert(read_offset >= 0);
-    assert(read_offset + read_count <= np_this[itype]);
-
-    // Open the HDF5 group for this type
-    stringstream grpname;
-    grpname << "PartType" << itype;
-    hid_t particle_data = H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
-    check_id_size(particle_data);
-
-    const hsize_t chunksize = 10 * 1024 * 1024;
-
-    // Positions
-    {
-      // Check that positions are comoving
-      HBTReal aexp;
-      ReadAttribute(particle_data, "Coordinates", "a-scale exponent", H5T_HBTReal, &aexp);
-      if (aexp != 1.0)
-      {
-        cout << "Can't handle Coordinates with a-scale exponent != 1\n";
-        MPI_Abort(MPI_COMM_WORLD, 1);
-      }
-
-      // Read data in chunks to minimize memory overhead
-      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
-      {
-        // Read the next chunk
-        hsize_t count = read_count - offset; // number left to read
-        if (count > chunksize)
-          count = chunksize;
-        vector<HBTxyz> x(count);
-        ReadPartialDataset(particle_data, "Coordinates", H5T_HBTReal, x.data(), offset + read_offset, count);
-        // Box wrap if necessary
-        if (HBTConfig.PeriodicBoundaryOn)
-        {
-          for (hsize_t i = 0; i < count; i++)
-            for (int j = 0; j < 3; j++)
-              x[i][j] = position_modulus(x[i][j], boxsize);
-        }
-        // Store the particle positions
-        for (hsize_t i = 0; i < count; i += 1)
-          for (int j = 0; j < 3; j += 1)
-            ParticlesToRead[offset + i].ComovingPosition[j] = x[i][j];
-      }
-    }
-
-    // Velocities
-    {
-      HBTReal aexp;
-      ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
-
-      // Read data in chunks to minimize memory overhead
-      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
-      {
-        // Read the next chunk
-        hsize_t count = read_count - offset;
-        if (count > chunksize)
-          count = chunksize;
-        vector<HBTxyz> v(count);
-        ReadPartialDataset(particle_data, "Velocities", H5T_HBTReal, v.data(), offset + read_offset, count);
-        // Convert units and store the particle velocities
-        for (hsize_t i = 0; i < count; i += 1)
-          for (int j = 0; j < 3; j += 1)
-            ParticlesToRead[offset + i].PhysicalVelocity[j] = v[i][j] * pow(Header.ScaleFactor, aexp);
-      }
-    }
-
-    // Ids
-    {
-      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
-      {
-        hsize_t count = read_count - offset;
-        if (count > chunksize)
-          count = chunksize;
-        vector<HBTInt> id(count);
-        ReadPartialDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data(), offset + read_offset, count);
-        for (hsize_t i = 0; i < count; i += 1)
-          ParticlesToRead[offset + i].Id = id[i];
-      }
-    }
-
-    // Masses
-    {
-      HBTReal aexp;
-      std::string name;
-      if (itype == 5)
-        name = "DynamicalMasses";
-      else
-        name = "Masses";
-      ReadAttribute(particle_data, name.c_str(), "a-scale exponent", H5T_HBTReal, &aexp);
-      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
-      {
-        hsize_t count = read_count - offset;
-        if (count > chunksize)
-          count = chunksize;
-        vector<HBTReal> m(count);
-        ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset + read_offset, count);
-        for (hsize_t i = 0; i < count; i += 1)
-          ParticlesToRead[offset + i].Mass = m[i] * pow(Header.ScaleFactor, aexp);
-      }
-    }
-
-#ifndef DM_ONLY
-    // internal energy
-#ifdef HAS_THERMAL_ENERGY
-    if (itype == 0)
-    {
-      HBTReal aexp;
-      ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
-      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
-      {
-        hsize_t count = read_count - offset;
-        if (count > chunksize)
-          count = chunksize;
-        vector<HBTReal> u(count);
-        ReadPartialDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data(), offset + read_offset, count);
-        for (hsize_t i = 0; i < count; i += 1)
-          ParticlesToRead[offset + i].InternalEnergy = u[i] * pow(Header.ScaleFactor, aexp);
-      }
-    }
-    else
-    {
-      // Zero out internal energy for non-gas particles
-      for (hsize_t offset = 0; offset < read_count; offset += 1)
-        ParticlesToRead[offset].InternalEnergy = 0.0;
-    }
-#endif
-    { // type
-      ParticleType_t t = static_cast<ParticleType_t>(itype);
-      for (hsize_t i = 0; i < read_count; i++)
-        ParticlesToRead[i].Type = t;
-    }
-#endif
-
-    // Hostid
-    {
-      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
-      {
-        hsize_t count = read_count - offset;
-        if (count > chunksize)
-          count = chunksize;
-        vector<HBTInt> id(count);
-        ReadPartialDataset(particle_data, "FOFGroupIDs", H5T_HBTInt, id.data(), offset + read_offset, count);
-        for (hsize_t i = 0; i < count; i += 1)
-          ParticlesToRead[offset + i].HostId = id[i];
-      }
-    }
-
-    // Advance to next particle type
-    H5Gclose(particle_data);
-    ParticlesToRead += read_count;
+    stringstream error_message;
+    error_message << "ReadSnapshot: Binary offset failed." << endl;
+    throw range_error(error_message.str());
   }
-  H5Fclose(file);
+
+  /* Read particles into vector */
+  std::vector<TipsyDarkMatterParticle_t> TipsyParticles(file_count);
+  file.read(reinterpret_cast<char*>(TipsyParticles.data()), file_count * sizeof(TipsyDarkMatterParticle_t));
+
+  /* Now populate the actual ParticlesInFile vector. */
+  auto ParticlesToRead = ParticlesInFile;
+  for (hsize_t i = 0; i < file_count; i++)
+  {
+    /* IDs */
+    ParticlesToRead[i].Id = TipsyParticles[i].GetID();
+
+    /* Masses */
+    ParticlesToRead[i].Mass = TipsyParticles[i].Mass;
+
+    /* Positions and velocities */
+    for (int j = 0; j < 3; j += 1)
+    {
+      ParticlesToRead[i].ComovingPosition[j] = TipsyParticles[i].Position[j];
+      ParticlesToRead[i].PhysicalVelocity[j] = TipsyParticles[i].Velocity[j];
+    }
+  }
 }
 
 void BonsaiSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count,

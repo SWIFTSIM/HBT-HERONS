@@ -26,6 +26,19 @@ struct TipsyHeader_t {
   int Version;
 };
 
+struct TipsyDarkMatterParticle_t {
+  float Mass;
+  float Position[3];
+  float Velocity[3];
+
+  /* If I do long long _ID instead of int _ID[2], reading the binary file
+   * results in bogus data. */
+  int _ID[2];
+  uint64_t GetID() const {
+      return *reinterpret_cast<const uint64_t*>(_ID);
+  }
+};
+
 void create_TipsyHeader_MPI_type(MPI_Datatype &dtype);
 
 class BonsaiSimReader_t
