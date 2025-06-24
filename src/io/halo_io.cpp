@@ -18,7 +18,7 @@
 #include "swiftsim_io.h"
 #include "./bonsai/bonsai_io.h"
 
-void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
+void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const vector<Particle_t> &SnapshotParticles)
 {
   SetSnapshotIndex(snapshot_index);
 
@@ -31,7 +31,13 @@ void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
   else if (IsSwiftSimGroup(GroupFileFormat))
     SwiftSimReader_t().LoadGroups(world, SnapshotId, Halos);
   else if (IsBonsaiSimGroup(GroupFileFormat))
-    BonsaiSimReader_t().LoadGroups(world, SnapshotId, Halos);
+  {
+    /* We can create a copy of the particles since the FoF and particle
+     * information are aligned and read in the same way. */
+    BonsaiSimReader_t GroupReader;
+    GroupReader.ParticleHosts = SnapshotParticles;
+    GroupReader.LoadGroups(world, SnapshotId, Halos);
+  }
   else if (GroupFileFormat == "my_group_format")
   { /*extend your own group reader here, input SnapshotId and output filled Halo list, e.g.:
 

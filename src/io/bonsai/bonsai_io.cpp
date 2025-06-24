@@ -100,6 +100,23 @@ void BonsaiSimReader_t::GetSnapshotFileName(std::string &filename)
   filename = SnapshotName;
 }
 
+void BonsaiSimReader_t::SetGroupFileName(int snapshotId)
+{
+  /* Since BONSAI names files according to output time, we will use glob to
+   * get their path. */
+  stringstream formatter;
+  formatter << HBTConfig.SnapshotPath << "/group_" << HBTConfig.SnapshotFileBase << "_*";
+
+  std::vector<std::string> GroupNameList = GlobVector(formatter.str());
+  std::sort(GroupNameList.begin(), GroupNameList.end());
+  GroupFileName = GroupNameList[snapshotId];
+}
+
+void BonsaiSimReader_t::GetGroupFileName(std::string &filename)
+{
+  filename = GroupFileName;
+}
+
 void BonsaiSimReader_t::OpenFile(std::ifstream &file)
 {
   /* Get the file name */
@@ -116,11 +133,38 @@ void BonsaiSimReader_t::OpenFile(std::ifstream &file)
   }
 }
 
+/* Opens the binary file containing the FoF group IDs of particles */
+void BonsaiSimReader_t::OpenGroupFile(std::ifstream &file)
+{
+  /* Get the file name */
+  string filename;
+  GetGroupFileName(filename);
+
+  /* Open in binary mode */
+  file.open(filename, std::ios::in | std::ios::binary);
+
+  if (file.fail() < 0)
+  {
+    cout << "Failed to open file: " << filename << "\n";
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
+}
+
 void BonsaiSimReader_t::ReadHeader(TipsyHeader_t &Header)
 {
   /* Need to pass by reference to handle binary inputs */
   std::ifstream file;
   OpenFile(file);
+
+  /* Read tipsy header */
+  file.read((char*)&Header, sizeof(Header));
+}
+
+void BonsaiSimReader_t::ReadGroupHeader(TipsyHeader_t &Header)
+{
+  /* Need to pass by reference to handle binary inputs */
+  std::ifstream file;
+  OpenGroupFile(file);
 
   /* Read tipsy header */
   file.read((char*)&Header, sizeof(Header));
@@ -187,188 +231,33 @@ void BonsaiSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBT
   }
 }
 
-void BonsaiSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count,
-                                          bool FlagReadParticleId)
+void BonsaiSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count)
 {
-  hid_t file = OpenFile(ifile);
-  vector<int> np_this(TypeMax);
-  vector<HBTInt> offset_this(TypeMax);
-  GetParticleCountInFile(file, np_this.data());
-  CompileOffsets(np_this, offset_this);
+  /* We will skip the header and then directly to the particles we are supposed
+   * to read. */
+  std::streamoff HeaderSize = sizeof(TipsyHeader_t);
+  std::streamoff ParticleSize = sizeof(BonsaiGroupParticle_t);
+  std::streamoff FileOffset = HeaderSize + ParticleSize * file_start;
 
-  HBTReal boxsize = Header.BoxSize;
-  auto ParticlesToRead = ParticlesInFile;
-  for (int itype = 0; itype < TypeMax; itype++)
+  /* Need to pass by reference to handle binary inputs */
+  std::ifstream file;
+  OpenGroupFile(file);
+  file.seekg(FileOffset, std::ios::beg);
+  if (!file)
   {
-    // Find the range of offsets in the file for particles of this type
-    HBTInt type_first_offset = offset_this[itype];
-    HBTInt type_last_offset = type_first_offset + np_this[itype] - 1;
-
-    // Find the range of offsets in the file we actually want to read
-    HBTInt read_first_offset = file_start;
-    HBTInt read_last_offset = file_start + file_count - 1;
-
-    // The overlap of these two ranges contains the particles we will read now.
-    HBTInt i1 = type_first_offset;
-    if (read_first_offset > i1)
-      i1 = read_first_offset;
-    HBTInt i2 = type_last_offset;
-    if (read_last_offset < i2)
-      i2 = read_last_offset;
-
-    // Compute range of particles of this type to read from this file
-    HBTInt read_offset = i1 - offset_this[itype];
-    HBTInt read_count = i2 - i1 + 1;
-    if (read_count <= 0)
-      continue;
-    assert(read_offset >= 0);
-    assert(read_offset + read_count <= np_this[itype]);
-
-    // Open the HDF5 group for this particle type
-    stringstream grpname;
-    grpname << "PartType" << itype;
-    hid_t particle_data = H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
-
-    const hsize_t chunksize = 10 * 1024 * 1024;
-
-    if (FlagReadParticleId)
-    {
-
-      // Positions
-      {
-        // Check that positions are comoving
-        HBTReal aexp;
-        ReadAttribute(particle_data, "Coordinates", "a-scale exponent", H5T_HBTReal, &aexp);
-        if (aexp != 1.0)
-        {
-          cout << "Can't handle Coordinates with a-scale exponent != 1\n";
-          MPI_Abort(MPI_COMM_WORLD, 1);
-        }
-
-        // Read data in chunks to minimize memory overhead
-        for (hsize_t offset = 0; offset < read_count; offset += chunksize)
-        {
-          // Read the next chunk
-          hsize_t count = read_count - offset;
-          if (count > chunksize)
-            count = chunksize;
-          vector<HBTxyz> x(count);
-          ReadPartialDataset(particle_data, "Coordinates", H5T_HBTReal, x.data(), offset + read_offset, count);
-          // Box wrap if necessary
-          if (HBTConfig.PeriodicBoundaryOn)
-          {
-            for (hsize_t i = 0; i < count; i++)
-              for (int j = 0; j < 3; j++)
-                x[i][j] = position_modulus(x[i][j], boxsize);
-          }
-          // Store the particle positions
-          for (hsize_t i = 0; i < count; i += 1)
-            for (int j = 0; j < 3; j += 1)
-              ParticlesToRead[offset + i].ComovingPosition[j] = x[i][j];
-        }
-      }
-
-      // Velocities
-      {
-        HBTReal aexp;
-        ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
-
-        // Read data in chunks to minimize memory overhead
-        for (hsize_t offset = 0; offset < read_count; offset += chunksize)
-        {
-          // Read the next chunk
-          hsize_t count = read_count - offset;
-          if (count > chunksize)
-            count = chunksize;
-          vector<HBTxyz> v(count);
-          ReadPartialDataset(particle_data, "Velocities", H5T_HBTReal, v.data(), offset + read_offset, count);
-          // Convert units and store the particle velocities
-          for (hsize_t i = 0; i < count; i += 1)
-            for (int j = 0; j < 3; j += 1)
-              ParticlesToRead[offset + i].PhysicalVelocity[j] = v[i][j] * pow(Header.ScaleFactor, aexp);
-        }
-      }
-
-      // Ids
-      {
-        for (hsize_t offset = 0; offset < read_count; offset += chunksize)
-        {
-          hsize_t count = read_count - offset;
-          if (count > chunksize)
-            count = chunksize;
-          vector<HBTInt> id(count);
-          ReadPartialDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data(), offset + read_offset, count);
-          for (hsize_t i = 0; i < count; i += 1)
-            ParticlesToRead[offset + i].Id = id[i];
-        }
-      }
-
-      // Masses
-      {
-        HBTReal aexp;
-        std::string name;
-        if (itype == 5)
-          name = "DynamicalMasses";
-        else
-          name = "Masses";
-        ReadAttribute(particle_data, name.c_str(), "a-scale exponent", H5T_HBTReal, &aexp);
-        for (hsize_t offset = 0; offset < read_count; offset += chunksize)
-        {
-          hsize_t count = read_count - offset;
-          if (count > chunksize)
-            count = chunksize;
-          vector<HBTReal> m(count);
-          ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset + read_offset, count);
-          for (hsize_t i = 0; i < count; i += 1)
-            ParticlesToRead[offset + i].Mass = m[i] * pow(Header.ScaleFactor, aexp);
-        }
-      }
-
-#ifndef DM_ONLY
-      // internal energy
-#ifdef HAS_THERMAL_ENERGY
-      if (itype == 0)
-      {
-        HBTReal aexp;
-        ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
-        for (hsize_t offset = 0; offset < read_count; offset += chunksize)
-        {
-          hsize_t count = read_count - offset;
-          if (count > chunksize)
-            count = chunksize;
-          vector<HBTReal> u(count);
-          ReadPartialDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data(), offset + read_offset, count);
-          for (hsize_t i = 0; i < count; i += 1)
-            ParticlesToRead[offset + i].InternalEnergy = u[i] * pow(Header.ScaleFactor, aexp);
-        }
-      }
-#endif
-      { // type
-        ParticleType_t t = static_cast<ParticleType_t>(itype);
-        for (int i = 0; i < read_count; i++)
-          ParticlesToRead[i].Type = t;
-      }
-#endif
-    }
-
-    // Hostid
-    {
-      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
-      {
-        hsize_t count = read_count - offset;
-        if (count > chunksize)
-          count = chunksize;
-        vector<HBTInt> id(count);
-        ReadPartialDataset(particle_data, "FOFGroupIDs", H5T_HBTInt, id.data(), offset + read_offset, count);
-        for (hsize_t i = 0; i < count; i += 1)
-          ParticlesToRead[offset + i].HostId = id[i];
-      }
-    }
-    // Advance to next particle type
-    ParticlesToRead += read_count;
-    H5Gclose(particle_data);
+    stringstream error_message;
+    error_message << "ReadGroupParticles: Binary offset failed." << endl;
+    throw range_error(error_message.str());
   }
-  H5Fclose(file);
+
+  /* Read particles into vector */
+  std::vector<BonsaiGroupParticle_t> BonsaiGroupParticles(file_count);
+  file.read(reinterpret_cast<char*>(BonsaiGroupParticles.data()), file_count * sizeof(BonsaiGroupParticle_t));
+
+  /* We just need to update HostId, since all other properties were already read. */
+  auto ParticlesToRead = ParticlesInFile;
+  for (hsize_t i = 0; i < file_count; i++)
+    ParticlesToRead[i].HostId = BonsaiGroupParticles[i].HostHaloID;
 }
 
 void BonsaiSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles,
@@ -440,7 +329,7 @@ void BonsaiSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<
 
       // Loop over all files
       HBTInt particle_offset = 0;
-      for (int file_nr = 0; file_nr < Header.NumberOfFiles; file_nr += 1)
+      for (int file_nr = 0; file_nr < 1; file_nr += 1)
       {
 
         // Determine global offset of first particle to read from this file:
@@ -534,8 +423,9 @@ inline bool CompParticleHost(const Particle_t &a, const Particle_t &b)
 }
 
 void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo_t> &Halos)
-{ // read in particle properties at the same time, to avoid particle look-up at later stage.
-  SetSnapshotFileName(snapshotId);
+{
+
+  MPI_Barrier(world.Communicator);
 
   // Decide how many ranks per node read simultaneously
   int nr_nodes = (world.size() / world.MaxNodeSize);
@@ -543,12 +433,15 @@ void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Ha
   if (nr_reading < 1)
     nr_reading = 1; // Always at least one per node
 
+  SetGroupFileName(snapshotId);
+
   const int root = 0;
   if (world.rank() == root)
   {
-    ReadHeader(Header);
+    ReadGroupHeader(Header);
     CompileFileOffsets(1);
   }
+
   MPI_Bcast(&Header, 1, MPI_TipsyHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
@@ -572,12 +465,6 @@ void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Ha
   assert(local_first_offset >= 0);
   assert(local_last_offset < np_total);
 
-  // Allocate storage for the particles
-  vector<Particle_t> ParticleHosts;
-  ParticleHosts.resize(np_local);
-
-  bool FlagReadId = true;
-
   // Allow a limited number of ranks per node to read simultaneously
   int reads_done = 0;
   for (int rank_within_node = 0; rank_within_node < world.MaxNodeSize; rank_within_node += 1)
@@ -587,7 +474,7 @@ void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Ha
 
       // Loop over all files
       HBTInt particle_offset = 0;
-      for (int file_nr = 0; file_nr < Header.NumberOfFiles; file_nr += 1)
+      for (int file_nr = 0; file_nr < 1; file_nr += 1)
       {
 
         // Determine global offset of first particle to read from this file:
@@ -612,7 +499,7 @@ void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Ha
           assert(file_count > 0);
           assert(file_start >= 0);
           assert(file_start + file_count <= np_file[file_nr]);
-          ReadGroupParticles(file_nr, ParticleHosts.data() + particle_offset, file_start, file_count, FlagReadId);
+          ReadGroupParticles(file_nr, ParticleHosts.data() + particle_offset, file_start, file_count);
           particle_offset += file_count;
         }
       }                                    // Next file

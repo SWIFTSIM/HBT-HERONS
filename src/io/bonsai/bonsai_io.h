@@ -39,25 +39,35 @@ struct TipsyDarkMatterParticle_t {
   }
 };
 
+struct BonsaiGroupParticle_t {
+  long long HostHaloID;
+};
+
 void create_TipsyHeader_MPI_type(MPI_Datatype &dtype);
 
 class BonsaiSimReader_t
 {
-  string SnapshotName;
   vector<HBTInt> np_file;
   vector<HBTInt> offset_file;
   TipsyHeader_t Header;
 
-  void OpenFile(std::ifstream &file);
   void ReadHeader(TipsyHeader_t &header);
-  void ReadUnits(HBTReal &MassInMsunh, HBTReal &LengthInMpch, HBTReal &VelInKmS);
   HBTInt CompileFileOffsets(int nfiles);
-  void ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count);
-  void ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count,
-                          bool FlagReadParticleId);
+
+  /* All things snapshot particle information . */
+  string SnapshotName;
+  void OpenFile(std::ifstream &file);
   void GetSnapshotFileName(std::string &filename);
   void SetSnapshotFileName(int snapshotId);
-  void GetParticleCountInFile(hid_t file, int np[]);
+  void ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count);
+
+  /* All things FoF groups. */
+  string GroupFileName;
+  void ReadGroupHeader(TipsyHeader_t &header);
+  void OpenGroupFile(std::ifstream &file);
+  void GetGroupFileName(std::string &filename);
+  void SetGroupFileName(int snapshotId);
+  void ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count);
 
   MPI_Datatype MPI_TipsyHeader_t;
 
@@ -72,6 +82,9 @@ public:
   }
   void LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles, Cosmology_t &Cosmology);
   void LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo_t> &Halos);
+
+  /* To copy over the information of snapshot particle information */
+  vector<Particle_t> ParticleHosts;
 };
 
 extern bool IsBonsaiSimGroup(const string &GroupFileFormat);
