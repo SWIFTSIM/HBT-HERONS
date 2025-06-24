@@ -149,15 +149,12 @@ HBTInt BonsaiSimReader_t::CompileFileOffsets(int nfiles)
   HBTInt offset = 0;
   np_file.reserve(nfiles);
   offset_file.reserve(nfiles);
+
   for (int ifile = 0; ifile < nfiles; ifile++)
   {
+    /* We already have the particle count from the header (single file). */
     offset_file.push_back(offset);
-
-    int np_this[TypeMax];
-    hid_t file = OpenFile(ifile);
-    GetParticleCountInFile(file, np_this);
-    H5Fclose(file);
-    HBTInt np = accumulate(begin(np_this), end(np_this), (HBTInt)0);
+    HBTInt np = Header.NumPart;
 
     np_file.push_back(np);
     offset += np;
