@@ -144,16 +144,6 @@ HBTInt BonsaiSimReader_t::CompileFileOffsets(int nfiles)
   return offset;
 }
 
-static void check_id_size(hid_t loc)
-{
-  hid_t dset = H5Dopen2(loc, "ParticleIDs", H5P_DEFAULT);
-  hid_t dtype = H5Dget_type(dset);
-  size_t ParticleIDStorageSize = H5Tget_size(dtype);
-  assert(sizeof(HBTInt) >= ParticleIDStorageSize); // use HBTi8 or HBTdouble if you need long int for id
-  H5Tclose(dtype);
-  H5Dclose(dset);
-}
-
 void BonsaiSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count)
 {
 
