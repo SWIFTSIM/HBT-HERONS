@@ -126,24 +126,6 @@ void BonsaiSimReader_t::ReadHeader(TipsyHeader_t &Header)
   file.read((char*)&Header, sizeof(Header));
 }
 
-void BonsaiSimReader_t::GetParticleCountInFile(hid_t file, int np[])
-{
-  int NumPartTypes;
-  ReadAttribute(file, "Header", "NumPartTypes", H5T_NATIVE_INT, &NumPartTypes);
-  int NumPart_ThisFile[NumPartTypes]; // same size as attributes in the file
-  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, NumPart_ThisFile);
-  for (int i = 0; i < TypeMax; i++)
-    if (i < NumPartTypes)
-      np[i] = NumPart_ThisFile[i];
-    else
-      np[i] = 0;
-#ifdef DM_ONLY
-  for (int i = 0; i < TypeMax; i++)
-    if (i != TypeDM)
-      np[i] = 0;
-#endif
-}
-
 HBTInt BonsaiSimReader_t::CompileFileOffsets(int nfiles)
 {
   HBTInt offset = 0;
