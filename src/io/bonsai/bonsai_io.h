@@ -16,36 +16,27 @@
 #include "../../hdf_wrapper.h"
 #include "../../mpi_wrapper.h"
 
-struct BonsaiSimHeader_t
-{
-  int NumberOfFiles;
-  double BoxSize;
-  double ScaleFactor;
-  double OmegaM0;
-  double OmegaLambda0;
-  double Hz;
-  double h;
-  double mass[TypeMax];
-  int npart[TypeMax];
-  HBTInt npartTotal[TypeMax];
-  double MassInMsunh;
-  double LengthInMpch;
-  double VelInKmS;
-  HBTInt NullGroupId;
-  double DM_comoving_softening;
-  double DM_maximum_physical_softening;
+struct TipsyHeader_t {
+  double Time;
+  int NumPart;
+  int NumDimensions;
+  int NumSPHPart;
+  int NumDarkMatterParticles;
+  int NumStellarParticles;
+  int Version;
 };
 
-void create_BonsaiSimHeader_MPI_type(MPI_Datatype &dtype);
+void create_TipsyHeader_MPI_type(MPI_Datatype &dtype);
 
 class BonsaiSimReader_t
 {
   string SnapshotName;
   vector<HBTInt> np_file;
   vector<HBTInt> offset_file;
-  BonsaiSimHeader_t Header;
+  TipsyHeader_t Header;
+
   void OpenFile(std::ifstream &file);
-  void ReadHeader(int ifile, BonsaiSimHeader_t &header);
+  void ReadHeader(TipsyHeader_t &header);
   void ReadUnits(HBTReal &MassInMsunh, HBTReal &LengthInMpch, HBTReal &VelInKmS);
   HBTInt CompileFileOffsets(int nfiles);
   void ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count);
@@ -55,16 +46,16 @@ class BonsaiSimReader_t
   void SetSnapshotFileName(int snapshotId);
   void GetParticleCountInFile(hid_t file, int np[]);
 
-  MPI_Datatype MPI_BonsaiSimHeader_t;
+  MPI_Datatype MPI_TipsyHeader_t;
 
 public:
   BonsaiSimReader_t()
   {
-    create_BonsaiSimHeader_MPI_type(MPI_BonsaiSimHeader_t);
+    create_TipsyHeader_MPI_type(MPI_TipsyHeader_t);
   }
   ~BonsaiSimReader_t()
   {
-    MPI_Type_free(&MPI_BonsaiSimHeader_t);
+    MPI_Type_free(&MPI_TipsyHeader_t);
   }
   void LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles, Cosmology_t &Cosmology);
   void LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo_t> &Halos);

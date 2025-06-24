@@ -19,10 +19,10 @@ using namespace std;
 #include "bonsai_io.h"
 #include "../exchange_and_merge.h"
 
-void create_BonsaiSimHeader_MPI_type(MPI_Datatype &dtype)
+void create_TipsyHeader_MPI_type(MPI_Datatype &dtype)
 {
   /*to create the struct data type for communication*/
-  BonsaiSimHeader_t p;
+  TipsyHeader_t p;
 #define NumAttr 18
   MPI_Datatype oldtypes[NumAttr];
   int blockcounts[NumAttr];
@@ -33,6 +33,7 @@ void create_BonsaiSimHeader_MPI_type(MPI_Datatype &dtype)
   extent -= origin;
 
   int i = 0;
+
 #define RegisterAttr(x, type, count)                                                                                   \
   {                                                                                                                    \
     MPI_Get_address(&(p.x), offsets + i);                                                                              \
@@ -41,21 +42,14 @@ void create_BonsaiSimHeader_MPI_type(MPI_Datatype &dtype)
     blockcounts[i] = count;                                                                                            \
     i++;                                                                                                               \
   }
-  RegisterAttr(NumberOfFiles, MPI_INT, 1);
-  RegisterAttr(BoxSize, MPI_DOUBLE, 1);
-  RegisterAttr(ScaleFactor, MPI_DOUBLE, 1);
-  RegisterAttr(OmegaM0, MPI_DOUBLE, 1);
-  RegisterAttr(OmegaLambda0, MPI_DOUBLE, 1);
-  RegisterAttr(Hz, MPI_DOUBLE, 1);
-  RegisterAttr(h, MPI_DOUBLE, 1) RegisterAttr(mass, MPI_DOUBLE, TypeMax);
-  RegisterAttr(npart[0], MPI_INT, TypeMax);
-  RegisterAttr(npartTotal[0], MPI_HBT_INT, TypeMax);
-  RegisterAttr(MassInMsunh, MPI_DOUBLE, 1);
-  RegisterAttr(LengthInMpch, MPI_DOUBLE, 1);
-  RegisterAttr(VelInKmS, MPI_DOUBLE, 1);
-  RegisterAttr(NullGroupId, MPI_HBT_INT, 1);
-  RegisterAttr(DM_comoving_softening, MPI_DOUBLE, 1);
-  RegisterAttr(DM_maximum_physical_softening, MPI_DOUBLE, 1);
+
+  RegisterAttr(Time, MPI_DOUBLE, 1);
+  RegisterAttr(NumPart, MPI_INT, 1);
+  RegisterAttr(NumDimensions, MPI_INT, 1);
+  RegisterAttr(NumSPHPart, MPI_INT, 1);
+  RegisterAttr(NumDarkMatterParticles, MPI_INT, 1);
+  RegisterAttr(NumStellarParticles, MPI_INT, 1);
+  RegisterAttr(Version, MPI_INT, 1);
 
 #undef RegisterAttr
   assert(i <= NumAttr);
@@ -122,97 +116,14 @@ void BonsaiSimReader_t::OpenFile(std::ifstream &file)
   }
 }
 
-void BonsaiSimReader_t::ReadHeader(int ifile, BonsaiSimHeader_t &header)
+void BonsaiSimReader_t::ReadHeader(TipsyHeader_t &Header)
 {
-  double BoxSize_3D[3];
-  int NumPartTypes;
+  /* Need to pass by reference to handle binary inputs */
+  std::ifstream file;
+  OpenFile(file);
 
-  hid_t file = OpenFile(ifile);
-  ReadAttribute(file, "Header", "NumPartTypes", H5T_NATIVE_INT, &NumPartTypes);
-  ReadAttribute(file, "Header", "NumFilesPerSnapshot", H5T_NATIVE_INT, &Header.NumberOfFiles);
-  ReadAttribute(file, "Header", "BoxSize", H5T_NATIVE_DOUBLE, BoxSize_3D);
-  if (BoxSize_3D[0] != BoxSize_3D[1] || BoxSize_3D[0] != BoxSize_3D[2])
-  {
-    cout << "Bonsai simulation box must have equal size in each dimension!\n";
-    MPI_Abort(MPI_COMM_WORLD, 1);
-  }
-  Header.BoxSize = BoxSize_3D[0]; // Can only handle cubic boxes
-  ReadAttribute(file, "Cosmology", "Scale-factor", H5T_NATIVE_DOUBLE, &Header.ScaleFactor);
-  ReadAttribute(file, "Cosmology", "Omega_m", H5T_NATIVE_DOUBLE, &Header.OmegaM0);
-  ReadAttribute(file, "Cosmology", "H [internal units]", H5T_NATIVE_DOUBLE, &Header.Hz);
-  ReadAttribute(file, "Cosmology", "Omega_lambda", H5T_NATIVE_DOUBLE, &Header.OmegaLambda0);
-  ReadAttribute(file, "Cosmology", "h", H5T_NATIVE_DOUBLE, &Header.h);
-  for (int i = 0; i < TypeMax; i += 1)
-    Header.mass[i] = 0.0; // Bonsai particles always have individual masses
-
-  /* Read physical constants assumed by Bonsai */
-  double parsec_cgs;
-  ReadAttribute(file, "PhysicalConstants/CGS", "parsec", H5T_NATIVE_DOUBLE, &parsec_cgs);
-  double solar_mass_cgs;
-  ReadAttribute(file, "PhysicalConstants/CGS", "solar_mass", H5T_NATIVE_DOUBLE, &solar_mass_cgs);
-  const double km_cgs = 1.0e5;
-
-  /* Read unit system used by Bonsai */
-  double length_cgs;
-  ReadAttribute(file, "Units", "Unit length in cgs (U_L)", H5T_NATIVE_DOUBLE, &length_cgs);
-  double mass_cgs;
-  ReadAttribute(file, "Units", "Unit mass in cgs (U_M)", H5T_NATIVE_DOUBLE, &mass_cgs);
-  double time_cgs;
-  ReadAttribute(file, "Units", "Unit time in cgs (U_t)", H5T_NATIVE_DOUBLE, &time_cgs);
-
-  /* Read group ID used to indicate that a particle is in no FoF group */
-  string buf;
-  ReadAttribute(file, "Parameters", "FOF:group_id_default", buf);
-  // Check if using HBTInt would not overflow value
-  long long NullGroupId = std::stoll(buf);
-  if (NullGroupId > std::numeric_limits<HBTInt>::max())
-    throw std::overflow_error("The precision of HBTInt is insufficient to hold the value of NullGroupId");
-  Header.NullGroupId = (HBTInt)NullGroupId;
-
-  /* Load the units used in the snapshot */
-  Header.MassInMsunh = (mass_cgs / solar_mass_cgs) * Header.h;
-  Header.LengthInMpch = (length_cgs / (1.0e6 * parsec_cgs)) * Header.h;
-  Header.VelInKmS = (length_cgs / time_cgs) / km_cgs;
-
-  /*
-     Read per-type header entries
-
-     There may be more than TypeMax particle types. Here we ignore
-     any extra types (e.g. neutrinos). The number of types we use
-     is the smaller of Bonsai's NumPartTypes and HBT's TypeMax.
-  */
-  int NumPart_ThisFile[NumPartTypes]; // same size as attributes in the file
-  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, NumPart_ThisFile);
-  unsigned int NumPart_Total[NumPartTypes];
-  ReadAttribute(file, "Header", "NumPart_Total", H5T_NATIVE_UINT, NumPart_Total);
-  unsigned int NumPart_Total_HighWord[NumPartTypes];
-  ReadAttribute(file, "Header", "NumPart_Total_HighWord", H5T_NATIVE_UINT, NumPart_Total_HighWord);
-  for (int i = 0; i < TypeMax; i++)
-  {
-    if (i < NumPartTypes)
-      Header.npartTotal[i] = (((unsigned long)NumPart_Total_HighWord[i]) << 32) | NumPart_Total[i];
-    else
-      Header.npartTotal[i] = 0;
-  }
-
-  /* Read softening values used by Bonsai */
-  // NOTE: Whenever reading "Parameters", we need to use a string to load into.
-
-  // DM softening
-  ReadAttribute(file, "Parameters", "Gravity:comoving_DM_softening", buf);
-  Header.DM_comoving_softening = stof(buf);
-  ReadAttribute(file, "Parameters", "Gravity:max_physical_DM_softening", buf);
-  Header.DM_maximum_physical_softening = stof(buf);
-
-#ifndef DM_ONLY
-  // Baryonic softening
-  ReadAttribute(file, "Parameters", "Gravity:comoving_baryon_softening", buf);
-  Header.baryon_comoving_softening = stof(buf);
-  ReadAttribute(file, "Parameters", "Gravity:max_physical_baryon_softening", buf);
-  Header.baryon_maximum_physical_softening = stof(buf);
-#endif
-
-  H5Fclose(file);
+  /* Read tipsy header */
+  file.read((char*)&Header, sizeof(Header));
 }
 
 void BonsaiSimReader_t::GetParticleCountInFile(hid_t file, int np[])
@@ -653,42 +564,26 @@ void BonsaiSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<
   const int root = 0;
   if (world.rank() == root)
   {
-    ReadHeader(0, Header);
-    CompileFileOffsets(Header.NumberOfFiles);
+    ReadHeader(Header);
+    CompileFileOffsets(1);
   }
 
-  MPI_Bcast(&Header, 1, MPI_BonsaiSimHeader_t, root, world.Communicator);
+  MPI_Bcast(&Header, 1, MPI_TipsyHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
-
-  /* Assign the box size read in from the Header */
-  HBTConfig.BoxSize = Header.BoxSize;
-  HBTConfig.BoxHalf = HBTConfig.BoxSize / 2;
-
-  /* Use the softening values we read in from the Header */
-  HBTConfig.SofteningHalo = Header.DM_comoving_softening;
-  HBTConfig.MaxPhysicalSofteningHalo = Header.DM_maximum_physical_softening;
 
   /* Update the tree parameters based on the softenings */
   HBTConfig.TreeNodeResolution = HBTConfig.SofteningHalo * 0.1;
   HBTConfig.TreeNodeResolutionHalf = HBTConfig.TreeNodeResolution / 2.;
 
-  /* Update the units */
-  HBTConfig.MassInMsunh = Header.MassInMsunh;
-  HBTConfig.LengthInMpch = Header.LengthInMpch;
-  HBTConfig.VelInKmS = Header.VelInKmS;
-
   /* Only dealing with virial units and non-cosmological simulations  */
   PhysicalConst::G = 1;
   PhysicalConst::H0 = 0;
 
-  /* Set the cosmological parameters */
-  Cosmology.Set_Hz(Header.Hz);
-  Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
-
-  /* This will be used to determine which particles are hostless when
-   * constraining subhaloes to their assigned hosts. */
-  HBTConfig.ParticleNullGroupId = Header.NullGroupId;
+  /* Since H0 = 0, there is no evolution in the Hubble Parameter. We set these
+   * values to -1 to signal they are dummy variables. */
+  Cosmology.Set_Hz(-1);
+  Cosmology.Set(-1, -1, -1);
 
   // Decide how many particles this MPI rank will read
   HBTInt np_total = accumulate(np_file.begin(), np_file.end(), (HBTInt)0);
@@ -762,7 +657,6 @@ void BonsaiSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<
 
   global_timer.Tick("snap_io", world.Communicator);
 
-  // #define SNAPSHOT_IO_TEST
 #ifdef SNAPSHOT_IO_TEST
   // For testing: dump the snapshot to a new set of files
   // Generate test file name for this MPI  rank
@@ -828,10 +722,10 @@ void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Ha
   const int root = 0;
   if (world.rank() == root)
   {
-    ReadHeader(0, Header);
-    CompileFileOffsets(Header.NumberOfFiles);
+    ReadHeader(Header);
+    CompileFileOffsets(1);
   }
-  MPI_Bcast(&Header, 1, MPI_BonsaiSimHeader_t, root, world.Communicator);
+  MPI_Bcast(&Header, 1, MPI_TipsyHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
 
@@ -971,7 +865,6 @@ void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Ha
   sort(ParticleHosts.begin(), ParticleHosts.end(), CompParticleHost);
   if (!ParticleHosts.empty())
   {
-    assert(ParticleHosts.back().HostId <= Header.NullGroupId); // max haloid==NullGroupId
     assert(ParticleHosts.front().HostId >= 0);                 // min haloid>=0
   }
 
@@ -986,11 +879,9 @@ void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Ha
   };
   vector<HaloLen_t> HaloLen;
 
-  HBTInt curr_host_id = Header.NullGroupId;
+  HBTInt curr_host_id = -1;
   for (auto &&p : ParticleHosts)
   {
-    if (p.HostId == Header.NullGroupId)
-      break; // NullGroupId comes last
     if (p.HostId != curr_host_id)
     {
       curr_host_id = p.HostId;
