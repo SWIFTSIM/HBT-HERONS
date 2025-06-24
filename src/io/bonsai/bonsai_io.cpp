@@ -294,9 +294,11 @@ void BonsaiSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<
   PhysicalConst::H0 = 0;
 
   /* Since H0 = 0, there is no evolution in the Hubble Parameter. We set these
-   * values to -1 to signal they are dummy variables. */
+   * values to (+-)1 to signal they are dummy variables. The scale factor needs
+   * to be positive since the potentials are proportional to its inverse. (hence
+   * a negative scale factor results in positive potentials!)*/
   Cosmology.Set_Hz(-1);
-  Cosmology.Set(-1, -1, -1);
+  Cosmology.Set(1, -1, -1);
 
   // Decide how many particles this MPI rank will read
   HBTInt np_total = accumulate(np_file.begin(), np_file.end(), (HBTInt)0);
