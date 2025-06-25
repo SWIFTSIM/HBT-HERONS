@@ -137,6 +137,8 @@ public:
     GroupLoadedFullParticle = false;
     MaxPhysicalSofteningHalo = -1; // Indicates no max. physical softening is used.
 
+    ParticleNullGroupId = -1; /* Value of FoF group corresponding to no FoF */
+
     /* Tracer-related parameters. If unset, only use collisionless particles (DM
      * + Stars) as tracer. Here we assume they correspond to particle types 1
      * and 4, respectively. */
