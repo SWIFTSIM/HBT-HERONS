@@ -157,8 +157,6 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
     }
   }
 
-  //   cout<<Subhalos.size()<<" subhaloes loaded at snapshot "<<SnapshotIndex<<"("<<SnapshotId<<")\n";
-
   HBTInt NumSubs = Subhalos.size(), NumSubsAll_loaded = 0;
   MPI_Reduce(&NumSubs, &NumSubsAll_loaded, 1, MPI_HBT_INT, MPI_SUM, 0, world.Communicator);
   if (world.rank() == 0)

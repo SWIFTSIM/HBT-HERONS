@@ -273,6 +273,7 @@ void BonsaiSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<
     nr_reading = 1; // Always at least one per node
 
   SetSnapshotFileName(snapshotId);
+  SetGroupFileName(snapshotId);
 
   const int root = 0;
   if (world.rank() == root)
@@ -356,7 +357,12 @@ void BonsaiSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<
           assert(file_count > 0);
           assert(file_start >= 0);
           assert(file_start + file_count <= np_file[file_nr]);
+
+          /* We have the same layout for particle properties and their host
+           * FoF ID. */
           ReadSnapshot(file_nr, Particles.data() + particle_offset, file_start, file_count);
+          ReadGroupParticles(file_nr, Particles.data() + particle_offset, file_start, file_count);
+
           particle_offset += file_count;
         }
       }                                    // Next file
@@ -429,152 +435,7 @@ void BonsaiSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Ha
 
   MPI_Barrier(world.Communicator);
 
-  // Decide how many ranks per node read simultaneously
-  int nr_nodes = (world.size() / world.MaxNodeSize);
-  int nr_reading = HBTConfig.MaxConcurrentIO / nr_nodes;
-  if (nr_reading < 1)
-    nr_reading = 1; // Always at least one per node
-
-  SetGroupFileName(snapshotId);
-
-  const int root = 0;
-  if (world.rank() == root)
-  {
-    ReadGroupHeader(Header);
-    CompileFileOffsets(1);
-  }
-
-  MPI_Bcast(&Header, 1, MPI_TipsyHeader_t, root, world.Communicator);
-  world.SyncContainer(np_file, MPI_HBT_INT, root);
-  world.SyncContainer(offset_file, MPI_HBT_INT, root);
-
-  // Decide how many particles this MPI rank will read
-  HBTInt np_total = accumulate(np_file.begin(), np_file.end(), (HBTInt)0);
-  HBTInt np_local = np_total / world.size();
-  if (world.rank() < (np_total % world.size()))
-    np_local += 1;
-#ifndef NDEBUG
-  HBTInt np_check;
-  MPI_Allreduce(&np_local, &np_check, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
-  assert(np_check == np_total);
-#endif
-
-  // Determine offset to the first and last particle this rank will read
-  HBTInt local_first_offset;
-  MPI_Scan(&np_local, &local_first_offset, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
-  local_first_offset -= np_local;
-  HBTInt local_last_offset = local_first_offset + np_local - 1;
-  assert(local_first_offset >= 0);
-  assert(local_last_offset < np_total);
-
-  // Allow a limited number of ranks per node to read simultaneously
-  int reads_done = 0;
-  for (int rank_within_node = 0; rank_within_node < world.MaxNodeSize; rank_within_node += 1)
-  {
-    if (rank_within_node == world.NodeRank)
-    {
-
-      // Loop over all files
-      HBTInt particle_offset = 0;
-      for (int file_nr = 0; file_nr < 1; file_nr += 1)
-      {
-
-        // Determine global offset of first particle to read from this file:
-        // This is the larger of the offset of the first particle in the file
-        // and the offset of the first particle this rank is to read.
-        HBTInt i1 = offset_file[file_nr];
-        if (local_first_offset > i1)
-          i1 = local_first_offset;
-
-        // Determine global offset of last particle to read from this file:
-        // This is the smaller of the offset to the last particle in this file
-        // and the offset of the last particle this rank is to read.
-        HBTInt i2 = offset_file[file_nr] + np_file[file_nr] - 1;
-        if (local_last_offset < i2)
-          i2 = local_last_offset;
-
-        if (i2 >= i1)
-        {
-          // We have particles to read from this file.
-          HBTInt file_start = i1 - offset_file[file_nr]; // Offset to first particle to read
-          HBTInt file_count = i2 - i1 + 1;               // Number of particles to read
-          assert(file_count > 0);
-          assert(file_start >= 0);
-          assert(file_start + file_count <= np_file[file_nr]);
-          ReadGroupParticles(file_nr, ParticleHosts.data() + particle_offset, file_start, file_count);
-          particle_offset += file_count;
-        }
-      }                                    // Next file
-      assert(particle_offset == np_local); // Check we read the expected number of particles
-      reads_done += 1;
-    }
-    if (rank_within_node % nr_reading == nr_reading - 1)
-      MPI_Barrier(world.Communicator);
-  } // Next MPI rank within the node
-
-  // Every rank should have executed the reading code exactly once
-  assert(reads_done == 1);
-
-  global_timer.Tick("halo_io", world.Communicator);
-
-  // #define HALO_IO_TEST
-#ifdef HALO_IO_TEST
-  //
-  // For testing: dump the snapshot to a new set of files
-  //
-  // Generate test file name for this MPI  rank
-  stringstream formatter1;
-  formatter1 << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << snapshotId << "/"
-             << "test_halo_" << setw(3) << setfill('0') << snapshotId << "." << world.rank() << ".hdf5";
-  string tfilename = formatter1.str();
-  // Create array of coordinates
-  double *pos = (double *)malloc(3 * sizeof(double) * np_local);
-  for (size_t i = 0; i < np_local; i += 1)
-  {
-    pos[3 * i + 0] = ParticleHosts[i].ComovingPosition[0];
-    pos[3 * i + 1] = ParticleHosts[i].ComovingPosition[1];
-    pos[3 * i + 2] = ParticleHosts[i].ComovingPosition[2];
-  }
-  // Create array of IDs
-  long long *ids = (long long *)malloc(sizeof(long long) * np_local);
-  for (size_t i = 0; i < np_local; i += 1)
-    ids[i] = ParticleHosts[i].Id;
-  // Create array of types
-  int *type = (int *)malloc(sizeof(int) * np_local);
-  for (size_t i = 0; i < np_local; i += 1)
-    type[i] = ParticleHosts[i].Type;
-  // Create array of group indexes
-  int *fofnr = (int *)malloc(sizeof(int) * np_local);
-  for (size_t i = 0; i < np_local; i += 1)
-    fofnr[i] = ParticleHosts[i].HostId;
-
-  // Create the file
-  hid_t tfile = H5Fcreate(tfilename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-  // Write out the data
-  hsize_t ndims;
-  hsize_t dims[2];
-  ndims = 2;
-  dims[0] = np_local;
-  dims[1] = 3;
-  writeHDFmatrix(tfile, pos, "Coordinates", ndims, dims, H5T_NATIVE_DOUBLE);
-  ndims = 1;
-  writeHDFmatrix(tfile, ids, "ParticleIDs", ndims, dims, H5T_NATIVE_LLONG);
-  writeHDFmatrix(tfile, type, "Types", ndims, dims, H5T_NATIVE_INT);
-  writeHDFmatrix(tfile, fofnr, "FoFNr", ndims, dims, H5T_NATIVE_INT);
-
-  // Tidy up
-  H5Fclose(tfile);
-  free(pos);
-  free(ids);
-  free(type);
-  free(fofnr);
-  //
-  // END OF TEST CODE
-  //
-#endif
-
-  // Sort particles by host
+  /* Sort particles by host */
   sort(ParticleHosts.begin(), ParticleHosts.end(), CompParticleHost);
   if (!ParticleHosts.empty())
   {
