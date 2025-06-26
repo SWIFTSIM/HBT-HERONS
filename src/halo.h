@@ -58,7 +58,7 @@ public:
     // 	Clear();
     My_Type_free(&MPI_HBT_HaloId_t);
   }
-  void Load(MpiWorker_t &world, int snapshot_index);
+  void Load(MpiWorker_t &world, int snapshot_index, const vector<Particle_t> &SnapshotParticles);
   void Clear();
   void UpdateParticles(MpiWorker_t &world, const ParticleSnapshot_t &snapshot);
   //   void ParticleIndexToId();
