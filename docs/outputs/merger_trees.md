@@ -12,7 +12,7 @@ We provide examples on how to use these datasets to follow the [complete evoluti
 
 ## Evolution of a single subhalo
 
-The `TrackId` of a subhalo is a unique identifier that persists in time throughout the simulation. Thus, following the evolution of a subhalo from the first output when it is found in the simulation (`SnapshotIndexOfBirth`) until the last output when it is resolved as self-bound (`SnapshotIndexOfDeath`) only requires knowing its `TrackId`. In fact, the subhalo can still be tracked as an orphan subhalo after its "death", but only a subset of properties are computed in that case. 
+The `TrackId` of a subhalo is a unique identifier that persists in time throughout the simulation. Thus, following the evolution of a subhalo from the first output when it is found in the simulation (`SnapshotIndexOfBirth`) until the last output when it is resolved as self-bound (`SnapshotIndexOfDeath`) only requires knowing its `TrackId`. In fact, the subhalo can still be tracked as an orphan subhalo after its "death", but only a subset of properties are computed in that case.
 
 <h4>Code example</h4>
 
@@ -36,13 +36,13 @@ We assume the simulation has 64 outputs throughout this example.
         output_start = catalogue['Subhalos']['SnapshotIndexOfBirth'][TrackId_to_follow]
         output_end   = catalogue['Subhalos']['SnapshotIndexOfDeath'][TrackId_to_follow]
 
-    # If output_end is equal to -1, that means it is still resolved at the time when the output was saved. 
+    # If output_end is equal to -1, that means it is still resolved at the time when the output was saved.
     output_end = output_end if output_end != -1 else max_output_number
 
     # Create an array to hold values we are interested in tracking (number of bound particles)
     Nbound_evolution = - np.ones(output_end - output_start + 1)
 
-    # Iterate over catalogues to obtain Nbound value of the entry with the TrackId we want to follow. 
+    # Iterate over catalogues to obtain Nbound value of the entry with the TrackId we want to follow.
     for i, output_number in enumerate(range(output_start, output_end + 1)):
         with h5py.File(catalogue_path.format(output_number = output_number)) as catalogue:
           Nbound_evolution[i] = catalogue['Subhalos/Nbound'][TrackId_to_follow]
@@ -73,11 +73,11 @@ plt.show()
 
 The catalogues also provide sufficient infomation to identify which subhaloes merged together, helping to establish links between different evolutionary branches through so-called secondary progenitors. Obtaining the secondary progenitors of a given subhalo is more involved that following its main branch. One complication is that subhaloes disappear from the HBT-HERONS catalogues in two different ways:
 
-* [Subhalo disruption](#subhalo-disruption) as a consequence of subhaloes no longer being self-bound. 
-* [Subhalo sinking](#subhalo-sinking) when the subhalo is still self-bound but its core coalesces in phase-space with the core of another subhalo. 
+* [Subhalo disruption](#subhalo-disruption) as a consequence of subhaloes no longer being self-bound.
+* [Subhalo sinking](#subhalo-sinking) when the subhalo is still self-bound but its core coalesces in phase-space with that of another subhalo.
 
-HBT-HERONS provides different information depending on which of the two processes led to the removal of a subhalo from the simulation. Commonly used merger trees do not provide this two-category classification, as following the entire process of 
-subhalo sinking is difficult and is inadecuately followed in traditional subhalo finders. 
+HBT-HERONS provides different information depending on which of the two processes led to the removal of a subhalo from the simulation. Commonly used merger trees do not provide this two-category classification, as following the entire process of
+subhalo sinking is difficult and is inadecuately followed in traditional subhalo finders.
 
 ### Subhalo disruption
 
@@ -86,18 +86,14 @@ Disruption occurs when the subhalo is no longer considered to be self-bound. The
 * The total number of bound particles has to be equal or greater than `MinNumPartOfSub`.
 * The total number of bound tracer particles has to be equal or greater than `MinNumTracerPartOfSub`.
 
-If either of these conditions is not satisfied, the subhalo is considered as disrupted (`Nbound = 0`) and is 
-subsequently tracked as an orphan subhalo. 
+If either of these conditions is not satisfied, the subhalo is considered as disrupted (`Nbound = 0`) and is
+subsequently tracked as an orphan subhalo.
 
 To identify the descendant of a disrupted subhalo, HBT-HERONS uses the `NumTracersForDescendants` most bound tracer particles when the subhalo was last self-bound. The descendant subhalo (`DescendantTrackId`) is the one that is self-bound and contains the majority of the aforementioned particles.
 
 <h4>Code example</h4>
 
 Here we show how to identify all subhaloes that disrupted and hence merged with the same subhalo of the [first example](#evolution-of-a-single-subhalo). We assume the simulation has 64 outputs throughout this example.
-
-!!! note
-
-    At the moment, `DescendantTrackId` always equals -1 for every subhalo, except for the output when a subhalo disrupts. This means that we need to iterate over every output to which subhaloes merged with another subhalo by disrupting. We are likely to change this in the future so that the information is available after the disruption takes place, to remove the requirement to load every output. 
 
 === "After running `toolbox/SortCatalogues.py`"
 

@@ -35,6 +35,12 @@ Different ways to quantify how massive a subhalo is.
 |             `VmaxPhysical`              | The maximum value of the circularised rotation curve of the subhalo. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.                                                                            |
 |             `BoundM200Crit`             | Mass of a region with a spherical overdensity of 200 times the critical density of the universe. Only bound mass is included and only for centrals. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`. |
 
+!!! warning
+
+    Since the HBT-HERONS definition of spherical overdensity is based on the enclosed mass of **bound particles** only, it does not follow the common convention in the literature, which includes the mass contribution of **all particles**.
+
+    The values provided for R200 and M200 are therefore lower than the commonly used definition. We only recommend using it as a quick reference, and the user to calculate the spherical overdensity quantities using the accepted definition.
+
 #### Size metrics
 
 Different ways to quantify the size of a subhalo.

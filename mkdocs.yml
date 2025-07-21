@@ -20,22 +20,24 @@ markdown_extensions:
   - abbr
   - attr_list
   - pymdownx.snippets
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
 
 nav:
   - Welcome: index.md
-  - Installation: 
+  - Installation:
     - ./installation/requirements.md
     - ./installation/compiling.md
-  - Running: 
+  - Running:
     - ./running/start.md
     - ./running/parameter_file.md
     - ./running/diagnostics.md
-  - Outputs: 
+  - Outputs:
       - ./outputs/format.md
       - ./outputs/subhalo_properties.md
       - ./outputs/merger_trees.md
-  - Examples:
-    - examples.md
 
 repo_url: https://github.com/SWIFTSIM/HBT-HERONS
 repo_name: SWIFTSIM/HBT-HERONS

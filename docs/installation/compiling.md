@@ -1,20 +1,20 @@
-The latest version is available in the [official repository](https://github.com/SWIFTSIM/HBT-HERONS). 
+The latest version is available in the [official repository](https://github.com/SWIFTSIM/HBT-HERONS).
 To get a local copy of the master branch, run:
 
-```bash 
+```bash
 git clone https://github.com/SWIFTSIM/HBT-HERONS.git && cd HBT-HERONS
 ```
 
-As HBT-HERONS saves the commit hash and whether the code has been modified (see [version tracking](../running/diagnostics.md/#version)) before compiling, it is 
-recommended to compile it from its own separate `build` folder. This prevents `git` 
+As HBT-HERONS saves the commit hash and whether the code has been modified (see [version tracking](../running/diagnostics.md/#version)) before compiling, it is
+recommended to compile it from its own separate `build` folder. This prevents `git`
 from identifying changes to the files it tracks.
-```bash 
-mkdir build && cd build 
+```bash
+mkdir build && cd build
 ```
 
 The relevant libraries used to compile the code are found through CMake. Then it is a simple case of compiling to generate the `HBT` executable:
 
-```bash 
+```bash
 cmake ../ && make -j 4
 ```
 
@@ -31,13 +31,13 @@ is analysed.
 
     Using `ccmake` instead of `cmake` opens an interactive terminal view showing
     the all the relevant compile-time options and allows the user to change their
-    value more easily. If you are doing this for the first time, the cache will 
+    value more easily. If you are doing this for the first time, the cache will
     be empty. You need to press `c` (configure) to display the options. After you enable/disable
     the options relevant to your setup, press `c` again and then `g` (generate).
 
 ### Type of simulation
 
-Options relating to whether the simulation is hydrodynamical, and whether to include 
+Options relating to whether the simulation is hydrodynamical, and whether to include
 the thermal energy of gas during subhalo unbinding.
 
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
@@ -47,8 +47,8 @@ the thermal energy of gas during subhalo unbinding.
 
 ### Internal precision
 
-These options are used to determine the internal data types used by HBT-HERONS. If you would like to reduce the memory footprint of the code, you can do so using these flags.
-
+These options are used to determine the internal data types used by HBT-HERONS.
+If you would like to reduce the memory footprint of the code, you can do so using these flags.
 
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :-----------------------------------------------  | :----------------------------------------------- |
@@ -56,11 +56,11 @@ These options are used to determine the internal data types used by HBT-HERONS. 
 | `HBT_REAL8`                    | `Off`| Represent floats using 8 (`On`) or 4  (`Off`) bytes. |
 | `HBT_REAL4_VEL`                    | `Off`| Make the code use 4 bytes for velocities, superseeding the choice made in `HBT_REAL8` if `On`. If `Off`, velocities are represented using the same precision specified by `HBT_REAL8`. |
 | `HBT_REAL4_MASS`                    | `Off`| Make the code use 4 bytes for masses, superseeding the choice made in `HBT_REAL8` if `On`. If `Off`, masses are represented using the same precision specified by `HBT_REAL8`.  |
-| `HBT_INPUT_INT8`                    | `Off`| Represent particle IDs using 8 (`On`) or 4 (`Off`) bytes. |
+| `HBT_INPUT_INT8`                    | `Off`| Represent particle IDs using 8 (`On`) or 4 (`Off`) bytes. **DEPRECATED**: the code always uses the value specified by `HBT_INT8`. |
 
 ### Miscellaneous
 
-Options relating to parallelism and whether to compute the eigenvalues of the 
+Options relating to parallelism and whether to compute the eigenvalues of the
 inertia tensors of each subhalo. Recommended to leave as is.
 
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
@@ -70,7 +70,7 @@ inertia tensors of each subhalo. Recommended to leave as is.
 
 ### Debugging and testing
 
-Options specifiying parallelism within the unit tests, as well as sanity checks throughout the main code. 
+Options specifiying parallelism within the unit tests, as well as sanity checks throughout the main code.
 
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :-----------------------------------------------  | :----------------------------------------------- |

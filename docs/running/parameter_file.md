@@ -10,7 +10,7 @@ Some of these parameters are **mandatory**, which means that the code will not w
 
 ## I/O
 
-These parameters set the format of the simulation, how the output of the simulation is saved and how many outputs to analyse. 
+These parameters set the format of the simulation, how the output of the simulation is saved and how many outputs to analyse.
 
 ### File paths
 
@@ -29,8 +29,8 @@ These parameters set the format of the simulation, how the output of the simulat
 
 !!! warning
 
-    File formats that are not based on `Swift` outputs have not been explicitly tested using HBT-HERONS. Compatibility with
-    alternative formats are based on what was implemented at the time of forking from HBT+. We do not expect the changes that HBT-HERONS makes will affect I/O significantly, but tread carefully.
+    File formats that are not based on Swift outputs have not been explicitly tested using HBT-HERONS. Compatibility with
+    alternative formats are there based on what was implemented at the time of forking HBT+. We do not expect the changes that HBT-HERONS makes will affect I/O significantly, but tread carefully.
 
 These options specify the format of the simulation particle and FoF group data. It also determines whether additional information for the particles bound to a subhalo is saved.
 
@@ -44,9 +44,9 @@ These options specify the format of the simulation particle and FoF group data. 
 | `SaveBoundParticleBindingEnergies`                           | 0 | If the internally calculated binding energies of particles bound to subhaloes should be saved alongside the subhalo catalogues. |
 
 ## Units
- 
+
 The unit system used by the simulation and used in the outputs. For `Swift` outputs,
-the values are set using the simulation metadata.
+the values are set using the snapshot metadata.
 
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
@@ -106,7 +106,7 @@ Parameters relating to the tracking and merging of subhaloes, as well as the cri
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
 | `TracerParticleTypes`                   | 1 4 | Particle types that can be used as subhalo tracers, given as a space-separated list of particle type numbers. We recommend using time-persistent, collisionless particles (e.g. DM & stars).                   |
-| `MinNumPartOfSub`                       | 20 | Minimum number of bound particles required for a subhalo to be resolved, regardless of their particle type.        |  
+| `MinNumPartOfSub`                       | 20 | Minimum number of bound particles required for a subhalo to be resolved, regardless of their particle type.        |
 | `MinNumTracerPartOfSub`                  | 10 |   Minimum number of bound particles required for a subhalo to be resolved, of the chosen tracer particle type. |
 | `NumTracerHostFinding`                  | 10 |   How many tracer particles are used to identify the host FoF group of subhaloes. The weighting of each particle reflects their binding energy ordering in the previous output. |
 | `NumTracersForDescendants`              | 10 |  How many tracer particles are used to identify which subhalo has accreted the core of subhaloes that have disrupted in the current snapshot. |
