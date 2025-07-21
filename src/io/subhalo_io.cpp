@@ -45,6 +45,7 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(SnapshotIndexOfDeath, H5T_NATIVE_INT);
   InsertMember(SnapshotIndexOfSink, H5T_NATIVE_INT);
   InsertMember(RmaxComoving, H5T_NATIVE_FLOAT);
+  InsertMember(RmaxComovingOfLastMaxVmax, H5T_NATIVE_FLOAT);
   InsertMember(VmaxPhysical, H5T_NATIVE_FLOAT);
   InsertMember(LastMaxVmaxPhysical, H5T_NATIVE_FLOAT);
   InsertMember(SnapshotIndexOfLastMaxVmax, H5T_NATIVE_INT);
@@ -366,8 +367,8 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
 
   /* Version information */
   hid_t header = H5Gcreate2(file, "/Header", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  writeStringAttribute(header, "Git_branch", branch_name);
-  writeStringAttribute(header, "Git_commit", commit_hash);
+  writeStringAttribute(header, branch_name, "Git_branch");
+  writeStringAttribute(header, commit_hash, "Git_commit");
   H5Gclose(header);
 
   vector<hvl_t> vl(Subhalos.size());
@@ -436,6 +437,21 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
       Subhalos[i].ParticleBindingEnergies.clear();
     }
     writeHDFmatrix(file, vl.data(), "BindingEnergies", ndim, dim_sub, H5T_FloatArr);
+    H5Tclose(H5T_FloatArr);
+  }
+
+  if (HBTConfig.SaveBoundParticlePotentialEnergies)
+  {
+    hid_t H5T_FloatArr = H5Tvlen_create(H5T_NATIVE_FLOAT);
+    for (HBTInt i = 0; i < vl.size(); i++)
+    {
+      vl[i].len = Subhalos[i].Nbound;
+      vl[i].p = Subhalos[i].ParticlePotentialEnergies.data();
+
+      /* Clear the vector to reduce memory footprint and because it will be overwritten anyway. */
+      Subhalos[i].ParticlePotentialEnergies.clear();
+    }
+    writeHDFmatrix(file, vl.data(), "PotentialEnergies", ndim, dim_sub, H5T_FloatArr);
     H5Tclose(H5T_FloatArr);
   }
 

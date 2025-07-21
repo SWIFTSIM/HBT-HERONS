@@ -352,16 +352,6 @@ void Snapshot_t::SphericalOverdensitySize2(float &Mvir, float &Rvir, HBTReal Vir
   Mvir = ndiv * ParticleMass;
 }
 
-void Snapshot_t::HaloVirialFactors(HBTReal &virialF_tophat, HBTReal &virialF_b200, HBTReal &virialF_c200) const
-{
-  HBTReal Hratio, x;
-  Hratio = Cosmology.Hz / PhysicalConst::H0;
-  x = Cosmology.OmegaZ - 1;
-  virialF_tophat = 18.0 * 3.1416 * 3.1416 + 82.0 * x - 39.0 * x * x; //<Rho_vir>/Rho_cri
-  virialF_c200 = 200.;
-  virialF_b200 = 200. * Cosmology.OmegaZ; // virialF w.r.t contemporary critical density
-}
-
 void ParticleSnapshot_t::ClearParticles()
 /*this allows us to clear the particle data when it's no longer needed*/
 {

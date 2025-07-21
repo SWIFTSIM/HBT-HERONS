@@ -61,8 +61,9 @@ bool Subhalo_t::MergeRecursively(SubhaloList_t &Subhalos, const Snapshot_t &snap
     auto ChildIndex = NestedSubhalos[i];
     auto &ChildSubhalo = Subhalos[ChildIndex];
 
-    /* Go further down the hierarchy if possible */
-    ExperiencedMerger = ChildSubhalo.MergeRecursively(Subhalos, snap, ReferenceSubhalo);
+    /* Go further down the hierarchy if possible. Comparison is done to not
+     * overwrite true value. */
+    ExperiencedMerger = ChildSubhalo.MergeRecursively(Subhalos, snap, ReferenceSubhalo) | ExperiencedMerger;
   }
 
   /* Only deal with present subhalo if is not already trapped and it is not the
@@ -74,8 +75,10 @@ bool Subhalo_t::MergeRecursively(SubhaloList_t &Subhalos, const Snapshot_t &snap
       SetMergerInformation(ReferenceSubhalo.TrackId, snap.GetSnapshotIndex());
 
       /* Flag if the subhalo was previously resolved, and hence the reference
-       * subhalo will accrete particles resulting from the merger. */
-      ExperiencedMerger = Nbound > 1;
+       * subhalo will accrete particles resulting from the merger. We do not
+       * overwrite the value in case we find a merger with an unresolved subhalo
+       * after finding a merger with a resolved subhalo.  */
+      ExperiencedMerger = Nbound > 1 | ExperiencedMerger;
 
       /* If enabled, pass the particles to the reference subhalo we merged to. */
       if (HBTConfig.MergeTrappedSubhalos)

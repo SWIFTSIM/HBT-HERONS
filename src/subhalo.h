@@ -44,7 +44,8 @@ public:
   int Depth;   // depth of the subhalo: central=0, sub=1, sub-sub=2, ...
   float LastMaxMass;
   int SnapshotIndexOfLastMaxMass; // the snapshot when it has the maximum subhalo mass, only considering past snapshots.
-  int SnapshotIndexOfLastIsolation; // the last snapshot when it was a central, only considering past snapshots.
+  int SnapshotIndexOfLastIsolation; // the last snapshot when it was a central, only considering past snapshots. -1 if
+                                    // the subhalo has always been a central
 
   int SnapshotIndexOfBirth; // when the subhalo first becomes resolved
   int SnapshotIndexOfDeath; // when the subhalo first becomes un-resolved; only set if
@@ -53,6 +54,7 @@ public:
 
   // profile properties
   float RmaxComoving;
+  float RmaxComovingOfLastMaxVmax;
   float VmaxPhysical;
   float LastMaxVmaxPhysical;
   int SnapshotIndexOfLastMaxVmax; // the snapshot when it has the maximum Vmax, only considering past snapshots.
@@ -97,9 +99,10 @@ public:
 
   ParticleList_t Particles;
 
-  /* Binding energies of the particles bound to the subhalo. It is a separate instance from ParticleList_t
-   * because it does not need communicating before unbinding. */
+  /* Binding/potential energies of the particles bound to the subhalo. They are a separate instance from ParticleList_t
+   * because they do not need communicating before unbinding. */
   vector<float> ParticleBindingEnergies;
+  vector<float> ParticlePotentialEnergies;
 
   SubIdList_t NestedSubhalos; // list of sub-in-subs.
 
@@ -127,6 +130,7 @@ public:
     SnapshotIndexOfLastIsolation = SpecialConst::NullSnapshotId;
     SnapshotIndexOfLastMaxMass = SpecialConst::NullSnapshotId;
     LastMaxMass = 0.;
+    RmaxComovingOfLastMaxVmax = 0.;
     LastMaxVmaxPhysical = 0.;
     SnapshotIndexOfLastMaxVmax = SpecialConst::NullSnapshotId;
     SnapshotIndexOfBirth = SpecialConst::NullSnapshotId;
@@ -322,6 +326,7 @@ public:
   void ConstrainToSingleHost(const HaloSnapshot_t &halo_snap);
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void RefineParticles();
+  void ReassignParticles(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
 
   /* To remove duplicate particles from the source subgroup. */

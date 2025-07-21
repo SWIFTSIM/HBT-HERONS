@@ -35,6 +35,8 @@ MaxSampleSizeOfPotentialEstimate 0
 
 # Test simulation does not provide splitting information
 ParticlesSplit 0
+
+SaveBoundParticlePotentialEnergies 1
 SaveBoundParticleBindingEnergies 1
 
 # Optional parameters; default values are shown here
@@ -42,3 +44,4 @@ SaveBoundParticleBindingEnergies 1
 #PeriodicBoundaryOn 1
 #SaveBoundParticleProperties 0
 #TracerParticleTypes 1 4 
+#DoNotSubsampleParticleTypes 5

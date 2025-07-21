@@ -10,12 +10,12 @@ then
 fi
 
 # Base folder of the simulation
-BASE_PATH=${1}
-HBT_FOLDER=$BASE_PATH/HBTplus
+BASE_FOLDER="${1}"
+HBT_FOLDER=$BASE_FOLDER/HBT-HERONS/
 
 # There should be an HBT folder already there. If not, a path may be wrong.
 if [ ! -d $HBT_FOLDER ]; then
-    echo "No HBTplus folder found in provided path. Check whether path is correct, and if so, create an HBTplus folder first."
+    echo "No HBT-HERONS folder found in provided path. Check whether path is correct, and if so, create an HBT-HERONS folder first."
 fi
 
 # Where logs for particle splits and HBT will be saved
@@ -31,7 +31,7 @@ chmod ug+rw $PARTICLE_SPLITS_LOGS_DIR
 mkdir "${HBT_FOLDER}/ParticleSplits"
 
 # Copy over the configuration file with the correct paths
-(cd ./templates/;. generate_config.sh $BASE_PATH $HBT_FOLDER)
+(cd ./templates/;. generate_config.sh $BASE_FOLDER $HBT_FOLDER)
 
 # Get the path where the snapshots are being saved. Should have been saved at the
 # configuration file.
@@ -40,7 +40,8 @@ SNAPSHOT_BASENAME=$(grep 'SnapshotFileBase' $HBT_FOLDER/config.txt | awk '{print
 
 # We now check how many COLIBRE snapshots have been done at the time of submission
 MIN_SNAPSHOT=0
-MAX_SNAPSHOT=$(find $SNAPSHOT_FOLDER -maxdepth 1 -name "${SNAPSHOT_BASENAME}_????" | wc -l)
+LATEST_SNAPSHOT=$(find $SNAPSHOT_FOLDER -maxdepth 2 -name "${SNAPSHOT_BASENAME}_????.hdf5" | sort -V | tail -n 1)
+MAX_SNAPSHOT=$(echo "${LATEST_SNAPSHOT: -9:4}" | sed 's/^0*//')
 
 # Abort if no snapshots are found
 if [ $MAX_SNAPSHOT -eq  0 ]; then
@@ -48,7 +49,7 @@ if [ $MAX_SNAPSHOT -eq  0 ]; then
   exit 1
 fi
 
-echo "Submitting an HBT+ job running from snapshots $MIN_SNAPSHOT to $(($MAX_SNAPSHOT - 1))"
+echo "Submitting an HBT-HERONS job running from snapshots $MIN_SNAPSHOT to $(($MAX_SNAPSHOT - 1))"
 
 # Copy the submission scripts into the HBT folders
 cp ./submission_scripts/submit_HBT.sh $HBT_FOLDER
@@ -57,6 +58,7 @@ cp ./submission_scripts/submit_particle_splits.sh $HBT_FOLDER
 # Replace the current PWD in those submission scripts, so that they have the global path of the HBT
 sed -i "s@CURRENT_PWD@${PWD}@g" $HBT_FOLDER/submit_HBT.sh
 sed -i "s@CURRENT_PWD@${PWD}@g" $HBT_FOLDER/submit_particle_splits.sh
+sed -i "s@BASE_FOLDER@${BASE_FOLDER}@g" $HBT_FOLDER/submit_particle_splits.sh
 
 # We first generate the splitting of particles 
 JOB_ID_SPLITS=$(sbatch --parsable \

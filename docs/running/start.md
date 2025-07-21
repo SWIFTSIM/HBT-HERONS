@@ -21,7 +21,6 @@ last one (`MaxSnapshotIndex`) of the simulation:
 
 === "With MPI"
 
-
     ```bash
     mpirun -np <NUMBER_MPI_RANKS> ./HBT <PATH_TO_PARAMETER_FILE>
     ```
@@ -42,7 +41,6 @@ If you are interested in running HBT-HERONS for a subset of the outputs,
 you can specify the range as follows:
 
 === "With MPI"
-
 
     ```bash
     mpirun -np <NUMBER_MPI_RANKS> ./HBT <PATH_TO_PARAMETER_FILE> <START_OUTPUT> <END_OUTPUT>
