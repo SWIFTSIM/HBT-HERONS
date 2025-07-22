@@ -2,7 +2,7 @@
 
 HBT-HERONS accepts several parameters, which tells the code about the simulation [format and file structure](#file-io), how subhaloes are [tracked and unbound](#subhaloes), the gravity [tree and softening](#gravity), the [unit system](#units) and whether the box is [cosmological](#simulation-box). There are also [miscellaneous](#miscellaneous) options provided for very specific simulation setups.
 
-Some of these parameters are **mandatory**, which means that the code will not work if no information is provided. Other parameters are optional, either because they are not used depending on the simulation setup, or because they default to predefined value. The default values are specified in [`src/config_parser.h`](https://github.com/SWIFTSIM/HBT-HERONS/blob/master/src/config_parser.h) and we provide them when relevant in the tables below.
+Some of these parameters are **mandatory**, which means that the code will not work if no information is provided. Other parameters are optional, either because they are not used depending on the simulation setup, or because they default to a predefined value. The default values are specified in [`src/config_parser.h`](https://github.com/SWIFTSIM/HBT-HERONS/blob/master/src/config_parser.h) and we provide them when relevant in the tables below.
 
 !!! tip
 
@@ -20,7 +20,7 @@ These parameters set the format of the simulation, how the output of the simulat
 | `HaloPath`                           | - | Path to the files containing the particle FoF group memberships. |
 | `SnapshotFileBase`                           | - | Base name for the snapshot files. |
 | `SnapshotDirBase`                           | - | Base name for the directories where snapshot subfiles are saved, if applicable. If there is no subdirectory,  omit this option.|
-| `SubhaloPath`                           | - | Base directory where the HBT-HERON catalogues will be saved. |
+| `SubhaloPath`                           | - | Base directory where the subhalo catalogues will be saved. |
 | `MinSnapshotIndex`                           | 0 | The minimum output number for the HBT-HERONS analysis. |
 | `MaxSnapshotIndex`                           | - | The maximum output number for the HBT-HERONS analysis. This does not equal the number of simulation outputs if only a subset of outputs is being analysed, as indicated by `SnapshotIdList`.  |
 | `SnapshotIdList`                           | - | Space-separated list indicating a subset of simulation outputs to analyse, if applicable. For example, if we only want to analyse every second snapshot of a ten snapshot run: 1 3 5 7 9. |
@@ -50,9 +50,9 @@ the values are set using the snapshot metadata.
 
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
-| `MassInMsunh`                   | 1e10 | Mass of particles in units of Msun / h.                   |
-| `LengthInMpch`                           | 1 | Lengths in units of Mpc / h. |
-| `VelInKmS`                           | 1| Velocity in units of km  / s. |
+| `MassInMsunh`                   | 1e10 | Mass of particles in units of $\mathrm{M}_{\odot}\,h^{-1}$.                   |
+| `LengthInMpch`                           | 1 | Lengths in units of $\mathrm{Mpc}\,h^{-1}$. |
+| `VelInKmS`                           | 1| Velocity in units of $\mathrm{km}\,\mathrm{s}^{-1}$. |
 
 ## Simulation box
 
@@ -82,8 +82,8 @@ The value of the softening used for the gravity kernel. Should always be provide
 
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
-| `SofteningHalo`                   | - | The comoving gravitational softening value. Assumed to be the same for all particle types.                   |
-| `MaxPhysicalSofteningHalo`                           | - | The maximum physical gravitational softening value. If no value is provided, the gravitational softening length will always be based on `SofteningHalo`. Assumed to be the same for all particle types. |
+| `SofteningHalo`                   | - | The comoving gravitational softening value in units of `LengthInMpch`. Assumed to be the same for all particle types.                   |
+| `MaxPhysicalSofteningHalo`                           | - | The maximum physical gravitational softening value in units of `LengthInMpch`. If no value is provided, the gravitational softening length will always be based on `SofteningHalo`. Assumed to be the same for all particle types. |
 
 ## Subhaloes
 
