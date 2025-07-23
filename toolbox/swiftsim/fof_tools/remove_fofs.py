@@ -93,6 +93,8 @@ def update_fof_group_memberships(snapshot_base_folder, snapshot_basename, snapsh
         print(f"Reading FoF catalogue for snapshot number {snap_nr}")
         print(f"Opening file: {catalogue_filenames}")
 
+    # NOTE: we can compute the FoF group sizes and ids directly from the particle datai instead of calling
+    # load_group_catalogues
     # Read FOF group ids to remove from catalogue
     local_group_ids, local_group_sizes = load_group_catalogues(catalogue_filenames)
 
