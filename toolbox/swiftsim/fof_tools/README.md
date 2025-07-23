@@ -3,7 +3,7 @@
 This folder contains scrip intended to modify or generate Swift FoF group particle
 data.
 
-## `remove_fofs.py`
+## `remove_fof_groups.py`
 
 The script will remove FoF groups from the particle data if they are below a chosen
 size threshold. It is provided for cases when the FoF group minimum size (`FOF:min_group_size`)

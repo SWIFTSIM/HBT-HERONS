@@ -61,7 +61,7 @@ def read_particle_groups(snapshot_path, particle_type):
 
     return particle_group_ids
 
-def update_fof_group_memberships(snapshot_base_folder, snapshot_basename, snapshot_is_distributed, fof_base_folder, fof_is_distributed, snap_nr, size_threshold):
+def remove_fof_groups(snapshot_base_folder, snapshot_basename, snapshot_is_distributed, fof_base_folder, fof_is_distributed, snap_nr, size_threshold):
     """
     Makes all particles that belong to FoF groups whose size is
     lower than the provided threshold hostless.
