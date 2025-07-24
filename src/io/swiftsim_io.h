@@ -26,7 +26,7 @@ struct SwiftSimHeader_t
   double Hz;
   double h;
   double mass[TypeMax];
-  int npart[TypeMax];
+  HBTInt npart[TypeMax];
   HBTInt npartTotal[TypeMax];
   double MassInMsunh;
   double LengthInMpch;
@@ -55,7 +55,7 @@ class SwiftSimReader_t
                           bool FlagReadParticleId);
   void GetFileName(int ifile, string &filename);
   void SetSnapshot(int snapshotId);
-  void GetParticleCountInFile(hid_t file, int np[]);
+  void GetParticleCountInFile(hid_t file, HBTInt np[]);
 
   /* To load information about particle splits */
   void GetParticleSplitFileName(int snapshotId, string &filename);

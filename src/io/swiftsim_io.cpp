@@ -217,12 +217,12 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   H5Fclose(file);
 }
 
-void SwiftSimReader_t::GetParticleCountInFile(hid_t file, int np[])
+void SwiftSimReader_t::GetParticleCountInFile(hid_t file, HBTInt np[])
 {
   int NumPartTypes;
   ReadAttribute(file, "Header", "NumPartTypes", H5T_NATIVE_INT, &NumPartTypes);
-  int NumPart_ThisFile[NumPartTypes]; // same size as attributes in the file
-  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, NumPart_ThisFile);
+  HBTInt NumPart_ThisFile[NumPartTypes]; // same size as attributes in the file
+  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_LLONG, NumPart_ThisFile);
   for (int i = 0; i < TypeMax; i++)
     if (i < NumPartTypes)
       np[i] = NumPart_ThisFile[i];
@@ -244,7 +244,7 @@ HBTInt SwiftSimReader_t::CompileFileOffsets(int nfiles)
   {
     offset_file.push_back(offset);
 
-    int np_this[TypeMax];
+    HBTInt np_this[TypeMax];
     hid_t file = OpenFile(ifile);
     GetParticleCountInFile(file, np_this);
     H5Fclose(file);
@@ -269,7 +269,7 @@ static void check_id_size(hid_t loc)
 void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count)
 {
   hid_t file = OpenFile(ifile);
-  vector<int> np_this(TypeMax);
+  vector<HBTInt> np_this(TypeMax);
   vector<HBTInt> offset_this(TypeMax);
   GetParticleCountInFile(file, np_this.data());
   CompileOffsets(np_this, offset_this);
@@ -458,7 +458,7 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile
                                           bool FlagReadParticleId)
 {
   hid_t file = OpenFile(ifile);
-  vector<int> np_this(TypeMax);
+  vector<HBTInt> np_this(TypeMax);
   vector<HBTInt> offset_this(TypeMax);
   GetParticleCountInFile(file, np_this.data());
   CompileOffsets(np_this, offset_this);
