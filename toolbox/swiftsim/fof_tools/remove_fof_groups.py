@@ -17,10 +17,13 @@ from virgo.mpi.gather_array import gather_array
 import virgo.mpi.parallel_hdf5 as phdf5
 
 
-def load_group_catalogues(catalogue_path):
+def load_group_catalogues(catalogue_filenames):
     """
     Reads the Swift FoF group catalogue and returns their IDs and particle
     sizes.
+
+    The FOF virtual files sometimes have NumFilesPerSnapshot != 1, so we
+    explicity pass a list of the filenames to read
 
     Parameters
     ----------
@@ -34,13 +37,9 @@ def load_group_catalogues(catalogue_path):
     group_sizes: np.ndarray
         Total particle size for each FoF group.
     """
-    file = phdf5.MultiFile(
-        catalogue_path, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
-    )
+    file = phdf5.MultiFile(catalogue_filenames, comm=comm)
     group_sizes = file.read(f"Groups/Sizes")
     group_ids = file.read(f"Groups/GroupIDs")
-    del file
-
     return group_ids, group_sizes
 
 
@@ -64,7 +63,6 @@ def read_particle_groups(snapshot_path, particle_type):
         snapshot_path, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
     )
     particle_group_ids = file.read(f"PartType{particle_type}/FOFGroupIDs_old")
-    del file
 
     return particle_group_ids
 
@@ -106,14 +104,34 @@ def remove_fof_groups(
         f"{snapshot_base_folder}/{snapshot_basename}_{snap_nr:04d}/{snapshot_basename}_{snap_nr:04d}"
         + (".{file_nr}.hdf5" if snapshot_is_distributed else ".hdf5")
     )
-    catalogue_filenames = (
-        f"{fof_base_folder}/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}"
-        + (".{file_nr}.hdf5" if fof_is_distributed else ".hdf5")
-    )
+    # The FOF virtual files sometimes have NumFilesPerSnapshot != 1, so we
+    # explicity create a list of the filenames to pass to MultiFile
+    if fof_is_distributed:
+        catalogue_basename = f"{fof_base_folder}/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{{file_nr}}.hdf5"
+        if comm_rank == 0:
+            with h5py.File(catalogue_basename.format(file_nr=0), 'r') as file:
+                nr_files = file['Header'].attrs['NumFilesPerSnapshot'][0]
+        else:
+            nr_files = None
+        nr_files = comm.bcast(nr_files)
+        catalogue_filenames = [
+            catalogue_basename.format(file_nr=i) for i in range(nr_files)
+        ]
+    else:
+        catalogue_filenames = [
+            f"{fof_base_folder}/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.hdf5"
+        ]
+        if comm_rank == 0:
+            with h5py.File(catalogue_filenames[0], 'r') as file:
+                if (file['Header'].attrs['Virtual'][0] == 1) and (comm_size > 1):
+                    print("Can't read a virtual FOF file with multiple ranks")
+                    comm.Abort()
+        comm.barrier()
 
     if comm_rank == 0:
         print(f"Reading FoF catalogue for snapshot number {snap_nr}")
         print(f"Opening file: {catalogue_filenames}")
+    comm.barrier()
 
     # Read FOF group ids to remove from catalogue
     local_group_ids, local_group_sizes = load_group_catalogues(catalogue_filenames)
