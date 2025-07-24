@@ -222,7 +222,7 @@ void SwiftSimReader_t::GetParticleCountInFile(hid_t file, HBTInt np[])
   int NumPartTypes;
   ReadAttribute(file, "Header", "NumPartTypes", H5T_NATIVE_INT, &NumPartTypes);
   HBTInt NumPart_ThisFile[NumPartTypes]; // same size as attributes in the file
-  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_LONG, NumPart_ThisFile);
+  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_LLONG, NumPart_ThisFile);
   for (int i = 0; i < TypeMax; i++)
     if (i < NumPartTypes)
       np[i] = NumPart_ThisFile[i];
