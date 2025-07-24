@@ -108,8 +108,8 @@ def remove_fof_groups(
     if fof_is_distributed:
         catalogue_basename = f"{fof_base_folder}/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{{file_nr}}.hdf5"
         if comm_rank == 0:
-            with h5py.File(catalogue_basename.format(file_nr=0), 'r') as file:
-                nr_files = file['Header'].attrs['NumFilesPerSnapshot'][0]
+            with h5py.File(catalogue_basename.format(file_nr=0), "r") as file:
+                nr_files = file["Header"].attrs["NumFilesPerSnapshot"][0]
         else:
             nr_files = None
         nr_files = comm.bcast(nr_files)
@@ -121,8 +121,8 @@ def remove_fof_groups(
             f"{fof_base_folder}/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.hdf5"
         ]
         if comm_rank == 0:
-            with h5py.File(catalogue_filenames[0], 'r') as file:
-                if (file['Header'].attrs['Virtual'][0] == 1) and (comm_size > 1):
+            with h5py.File(catalogue_filenames[0], "r") as file:
+                if (file["Header"].attrs["Virtual"][0] == 1) and (comm_size > 1):
                     print("Can't read a virtual FOF file with multiple ranks")
                     comm.Abort()
         comm.barrier()
@@ -130,8 +130,8 @@ def remove_fof_groups(
     if comm_rank == 0:
         print(f"Reading FoF catalogue for snapshot number {snap_nr}")
         print(f"Opening file: {catalogue_filenames}")
-        with h5py.File(catalogue_filenames[0], 'r') as file:
-            header_total_nr_groups = file['Header'].attrs['NumGroups_Total'][0]
+        with h5py.File(catalogue_filenames[0], "r") as file:
+            header_total_nr_groups = file["Header"].attrs["NumGroups_Total"][0]
     comm.barrier()
 
     # Read FOF group ids to remove from catalogue
