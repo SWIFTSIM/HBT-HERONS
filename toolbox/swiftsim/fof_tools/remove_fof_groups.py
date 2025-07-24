@@ -12,7 +12,6 @@ os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
 import h5py
 import numpy as np
-import virgo.mpi.util
 from virgo.mpi.gather_array import gather_array
 import virgo.mpi.parallel_hdf5 as phdf5
 
@@ -131,26 +130,53 @@ def remove_fof_groups(
     if comm_rank == 0:
         print(f"Reading FoF catalogue for snapshot number {snap_nr}")
         print(f"Opening file: {catalogue_filenames}")
+        with h5py.File(catalogue_filenames[0], 'r') as file:
+            header_total_nr_groups = file['Header'].attrs['NumGroups_Total'][0]
     comm.barrier()
 
     # Read FOF group ids to remove from catalogue
     local_group_ids, local_group_sizes = load_group_catalogues(catalogue_filenames)
+
+    # Get the group null id used in this simulation
+    if comm_rank == 0:
+        with h5py.File(snapshot_filenames.format(snap_nr=snap_nr, file_nr=0)) as file:
+            null_group_id = int(file["Parameters"].attrs["FOF:group_id_default"])
+    else:
+        null_group_id = None
+    null_group_id = comm.bcast(null_group_id, root=0)
+    assert null_group_id is not None
+    comm.barrier()
 
     # Find total number of haloes that require fixing and the total
     total_nr_groups_to_remove = comm.allreduce(
         (local_group_sizes < size_threshold).sum()
     )
     total_nr_groups = comm.allreduce(len(local_group_ids))
-
     if total_nr_groups_to_remove == 0:
         if comm_rank == 0:
             print("No FOF groups need to be removed. Exiting now.")
         return
-
     if comm_rank == 0:
         print(
             f"We will remove {total_nr_groups_to_remove} FOF groups from the snapshots. This is {total_nr_groups_to_remove / total_nr_groups * 100:.3f}% of the total."
         )
+    comm.barrier()
+
+    # Create the array "remove_group"
+    # This can indexed using the FOFGroupIDs value from a particle
+    # and indicates whether that FOF should be kept
+    global_group_ids = gather_array(local_group_ids)
+    global_group_sizes = gather_array(local_group_sizes)
+    if comm_rank == 0:
+        max_group_id = np.max(global_group_ids)
+        assert header_total_nr_groups == total_nr_groups
+        assert max_group_id == global_group_ids.shape[0]
+        assert np.unique(global_group_ids).shape[0] == global_group_ids.shape[0]
+        remove_group = np.zeros(max_group_id + 1, dtype=bool)
+        remove_group[global_group_ids] = global_group_sizes < size_threshold
+    else:
+        remove_group = None
+    remove_group = comm.bcast(remove_group)
 
     # Before changing anything, make sure that we have renamed the original FOF dataset
     if comm_rank == 0:
@@ -169,31 +195,6 @@ def remove_fof_groups(
                     group = file[f"PartType{particle_type}"]
                     group.move("FOFGroupIDs", "FOFGroupIDs_old")
     comm.barrier()
-
-    # Get the group null id used in this simulation
-    if comm_rank == 0:
-        with h5py.File(snapshot_filenames.format(snap_nr=snap_nr, file_nr=0)) as file:
-            null_group_id = int(file["Parameters"].attrs["FOF:group_id_default"])
-    else:
-        null_group_id = None
-    null_group_id = comm.bcast(null_group_id, root=0)
-    assert null_group_id is not None
-    comm.barrier()
-
-    # Create the array "remove_group"
-    # This can indexed using the FOFGroupIDs value from a particle
-    # and indicates whether that FOF should be kept
-    global_group_ids = gather_array(local_group_ids)
-    global_group_sizes = gather_array(local_group_sizes)
-    if comm_rank == 0:
-        max_group_id = np.max(global_group_ids)
-        assert max_group_id == global_group_ids.shape[0]
-        assert np.unique(global_group_ids).shape[0] == global_group_ids.shape[0]
-        remove_group = np.zeros(max_group_id + 1, dtype=bool)
-        remove_group[global_group_ids] = global_group_sizes < size_threshold
-    else:
-        remove_group = None
-    remove_group = comm.bcast(remove_group)
 
     # Load the fof group ids of each particle type.
     file = phdf5.MultiFile(
