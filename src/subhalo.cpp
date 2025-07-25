@@ -606,5 +606,5 @@ vector<HBTInt> Subhalo_t::GetMostBoundTracerIds(HBTInt n)
  * overlap in phase space. */
 HBTInt Subhalo_t::GetCoreSize()
 {
-  return std::max(Nbound * HBTConfig.SubCoreSizeFactor, HBTConfig.SubCoreSizeMin);
+  return std::max(static_cast<HBTInt>(Nbound * HBTConfig.SubCoreSizeFactor), HBTConfig.SubCoreSizeMin);
 }
