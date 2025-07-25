@@ -203,6 +203,12 @@ public:
 #endif
   }
   vector<HBTInt> GetMostBoundTracerIds(HBTInt n);
+
+private:
+  /* To determine number of most bound tracer particles used to estimate the
+   * position and velocity of the subhalo.*/
+   HBTInt GetCoreSize();
+
 };
 
 class MemberShipTable_t
@@ -331,10 +337,6 @@ public:
 
   /* To remove duplicate particles from the source subgroup. */
   void CleanTracks();
-
-  /* To determine number of most bound tracer particles used to estimate the
-   * position and velocity of the subhalo.*/
-  HBTInt GetCoreSize();
 
   HBTInt size() const
   {
