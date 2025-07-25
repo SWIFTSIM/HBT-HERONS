@@ -92,7 +92,6 @@ def copy_object(src_obj, dst_obj, src_filename, prefix=""):
             )
 
 
-
 def remove_fof_groups(
     snapshot_base_folder=None,
     output_base_folder=None,
@@ -170,7 +169,7 @@ def remove_fof_groups(
         comm.barrier()
 
     if comm_rank == 0:
-        print('Creating output files')
+        print("Creating output files")
     # Assign files to ranks
     files_per_rank = np.zeros(comm_size, dtype=int)
     files_per_rank[:] = nr_files // comm_size
