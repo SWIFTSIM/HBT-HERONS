@@ -66,8 +66,36 @@ def read_particle_groups(snapshot_path, particle_type):
     return particle_group_ids
 
 
+def copy_attrs(src_obj, dst_obj):
+    for key, val in src_obj.attrs.items():
+        dst_obj.attrs[key] = val
+
+
+def copy_object(src_obj, dst_obj, src_filename, prefix=""):
+    copy_attrs(src_obj, dst_obj)
+    for name, item in src_obj.items():
+        if isinstance(item, h5py.Dataset):
+            shape = item.shape
+            dtype = item.dtype
+            layout = h5py.VirtualLayout(shape=shape, dtype=dtype)
+            vsource = h5py.VirtualSource(src_filename, prefix + name, shape=shape)
+            layout[...] = vsource
+            dst_obj.create_virtual_dataset(name, layout)
+            copy_attrs(item, dst_obj[name])
+        elif isinstance(item, h5py.Group):
+            new_group = dst_obj.create_group(name)
+            copy_object(
+                item,
+                new_group,
+                src_filename,
+                prefix + name + "/",
+            )
+
+
+
 def remove_fof_groups(
     snapshot_base_folder=None,
+    output_base_folder=None,
     snapshot_basename=None,
     snapshot_is_distributed=None,
     fof_base_folder=None,
@@ -98,23 +126,37 @@ def remove_fof_groups(
         whose size is below this threshold will be removed.
     """
 
-    # Make a format string for the filenames
-    snapshot_filenames = (
+    # Make a format string for the input/output snapshot filenames
+    snap_filepath = (
         f"{snapshot_base_folder}/{snapshot_basename}_{snap_nr:04d}/{snapshot_basename}_{snap_nr:04d}"
         + (".{file_nr}.hdf5" if snapshot_is_distributed else ".hdf5")
     )
+    output_filepath = (
+        f"{output_base_folder}/{snapshot_basename}_{snap_nr:04d}/{snapshot_basename}_{snap_nr:04d}"
+        + (".{file_nr}.hdf5" if snapshot_is_distributed else ".hdf5")
+    )
+    if comm_rank == 0:
+        with h5py.File(snap_filepath.format(file_nr=0), "r") as file:
+            nr_files = file["Header"].attrs["NumFilesPerSnapshot"][0]
+        output_dirname = os.path.dirname(output_filepath)
+        if not os.path.exists(output_dirname):
+            os.makedirs(output_dirname, exist_ok=True)
+    else:
+        nr_files = None
+    nr_files = comm.bcast(nr_files)
+
     # The FOF virtual files sometimes have NumFilesPerSnapshot != 1, so we
     # explicity create a list of the filenames to pass to MultiFile
     if fof_is_distributed:
         catalogue_basename = f"{fof_base_folder}/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{{file_nr}}.hdf5"
         if comm_rank == 0:
             with h5py.File(catalogue_basename.format(file_nr=0), "r") as file:
-                nr_files = file["Header"].attrs["NumFilesPerSnapshot"][0]
+                nr_fof_files = file["Header"].attrs["NumFilesPerSnapshot"][0]
         else:
-            nr_files = None
-        nr_files = comm.bcast(nr_files)
+            nr_fof_files = None
+        nr_fof_files = comm.bcast(nr_fof_files)
         catalogue_filenames = [
-            catalogue_basename.format(file_nr=i) for i in range(nr_files)
+            catalogue_basename.format(file_nr=i) for i in range(nr_fof_files)
         ]
     else:
         catalogue_filenames = [
@@ -128,6 +170,32 @@ def remove_fof_groups(
         comm.barrier()
 
     if comm_rank == 0:
+        print('Creating output files')
+    # Assign files to ranks
+    files_per_rank = np.zeros(comm_size, dtype=int)
+    files_per_rank[:] = nr_files // comm_size
+    remainder = nr_files % comm_size
+    if remainder > 0:
+        step = max(nr_files // (remainder + 1), 1)
+        for i in range(remainder):
+            files_per_rank[(i * step) % comm_size] += 1
+    first_file = np.cumsum(files_per_rank) - files_per_rank
+    assert sum(files_per_rank) == nr_files
+
+    # Create output files
+    for i_file in range(
+        first_file[comm_rank], first_file[comm_rank] + files_per_rank[comm_rank]
+    ):
+        src_filename = snap_filepath.format(file_nr=i_file)
+        dst_filename = output_filepath.format(file_nr=i_file)
+        with (
+            h5py.File(src_filename, "r") as src_file,
+            h5py.File(dst_filename, "w") as dst_file,
+        ):
+            rel_filename = os.path.relpath(src_filename, os.path.dirname(dst_filename))
+            copy_object(src_file, dst_file, rel_filename)
+
+    if comm_rank == 0:
         print(f"Reading FoF catalogue for snapshot number {snap_nr}")
         print(f"Opening file: {catalogue_filenames}")
         with h5py.File(catalogue_filenames[0], "r") as file:
@@ -139,7 +207,7 @@ def remove_fof_groups(
 
     # Get the group null id used in this simulation
     if comm_rank == 0:
-        with h5py.File(snapshot_filenames.format(snap_nr=snap_nr, file_nr=0)) as file:
+        with h5py.File(output_filepath.format(snap_nr=snap_nr, file_nr=0)) as file:
             null_group_id = int(file["Parameters"].attrs["FOF:group_id_default"])
     else:
         null_group_id = None
@@ -183,11 +251,11 @@ def remove_fof_groups(
         print("Renaming original FOF dataset to FOFGroupIDs_old.")
 
         # Get number of subfiles
-        with h5py.File(snapshot_filenames.format(file_nr=0)) as file:
+        with h5py.File(output_filepath.format(file_nr=0)) as file:
             nr_subfiles = file["Header"].attrs["NumFilesPerSnapshot"][0]
 
         for subfile in range(nr_subfiles):
-            with h5py.File(snapshot_filenames.format(file_nr=subfile), "a") as file:
+            with h5py.File(output_filepath.format(file_nr=subfile), "a") as file:
                 for particle_type in [0, 1, 4, 5]:
                     # Check we will not overwrite anything by accident
                     assert f"PartType{particle_type}/FOFGroupIDs_old" not in file
@@ -198,7 +266,7 @@ def remove_fof_groups(
 
     # Load the fof group ids of each particle type.
     file = phdf5.MultiFile(
-        snapshot_filenames,
+        output_filepath,
         file_nr_attr=("Header", "NumFilesPerSnapshot"),
         comm=comm,
     )
@@ -210,7 +278,7 @@ def remove_fof_groups(
 
         # Read memberships
         data = {}
-        data[f"FOFGroupIDs"] = read_particle_groups(snapshot_filenames, particle_type)
+        data[f"FOFGroupIDs"] = read_particle_groups(output_filepath, particle_type)
         comm.barrier()
 
         # Find those we need to remove
@@ -228,7 +296,7 @@ def remove_fof_groups(
         file.write(
             data,
             number_particles_per_file,
-            snapshot_filenames,
+            output_filepath,
             "a",
             group=f"PartType{particle_type}",
         )
@@ -240,11 +308,11 @@ def remove_fof_groups(
         print("Copying attributes from old to new FOF dataset.")
 
         # Get number of subfiles
-        with h5py.File(snapshot_filenames.format(file_nr=0)) as file:
+        with h5py.File(output_filepath.format(file_nr=0)) as file:
             nr_subfiles = file["Header"].attrs["NumFilesPerSnapshot"][0]
 
         for subfile in range(nr_subfiles):
-            with h5py.File(snapshot_filenames.format(file_nr=subfile), "a") as file:
+            with h5py.File(output_filepath.format(file_nr=subfile), "a") as file:
                 for particle_type in [0, 1, 4, 5]:
                     attributes = dict(
                         file[f"PartType{particle_type}/FOFGroupIDs_old"].attrs
@@ -273,7 +341,7 @@ if __name__ == "__main__":
         "--snapshot_base_folder",
         type=str,
         required=True,
-        help="Base path where particle snapshots are saved.",
+        help="Base path of the input particle snapshots.",
     )
     parser.add_argument(
         "--snapshot_basename",
@@ -305,6 +373,12 @@ if __name__ == "__main__":
         type=int,
         required=True,
         help="Minimum size threshold for a FoF group to not be removed.",
+    )
+    parser.add_argument(
+        "--output_base_folder",
+        type=str,
+        required=True,
+        help="Base path to save the edited particle snapshots.",
     )
 
     args = parser.parse_args()
