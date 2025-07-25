@@ -140,6 +140,12 @@ def remove_fof_groups(
         output_dirname = os.path.dirname(output_filepath)
         if not os.path.exists(output_dirname):
             os.makedirs(output_dirname, exist_ok=True)
+        if os.path.exists(output_filepath.format(file_nr=0)):
+            print('Output file already exist')
+            comm.Abort()
+        if nr_files < comm_size:
+            print("Can't run with more ranks than snapshot chunk files")
+            comm.Abort()
     else:
         nr_files = None
     nr_files = comm.bcast(nr_files)
@@ -248,19 +254,16 @@ def remove_fof_groups(
     # Before changing anything, make sure that we have renamed the original FOF dataset
     if comm_rank == 0:
         print("Renaming original FOF dataset to FOFGroupIDs_old.")
+    for i_file in range(
+        first_file[comm_rank], first_file[comm_rank] + files_per_rank[comm_rank]
+    ):
+        with h5py.File(output_filepath.format(file_nr=i_file), "a") as file:
+            for particle_type in [0, 1, 4, 5]:
+                # Check we will not overwrite anything by accident
+                assert f"PartType{particle_type}/FOFGroupIDs_old" not in file
 
-        # Get number of subfiles
-        with h5py.File(output_filepath.format(file_nr=0)) as file:
-            nr_subfiles = file["Header"].attrs["NumFilesPerSnapshot"][0]
-
-        for subfile in range(nr_subfiles):
-            with h5py.File(output_filepath.format(file_nr=subfile), "a") as file:
-                for particle_type in [0, 1, 4, 5]:
-                    # Check we will not overwrite anything by accident
-                    assert f"PartType{particle_type}/FOFGroupIDs_old" not in file
-
-                    group = file[f"PartType{particle_type}"]
-                    group.move("FOFGroupIDs", "FOFGroupIDs_old")
+                group = file[f"PartType{particle_type}"]
+                group.move("FOFGroupIDs", "FOFGroupIDs_old")
     comm.barrier()
 
     # Load the fof group ids of each particle type.
@@ -305,24 +308,21 @@ def remove_fof_groups(
 
     if comm_rank == 0:
         print("Copying attributes from old to new FOF dataset.")
+    for i_file in range(
+        first_file[comm_rank], first_file[comm_rank] + files_per_rank[comm_rank]
+    ):
+        with h5py.File(output_filepath.format(file_nr=i_file), "a") as file:
+            for particle_type in [0, 1, 4, 5]:
+                attributes = dict(
+                    file[f"PartType{particle_type}/FOFGroupIDs_old"].attrs
+                )
+                for attr, value in attributes.items():
+                    file[f"PartType{particle_type}/FOFGroupIDs"].attrs[attr] = value
 
-        # Get number of subfiles
-        with h5py.File(output_filepath.format(file_nr=0)) as file:
-            nr_subfiles = file["Header"].attrs["NumFilesPerSnapshot"][0]
-
-        for subfile in range(nr_subfiles):
-            with h5py.File(output_filepath.format(file_nr=subfile), "a") as file:
-                for particle_type in [0, 1, 4, 5]:
-                    attributes = dict(
-                        file[f"PartType{particle_type}/FOFGroupIDs_old"].attrs
-                    )
-                    for attr, value in attributes.items():
-                        file[f"PartType{particle_type}/FOFGroupIDs"].attrs[attr] = value
-
-                    # Update the description of the old FOF group ids, to prevent confusion
-                    file[f"PartType{particle_type}/FOFGroupIDs_old"].attrs[
-                        "Description"
-                    ] = "Old values of the Friends-Of-Friends ID membership of particles. Use the new dataset instead."
+                # Update the description of the old FOF group ids, to prevent confusion
+                file[f"PartType{particle_type}/FOFGroupIDs_old"].attrs[
+                    "Description"
+                ] = "Old values of the Friends-Of-Friends ID membership of particles. Use the new dataset instead."
     comm.barrier()
 
     if comm_rank == 0:
