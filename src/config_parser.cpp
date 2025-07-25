@@ -354,10 +354,11 @@ void Parameter_t::CheckValidityParameters()
     throw invalid_argument(error_message.str());
   }
 
-  /* No negative values for SubCoreSizeFactor allowed. */
-  if(SubCoreSizeFactor < 0)
+  /* No negative values for SubCoreSizeFactor allowed and we cannot use more than
+   * Nbound particles. */
+  if((SubCoreSizeFactor < 0.) | (SubCoreSizeFactor > 1.))
   {
-    error_message << "SubCoreSizeFactor: Negative values are not allowed. Use a value of 0 (no scaling with subhalo mass) or larger." << endl;
+    error_message << "SubCoreSizeFactor: allowed values are only within [0, 1], with 0 disabling the core size scaling with Nbound." << endl;
     throw invalid_argument(error_message.str());
   }
 
