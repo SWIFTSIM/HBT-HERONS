@@ -10,6 +10,7 @@ theme:
     - navigation.tabs.sticky
     - toc.integrate
     - content.code.copy
+    - content.tabs.link
 
 markdown_extensions:
   - admonition
@@ -26,6 +27,8 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.arithmatex:
       generic: true
+  - md_in_html
+  - pymdownx.blocks.caption
 
 # For Latex equations
 extra_javascript:
@@ -46,6 +49,8 @@ nav:
       - ./outputs/format.md
       - ./outputs/subhalo_properties.md
       - ./outputs/merger_trees.md
+  - Algorithm:
+      - ./algorithm/parameter_choices.md
 
 repo_url: https://github.com/SWIFTSIM/HBT-HERONS
 repo_name: SWIFTSIM/HBT-HERONS
