@@ -122,7 +122,7 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
     for (int i; ParameterValues >> i;)
       DoNotSubsampleParticleTypes.push_back(i);
 
-    /* Create a bitmask, to be used internally by the code to identify which 
+    /* Create a bitmask, to be used internally by the code to identify which
      * particles it should not subsample during unbinding. */
     DoNotSubsampleParticleBitMask = 0;
 
@@ -336,7 +336,7 @@ void Parameter_t::CheckValidityParameters()
     if (MaxSnapshotIndex != (SnapshotIdList.size() - 1))
     {
       error_message << "MaxSnapshotIndex (" << MaxSnapshotIndex << "): inconsistent with SnapshotIdList (SnapshotIdList.size() - 1 = " << (SnapshotIdList.size() - 1) << ")." << endl;
-      throw invalid_argument(error_message.str());      
+      throw invalid_argument(error_message.str());
     }
   }
 
@@ -347,7 +347,22 @@ void Parameter_t::CheckValidityParameters()
     throw invalid_argument(error_message.str());
   }
 
-  /* Cannot say we subsample in DMO and then disable DM particle subsampling. 
+  /* We always need at least one particle for core properties of self-bound subhaloes. */
+  if(SubCoreSizeMin < 1)
+  {
+    error_message << "SubCoreSizeMin: the minimum allowed value is 1. Increase the value of SubCoreSizeMin. " << endl;
+    throw invalid_argument(error_message.str());
+  }
+
+  /* No negative values for SubCoreSizeFactor allowed and we cannot use more than
+   * Nbound particles. */
+  if((SubCoreSizeFactor < 0.) | (SubCoreSizeFactor > 1.))
+  {
+    error_message << "SubCoreSizeFactor: allowed values are only within [0, 1], with 0 disabling the core size scaling with Nbound." << endl;
+    throw invalid_argument(error_message.str());
+  }
+
+  /* Cannot say we subsample in DMO and then disable DM particle subsampling.
    * Conversely, we cannot subsample in hydro and then disable subsampling for all
    * relevant particle types */
   {
@@ -357,7 +372,7 @@ void Parameter_t::CheckValidityParameters()
     vector<int> TestParticleTypes = {0, 1, 4, 5};
 #endif
 
-    /* Create a bit mask corresponding to disabling subsampling for all relevant types */    
+    /* Create a bit mask corresponding to disabling subsampling for all relevant types */
     int TestBitMask = 0;
     for (int i : TestParticleTypes)
       TestBitMask += 1 << i;
@@ -375,7 +390,7 @@ void Parameter_t::CheckValidityParameters()
   }
 }
 
-/* Checks if the input parameter file contains all required parameters and that 
+/* Checks if the input parameter file contains all required parameters and that
  * they have valid values. */
 void Parameter_t::CheckParameters()
 {

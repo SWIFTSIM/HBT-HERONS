@@ -8,7 +8,6 @@
 #include "snapshot_number.h"
 #include "subhalo.h"
 
-#define NumPartCoreMax 20
 #define PhaseSpaceDistanceThreshold 2.
 
 /* Computes distance in phase space between the current subhalo and a reference
@@ -111,6 +110,9 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
   vector<double> pos(3, 0), pos2(3, 0);
   vector<double> vel(3, 0), vel2(3, 0);
 
+  /* How many particles we will use */
+  HBTInt CoreSize = GetCoreSize();
+
   // Use first particle as reference point for box wrap
   vector<double> origin(3, 0);
   if (HBTConfig.PeriodicBoundaryOn)
@@ -148,11 +150,11 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
           vel2[dim] += m * dv * dv;
         }
       }
-      if (NumPart == NumPartCoreMax)
+      if (NumPart == CoreSize)
         break;
       /* Next particle in subhalo */
     }
-    if (NumPart == NumPartCoreMax)
+    if (NumPart == CoreSize)
       break;
     /* Next pass */
   }
