@@ -50,6 +50,7 @@ nav:
       - ./outputs/subhalo_properties.md
       - ./outputs/merger_trees.md
   - Algorithm:
+      - ./algorithm/overview.md
       - ./algorithm/parameter_choices.md
 
 repo_url: https://github.com/SWIFTSIM/HBT-HERONS

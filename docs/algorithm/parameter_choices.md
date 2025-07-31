@@ -20,9 +20,9 @@ We show how a select number of summary statistics change when varying each free 
 
 The statistics are defined as follows:
 
-* **Subhalo mass functions** ($M^{i}_{\mathrm{bound}}$): the number density of self-bound subhaloes at $z = 0$, as a function of their current bound mass ($M^{\rm z=0}_{\mathrm{bound}}$) or their peak bound mass ($M^{\rm peak}_{\mathrm{bound}}$). The central *vs* satellite classification is done based on the `Depth` value of the subhalo at $z = 0$, where `Depth = 0` is a central subhalo and a satellite if not.
-* **Subhalo velocity functions** ($V^{i}_{\mathrm{max}}$): the number density of self-bound subhaloes at $z = 0$, as a function of their current maximum circular velocity ($V^{\rm z=0}_{\mathrm{max}}$) or their peak circular velocity ($V^{\rm peak}_{\mathrm{max}}$). The central *vs* satellite classification is done based on the `Depth` value of the subhalo at $z = 0$, where `Depth = 0` is a central subhalo and a satellite if not.
-* **Length of the main progenitor branch** ($L_{\rm progenitor}$): how long the main progenitor branch of self-bound subhaloes at $z = 0$ is. The central *vs* satellite classification is done based on the `Depth` value of the subhalo at $z = 0$, where `Depth = 0` is a central subhalo and a satellite if not. We further subdivide the subhalo population according to $M^{\rm z=0}_{\mathrm{bound}}$.
+* **Subhalo mass functions** ($M^{i}_{\mathrm{bound}}$): the number of self-bound subhaloes at $z = 0$, as a function of their current bound mass ($M^{\rm z=0}_{\mathrm{bound}}$) or their peak bound mass ($M^{\rm peak}_{\mathrm{bound}}$). The central *vs* satellite classification is done based on the `Depth` value of the subhalo at $z = 0$, where `Depth = 0` is a central subhalo and a satellite if `Depth != 0`.
+* **Subhalo velocity functions** ($V^{i}_{\mathrm{max}}$): the number of self-bound subhaloes at $z = 0$, as a function of their current maximum circular velocity ($V^{\rm z=0}_{\mathrm{max}}$) or their peak circular velocity ($V^{\rm peak}_{\mathrm{max}}$). The central *vs* satellite classification is done based on the `Depth` value of the subhalo at $z = 0$, where `Depth = 0` is a central subhalo and a satellite if `Depth != 0`.
+* **Length of the main progenitor branch** ($L_{\rm progenitor}$): how long the main progenitor branch of self-bound subhaloes at $z = 0$ is. The central *vs* satellite classification is done based on the `Depth` value of the subhalo at $z = 0$, where `Depth = 0` is a central subhalo and a satellite if `Depth != 0`. We further subdivide the subhalo population into three bins according to $M^{\rm z=0}_{\mathrm{bound}}$.
 * **Normalised mass growth factor** ($\beta_{\rm m}$): the normalised arctangent of the exponent coefficient describing an exponential mass growth of a subhalo between two consecutive outputs, i.e.
 $$
 \beta_{\rm m} \equiv \dfrac{2}{\pi}\arctan\alpha_{\rm m} = \dfrac{2}{\pi}\arctan \dfrac{\ln [ M_{\rm bound}(z_{i+1}) / M_{\rm bound}(z_{i})]}{z_{i} - z_{i+1}}\,,
@@ -31,19 +31,384 @@ where $z_{i} > z_{i+1}$. We use subhaloes across all redshifts, but only if both
 
 Aside from these summary statistics, we also provide for certain parameters one or more supplementary plots, which are used to illustrate the effect that those parameters may have in a more direct manner.
 
-<!-- These will be done in the future -->
+!!! note
+
+    We always keep the y-axis limits consistent for panels where absolute values are shown, across all properties and parameter variations. In some cases, we need to modify the y-axis limits of panels where quantities are plotted relative to the values found using the default parameter value. In those cases, the y-axis limits are kept consistent across the same property being shown.
+
+    If less than 100 subhaloes are present in a given bin, we use a dashed line to indicate the poor statistics at that x-axis value.
+
+<!-- These are left as future additions -->
 <!-- #### `NumTracerHostFinding` -->
 <!-- #### `NumTracersForDescendants` -->
 <!-- #### `RefineMostBoundParticle` -->
 <!-- #### `BoundFractionCenterRefinement` -->
 
-### Unbinding parameters
-
 #### `BoundMassPrecision`
+=== "$M^{\rm z=0}_{\mathrm{bound}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/mass_functions/z0/bound_mass_function_z0_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/mass_functions/z0/bound_mass_function_z0_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/mass_functions/z0/bound_mass_function_z0_satellites.png){ width="600" }
+        </figure>
+
+=== "$M^{\rm peak}_{\mathrm{bound}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/mass_functions/peak/bound_mass_function_peak_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/mass_functions/peak/bound_mass_function_peak_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/mass_functions/peak/bound_mass_function_peak_satellites.png){ width="600" }
+        </figure>
+
+=== "$V^{\rm z=0}_{\mathrm{max}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/velocity_functions/z0/vmax_function_z0_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/velocity_functions/z0/vmax_function_z0_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/velocity_functions/z0/vmax_function_z0_satellites.png){ width="600" }
+        </figure>
+
+=== "$V^{\rm peak}_{\mathrm{max}}$"
+
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/velocity_functions/peak/vmax_function_peak_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/velocity_functions/peak/vmax_function_peak_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/velocity_functions/peak/vmax_function_peak_satellites.png){ width="600" }
+        </figure>
+
+=== "$L_{\rm progenitor}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/main_branch_length/distribution_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/main_branch_length/distribution_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/main_branch_length/distribution_satellites.png){ width="600" }
+        </figure>
+
+=== "$\beta_{\rm m}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/growth_factors/growth_factor_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/growth_factors/growth_factor_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/BoundMassPrecision/growth_factors/growth_factor_satellites.png){ width="600" }
+        </figure>
+
 #### `SourceSubRelaxFactor`
+=== "$M^{\rm z=0}_{\mathrm{bound}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/z0/bound_mass_function_z0_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/z0/bound_mass_function_z0_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/z0/bound_mass_function_z0_satellites.png){ width="600" }
+        </figure>
+
+=== "$M^{\rm peak}_{\mathrm{bound}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/peak/bound_mass_function_peak_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/peak/bound_mass_function_peak_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/peak/bound_mass_function_peak_satellites.png){ width="600" }
+        </figure>
+
+=== "$V^{\rm z=0}_{\mathrm{max}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/z0/vmax_function_z0_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/z0/vmax_function_z0_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/z0/vmax_function_z0_satellites.png){ width="600" }
+        </figure>
+
+=== "$V^{\rm peak}_{\mathrm{max}}$"
+
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/peak/vmax_function_peak_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/peak/vmax_function_peak_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/peak/vmax_function_peak_satellites.png){ width="600" }
+        </figure>
+
+=== "$L_{\rm progenitor}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/main_branch_length/distribution_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/main_branch_length/distribution_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/main_branch_length/distribution_satellites.png){ width="600" }
+        </figure>
+
+=== "$\beta_{\rm m}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/growth_factors/growth_factor_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/growth_factors/growth_factor_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/growth_factors/growth_factor_satellites.png){ width="600" }
+        </figure>
+
 #### `MaxSampleSizeOfPotentialEstimate`
 
-### Tracking parameters
+=== "$M^{\rm z=0}_{\mathrm{bound}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/mass_functions/z0/bound_mass_function_z0_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/mass_functions/z0/bound_mass_function_z0_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/mass_functions/z0/bound_mass_function_z0_satellites.png){ width="600" }
+        </figure>
+
+=== "$M^{\rm peak}_{\mathrm{bound}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/mass_functions/peak/bound_mass_function_peak_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/mass_functions/peak/bound_mass_function_peak_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/mass_functions/peak/bound_mass_function_peak_satellites.png){ width="600" }
+        </figure>
+
+=== "$V^{\rm z=0}_{\mathrm{max}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/velocity_functions/z0/vmax_function_z0_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/velocity_functions/z0/vmax_function_z0_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/velocity_functions/z0/vmax_function_z0_satellites.png){ width="600" }
+        </figure>
+
+=== "$V^{\rm peak}_{\mathrm{max}}$"
+
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/velocity_functions/peak/vmax_function_peak_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/velocity_functions/peak/vmax_function_peak_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/velocity_functions/peak/vmax_function_peak_satellites.png){ width="600" }
+        </figure>
+
+=== "$L_{\rm progenitor}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/main_branch_length/distribution_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/main_branch_length/distribution_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/main_branch_length/distribution_satellites.png){ width="600" }
+        </figure>
+
+=== "$\beta_{\rm m}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/growth_factors/growth_factor_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/growth_factors/growth_factor_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/growth_factors/growth_factor_satellites.png){ width="600" }
+        </figure>
 
 #### `MinNumPartOfSub`
 
@@ -54,6 +419,127 @@ The main difference is that the amplitude of the bound mass functions of resolve
 This fact can easily be seen if we plot surface density of dark matter particles that are bound to a massive central subhalo of the box. For the largest value we use, $N_{\mathrm{min}} = 100$, several clumps. These correspond to dark matter. As we lower the threshold, these clumps disappear from the image because they are identified as self-bound, and hence their mass contribution the central is removed.
 
 From the images, we also see that the clumps appear towards the outskirts, meaning that statistics such as the radial distribution functions will be similarly affected in a radial-dependent manner.
+=== "$M^{\rm z=0}_{\mathrm{bound}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/z0/bound_mass_function_z0_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/z0/bound_mass_function_z0_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/z0/bound_mass_function_z0_satellites.png){ width="600" }
+        </figure>
+
+=== "$M^{\rm peak}_{\mathrm{bound}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/peak/bound_mass_function_peak_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/peak/bound_mass_function_peak_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/peak/bound_mass_function_peak_satellites.png){ width="600" }
+        </figure>
+
+=== "$V^{\rm z=0}_{\mathrm{max}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/z0/vmax_function_z0_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/z0/vmax_function_z0_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/z0/vmax_function_z0_satellites.png){ width="600" }
+        </figure>
+
+=== "$V^{\rm peak}_{\mathrm{max}}$"
+
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/peak/vmax_function_peak_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/peak/vmax_function_peak_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/peak/vmax_function_peak_satellites.png){ width="600" }
+        </figure>
+
+=== "$L_{\rm progenitor}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/main_branch_length/distribution_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/main_branch_length/distribution_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/main_branch_length/distribution_satellites.png){ width="600" }
+        </figure>
+
+=== "$\beta_{\rm m}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/growth_factors/growth_factor_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/growth_factors/growth_factor_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/growth_factors/growth_factor_satellites.png){ width="600" }
+        </figure>
+
 
 #### `MinCoreSize`
 
@@ -64,21 +550,18 @@ From the images, we also see that the clumps appear towards the outskirts, meani
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/mass_functions/z0/bound_mass_function_z0_all.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/mass_functions/z0/bound_mass_function_z0_centrals.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/mass_functions/z0/bound_mass_function_z0_satellites.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
 === "$M^{\rm peak}_{\mathrm{bound}}$"
@@ -87,21 +570,18 @@ From the images, we also see that the clumps appear towards the outskirts, meani
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/mass_functions/peak/bound_mass_function_peak_all.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/mass_functions/peak/bound_mass_function_peak_centrals.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/mass_functions/peak/bound_mass_function_peak_satellites.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
 === "$V^{\rm z=0}_{\mathrm{max}}$"
@@ -110,21 +590,18 @@ From the images, we also see that the clumps appear towards the outskirts, meani
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/velocity_functions/z0/vmax_function_z0_all.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/velocity_functions/z0/vmax_function_z0_centrals.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/velocity_functions/z0/vmax_function_z0_satellites.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
 === "$V^{\rm peak}_{\mathrm{max}}$"
@@ -134,21 +611,18 @@ From the images, we also see that the clumps appear towards the outskirts, meani
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/velocity_functions/peak/vmax_function_peak_all.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/velocity_functions/peak/vmax_function_peak_centrals.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/velocity_functions/peak/vmax_function_peak_satellites.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
 === "$L_{\rm progenitor}$"
@@ -157,21 +631,18 @@ From the images, we also see that the clumps appear towards the outskirts, meani
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/main_branch_length/distribution_all.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/main_branch_length/distribution_centrals.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/main_branch_length/distribution_satellites.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
 === "$\beta_{\rm m}$"
@@ -180,21 +651,18 @@ From the images, we also see that the clumps appear towards the outskirts, meani
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/growth_factors/growth_factor_all.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/growth_factors/growth_factor_centrals.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
         ![image_title](../images/parameter_changes/MinCoreSize/growth_factors/growth_factor_satellites.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
         </figure>
 
 #### `MajorProgenitorMassRatio`
@@ -207,23 +675,19 @@ From the images, we also see that the clumps appear towards the outskirts, meani
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/z0/bound_mass_function_z0_all.png){ width="600" }
         </figure>
-
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/z0/bound_mass_function_z0_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/z0/bound_mass_function_z0_satellites.png){ width="600" }
         </figure>
 
 === "$M^{\rm peak}_{\mathrm{bound}}$"
@@ -231,23 +695,19 @@ From the images, we also see that the clumps appear towards the outskirts, meani
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/peak/bound_mass_function_peak_all.png){ width="600" }
         </figure>
-
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/peak/bound_mass_function_peak_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/peak/bound_mass_function_peak_satellites.png){ width="600" }
         </figure>
 
 === "$V^{\rm z=0}_{\mathrm{max}}$"
@@ -255,48 +715,40 @@ From the images, we also see that the clumps appear towards the outskirts, meani
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/z0/vmax_function_z0_all.png){ width="600" }
         </figure>
-
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/z0/vmax_function_z0_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/z0/vmax_function_z0_satellites.png){ width="600" }
         </figure>
 
-
 === "$V^{\rm peak}_{\mathrm{max}}$"
+
 
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/peak/vmax_function_peak_all.png){ width="600" }
         </figure>
-
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/peak/vmax_function_peak_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/peak/vmax_function_peak_satellites.png){ width="600" }
         </figure>
 
 === "$L_{\rm progenitor}$"
@@ -304,23 +756,19 @@ From the images, we also see that the clumps appear towards the outskirts, meani
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/main_branch_length/distribution_all.png){ width="600" }
         </figure>
-
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/main_branch_length/distribution_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/main_branch_length/distribution_satellites.png){ width="600" }
         </figure>
 
 === "$\beta_{\rm m}$"
@@ -328,20 +776,17 @@ From the images, we also see that the clumps appear towards the outskirts, meani
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/growth_factors/growth_factor_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/growth_factors/growth_factor_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/effect_of_changing_nmin_bound_mass_funciton.png){ width="600" }
-        <figcaption>Effect of varying the minimum number of bound particles on the subhalo bound mass function. </figcaption>
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/growth_factors/growth_factor_satellites.png){ width="600" }
         </figure>
