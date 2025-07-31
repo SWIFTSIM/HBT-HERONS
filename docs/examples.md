@@ -1,3 +1,0 @@
-!!! warning
-
-    IN CONSTRUCTION!
