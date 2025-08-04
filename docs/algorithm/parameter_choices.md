@@ -23,9 +23,9 @@ The statistics are defined as follows:
 * **Subhalo mass functions** ($M^{i}_{\mathrm{bound}}$): the number of self-bound subhaloes at $z = 0$, as a function of their current bound mass ($M^{\rm z=0}_{\mathrm{bound}}$) or their peak bound mass ($M^{\rm peak}_{\mathrm{bound}}$). The central *vs* satellite classification is done based on the `Depth` value of the subhalo at $z = 0$, where `Depth = 0` is a central subhalo and a satellite if `Depth != 0`.
 * **Subhalo velocity functions** ($V^{i}_{\mathrm{max}}$): the number of self-bound subhaloes at $z = 0$, as a function of their current maximum circular velocity ($V^{\rm z=0}_{\mathrm{max}}$) or their peak circular velocity ($V^{\rm peak}_{\mathrm{max}}$). The central *vs* satellite classification is done based on the `Depth` value of the subhalo at $z = 0$, where `Depth = 0` is a central subhalo and a satellite if `Depth != 0`.
 * **Length of the main progenitor branch** ($L_{\rm progenitor}$): how long the main progenitor branch of self-bound subhaloes at $z = 0$ is. The central *vs* satellite classification is done based on the `Depth` value of the subhalo at $z = 0$, where `Depth = 0` is a central subhalo and a satellite if `Depth != 0`. We further subdivide the subhalo population into three bins according to $M^{\rm z=0}_{\mathrm{bound}}$.
-* **Normalised mass growth factor** ($\beta_{\rm m}$): the normalised arctangent of the exponent coefficient describing an exponential mass growth of a subhalo between two consecutive outputs, i.e.
+* **Normalised mass growth factor** ($\beta_{\rm M}$): the normalised arctangent of the exponent coefficient describing an exponential mass growth of a subhalo between two consecutive outputs, i.e.
 $$
-\beta_{\rm m} \equiv \dfrac{2}{\pi}\arctan\alpha_{\rm m} = \dfrac{2}{\pi}\arctan \dfrac{\ln [ M_{\rm bound}(z_{i+1}) / M_{\rm bound}(z_{i})]}{z_{i} - z_{i+1}}\,,
+\beta_{\rm M} \equiv \dfrac{2}{\pi}\arctan\alpha_{\rm m} = \dfrac{2}{\pi}\arctan \dfrac{\ln [ M_{\rm bound}(z_{i+1}) / M_{\rm bound}(z_{i})]}{z_{i} - z_{i+1}}\,,
 $$
 where $z_{i} > z_{i+1}$. We use subhaloes across all redshifts, but only if both $M_{\rm bound}(z_{i+1})$ and $M_{\rm bound}(z_{i})$ are above a threshold mass $M_{\mathrm{th}} = 6.72\,\times10^{13}\,\mathrm{M}_{\odot}$ ($10^{4}$ particles). The central *vs* satellite classification is done based on the `Depth` value of the subhalo at the ***two consecutive outputs under consideration***. Thus, central subhaloes have `Depth = 0` in both outputs and satellite subhaloes have `Depth != 0` in both outputs instead.
 
@@ -33,9 +33,7 @@ Aside from these summary statistics, we also provide for certain parameters one 
 
 !!! note
 
-    We always keep the y-axis limits consistent for panels where absolute values are shown, across all properties and parameter variations. In some cases, we need to modify the y-axis limits of panels where quantities are plotted relative to the values found using the default parameter value. In those cases, the y-axis limits are kept consistent across the same property being shown.
-
-    If less than 100 subhaloes are present in a given bin, we use a dashed line to indicate the poor statistics at that x-axis value.
+    We always keep the y-axis limits consistent across panels that show the same property, regardless of the parameter variation being shown. If less than 100 subhaloes are present in a given bin, we use a dashed line to indicate the poor statistics at that x-axis value.
 
 <!-- These are left as future additions -->
 <!-- #### `NumTracerHostFinding` -->
@@ -145,7 +143,7 @@ Aside from these summary statistics, we also provide for certain parameters one 
         ![image_title](../images/parameter_changes/BoundMassPrecision/main_branch_length/distribution_satellites.png){ width="600" }
         </figure>
 
-=== "$\beta_{\rm m}$"
+=== "$\beta_{\rm M}$"
 
     === "All subhaloes"
 
@@ -267,7 +265,7 @@ Aside from these summary statistics, we also provide for certain parameters one 
         ![image_title](../images/parameter_changes/SourceSubRelaxFactor/main_branch_length/distribution_satellites.png){ width="600" }
         </figure>
 
-=== "$\beta_{\rm m}$"
+=== "$\beta_{\rm M}$"
 
     === "All subhaloes"
 
@@ -390,7 +388,7 @@ Aside from these summary statistics, we also provide for certain parameters one 
         ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/main_branch_length/distribution_satellites.png){ width="600" }
         </figure>
 
-=== "$\beta_{\rm m}$"
+=== "$\beta_{\rm M}$"
 
     === "All subhaloes"
 
@@ -520,7 +518,7 @@ From the images, we also see that the clumps appear towards the outskirts, meani
         ![image_title](../images/parameter_changes/MinNumPartOfSub/main_branch_length/distribution_satellites.png){ width="600" }
         </figure>
 
-=== "$\beta_{\rm m}$"
+=== "$\beta_{\rm M}$"
 
     === "All subhaloes"
 
@@ -645,7 +643,7 @@ From the images, we also see that the clumps appear towards the outskirts, meani
         ![image_title](../images/parameter_changes/MinCoreSize/main_branch_length/distribution_satellites.png){ width="600" }
         </figure>
 
-=== "$\beta_{\rm m}$"
+=== "$\beta_{\rm M}$"
 
     === "All subhaloes"
 
@@ -771,7 +769,7 @@ From the images, we also see that the clumps appear towards the outskirts, meani
         ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/main_branch_length/distribution_satellites.png){ width="600" }
         </figure>
 
-=== "$\beta_{\rm m}$"
+=== "$\beta_{\rm M}$"
 
     === "All subhaloes"
 
