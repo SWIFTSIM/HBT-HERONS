@@ -14,17 +14,17 @@ void Subhalo_t::UpdateTrack(const Snapshot_t &epoch)
   if (TrackId == SpecialConst::NullTrackId)
     return;
 
-  if (0 == Rank)
+  if (Rank == 0)
   {
-    if (SnapshotIndexOfLastIsolation != SpecialConst::NullSnapshotId)
+    if (SnapshotOfLastIsolation != SpecialConst::NullSnapshotId)
     {
       // Subhalo has been a satellite at some point in the past
-      SnapshotIndexOfLastIsolation = epoch.GetSnapshotIndex();
+      SnapshotOfLastIsolation = epoch.GetSnapshotId();
     }
   }
   if (Mbound >= LastMaxMass)
   {
-    SnapshotIndexOfLastMaxMass = epoch.GetSnapshotIndex();
+    SnapshotOfLastMaxMass = epoch.GetSnapshotId();
     LastMaxMass = Mbound;
   }
 }
@@ -791,7 +791,6 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
 #pragma omp single
   {
     Npro = Subhalos.size();
-    // Subhalos.reserve(Snapshot->size()*0.1);//reserve enough	branches.......
     Subhalos.resize(Npro + MemberTable.NBirth);
   }
 #pragma omp for
@@ -812,7 +811,7 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
       copyHBTxyz(central.PhysicalAverageVelocity, Host.PhysicalAverageVelocity);
       central.Particles.swap(Host.Particles);
       central.Nbound = central.Particles.size(); // init Nbound to source size.
-      central.SnapshotIndexOfBirth = SnapshotIndex;
+      central.SnapshotOfBirth = SnapshotId;
     }
     else
     {
@@ -933,10 +932,10 @@ void SubhaloSnapshot_t::SetNestedParentIds()
     for (auto &nested_trackid : subhalo.NestedSubhalos)
     {
       HBTInt child_index = TrackHash.GetIndex(nested_trackid);
-      if (Subhalos[child_index].SnapshotIndexOfLastIsolation == SpecialConst::NullSnapshotId)
+      if (Subhalos[child_index].SnapshotOfLastIsolation == SpecialConst::NullSnapshotId)
       {
         // Subhalo had been a central up to this snapshot
-        Subhalos[child_index].SnapshotIndexOfLastIsolation = GetSnapshotIndex() - 1;
+        Subhalos[child_index].SnapshotOfLastIsolation = GetSnapshotId(GetSnapshotIndex() - 1);
       }
       Subhalos[child_index].NestedParentTrackId = subhalo.TrackId;
     }
@@ -1148,18 +1147,18 @@ public:
   }
   /* This routine masks particles by giving preference to subhaloes deeper in
    * the hierarchy. */
-  void Mask(HBTInt subid, vector<Subhalo_t> &Subhalos, int SnapshotIndex)
+  void Mask(HBTInt subid, vector<Subhalo_t> &Subhalos, int SnapshotId)
   {
     auto &subhalo = Subhalos[subid];
     for (auto nestedid :
          subhalo
            .NestedSubhalos) // TODO: do we have to do it recursively? satellites are already masked among themselves?
-      Mask(nestedid, Subhalos, SnapshotIndex);
+      Mask(nestedid, Subhalos, SnapshotId);
 
     if (subhalo.Nbound <= 1)
       return; // skip orphans
 
-    if (subhalo.SnapshotIndexOfBirth == SnapshotIndex)
+    if (subhalo.SnapshotOfBirth == SnapshotId)
       return; // skip newly created centrals
 
     auto it_begin = subhalo.Particles.begin(), it_save = it_begin;
@@ -1348,7 +1347,7 @@ void SubhaloSnapshot_t::MaskSubhalos()
     // update central member list (append other heads except itself)
     nest.insert(nest.end(), heads.begin() + 1, heads.end());
     SubhaloMasker_t Masker(central.Particles.size() * 1.2);
-    Masker.Mask(Group[0], Subhalos, SnapshotIndex);
+    Masker.Mask(Group[0], Subhalos, SnapshotId);
     nest.resize(old_membercount); // TODO: better way to do this? or do not change the nest for central?
   }
 }

@@ -67,8 +67,8 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_
   global_timer.Tick("snap_hash", world.Communicator);
 
   if (world.rank() == 0)
-    cout << NumberOfParticlesOnAllNodes << " particles loaded at Snapshot " << snapshot_index << "(" << SnapshotId
-         << ")" << endl;
+    std::cout << NumberOfParticlesOnAllNodes << " particles loaded from snapshot " << SnapshotId << " (SnapshotIndex = " \
+              << snapshot_index << ")" << std::endl;
 }
 
 #ifdef TEST_snapshot_io
