@@ -39,7 +39,7 @@ Different ways to quantify how massive a subhalo is.
 
     Since the HBT-HERONS definition of spherical overdensity is based on the enclosed mass of **bound particles** only, it does not follow the common convention in the literature, which includes the mass contribution of **all particles**.
 
-    The values provided for R200 and M200 are therefore lower than the commonly used definition. We only recommend using it as a quick reference, and the user to calculate the spherical overdensity quantities using the accepted definition.
+    The values provided for $R_{\rm 200}$ and $M_{\rm 200c}$ are therefore lower than the commonly used definition. We only recommend using it as a quick reference, and the user to calculate the spherical overdensity quantities using the accepted definition.
 
 #### Size metrics
 
