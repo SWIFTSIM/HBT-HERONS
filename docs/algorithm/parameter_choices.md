@@ -36,12 +36,6 @@ Aside from these summary statistics, we also provide for certain parameters one 
 
     We always keep the y-axis limits consistent across panels that show the same property, regardless of the parameter variation being shown. If less than 100 subhaloes are present in a given bin, we use a dashed line to indicate the poor statistics at that x-axis value. We focus our discussion to the parameter ranges sampled by 100 subhaloes or more, except for illustrative purposes.
 
-<!-- These are left as future additions -->
-<!-- #### `NumTracerHostFinding` -->
-<!-- #### `NumTracersForDescendants` -->
-<!-- #### `RefineMostBoundParticle` -->
-<!-- #### `BoundFractionCenterRefinement` -->
-
 #### `BoundMassPrecision`
 
 This parameter, which defaults to $f_{\rm converge} = 0.995$, regulates the threshold used to determine whether subhalo unbinding has converged or not. Lowering the value thus results in a more lax condition of convergence, and hence less overall unbinding iterations being done. Since in each consecutive iteration a subhalo can only lose (unbound) mass, less iterations generally result in systematically more massive subhaloes, depending on the subhalo depth. As mass is assigned exclusively and in a depth-first manner, satellite subhaloes preferentially gain more mass than the default, whereas centrals become less massive due to the exclusion of mass they would have otherwise accreted.
@@ -184,6 +178,12 @@ This parameter, which defaults to $f_{\rm major} = 0.8$, determines the mass thr
 We recommend not lowering the value below $f_{\rm major} = \mathcal{O}(0.1)$, as low mass subhaloes become eligible to be centrals. Since they are more abundant than more massive subhaloes, it becomes increasingly likely to pick a low mass subhalo as a central instead of a more "adequate" massive subhalo. The supplementary plot shows an example where this happens, which leads to wild variations in mass. Conversely, we do not recommend using a value of $f_{\rm major} = 1$, since it would be too restrictive during the selection of a central subhalo. For example, two central subhaloes with the same $M_{\rm 200c}$ but different amount of mass in satellites would make the code choose the one with least mass in satellites (recall that mass is assigned exclusively).
 
 However, we note that the choice of central is not solely determined by the combination of the mass threshold and orbital kinetic energy criterion. If after unbinding it turns out that the central subhalo identified during this step is not the most massive subhalo in the host FoF group, the central is changed to be the most massive. However, the accretion of particles in that output would reflect the originally incorrect central choice.
+
+??? abstract "Supplementary plot"
+
+    <figure markdown="span">
+    ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/supplementary_plots/evolution_incorrect_central.png){align="left" width="600"}
+    </figure>
 
 === "$M_{\mathrm{200c}}$"
 
@@ -588,9 +588,13 @@ We recommend not increasing the value beyond the chosen default of $N_{\rm core}
 
 This parameter, which defaults to $N^{\rm min}_{\rm bound} = 20$, is the minimum number of particles of any type that should be bound to a subhalo for it to be deemed as self-bound. Modifying the value changes the number of subhaloes that are classified as self-bound in the catalogue. This has important implications on the bound mass and velocity functions owing to the fact that HBT-HERONS uses an *exclusive mass definition*.
 
-We recommend using a small value of $N^{\rm min}_{\rm bound}$, as "physical" self-bound subhaloes are clearly seen to exist at that cutoff scale. Indeed, we see in the supplementary plot that virtually all residual clumps of self-bound dark matter are removed when using $N^{\rm min}_{\rm bound} \leq 20$. We advise against lowering the value below 20, since the computational and data storage requirements increase drastically due to the fact that low mass subhaloes are much greater in number than massive subhaloes. It additionally increases the chances of spurious subhaloes to be detected as self-bound.
+We recommend using a small value of $N^{\rm min}_{\rm bound}$, as "physical" self-bound subhaloes are clearly seen to exist at that cutoff scale. Indeed, we see in the supplementary plot that virtually all residual clumps of self-bound dark matter are removed from the set of particles bound to the central when using $N^{\rm min}_{\rm bound} \leq 20$. We advise against lowering the value below 20, since the computational and data storage requirements increase drastically due to the fact that low mass subhaloes are much greater in number than massive subhaloes. It additionally increases the chances of spurious subhaloes to be detected as self-bound.
 
 ??? abstract "Supplementary plot"
+
+    <figure markdown="span">
+    ![image_title](../images/parameter_changes/MinNumPartOfSub/supplementary_plots/mass_bound_to_central_comparison.png){align="left" width="900"}
+    </figure>
 
 === "$M_{\mathrm{200c}}$"
 
@@ -725,7 +729,7 @@ We recommend using a small value of $N^{\rm min}_{\rm bound}$, as "physical" sel
 
 This parameter, which defaults to $f_{\rm source} = 3$, determines how many particles a subhalo can have associated to it relative to the number of bound particles it has. Its primary use is to allow particles that were previously bound to a satellite subhalo to be "re-accreted". This can for example happen after a pericentric passage, where the tidal forces may make some amount of mass unbound, which may later found as bound once the tidal perturbations have subsided. This can also happen secularly, since any given particle may be unbound in a single output by pure chance.
 
-We recommend using a value that is larger than $f_{\rm source} = 1$, to prevent the secular loss of mass over time. Any particle that is momentarely unbound will lose its association the subhalo it belonged to, preventing its reaccretion at a later time. Over time, this leads to the secular decrease of mass of satellites, which stunts their mass growth. Despite the fact that larger values than the default do not affect results based on our tests, we advise using much larger values. First, the computational cost increases. Second, the retention of too many unbound particles in the source can affect the centre of mass estimate of a subhalo. As its position and velocity plays an important role during unbinding, it can lead to artificial disruption.
+We recommend using a value that is larger than $f_{\rm source} = 1$, to prevent the secular loss of mass over time. Any particle that is momentarely unbound will lose its association the subhalo it belonged to, preventing its reaccretion at a later time. Over time, this leads to the secular decrease of mass of satellites, which stunts their mass growth. Despite the fact that larger values than the default do not affect results based on our tests, we advise using much larger values than the default. First, the computational cost increases. Second, the retention of too many unbound particles in the source can affect the centre of mass estimate of a subhalo. As its position and velocity plays an important role during unbinding, it can lead to premature, artificially-induced disruption.
 
 === "$M_{\mathrm{200c}}$"
 
