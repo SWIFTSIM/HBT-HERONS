@@ -183,7 +183,7 @@ This parameter, which defaults to $f_{\rm major} = 0.8$, determines the mass thr
 
 We recommend not lowering the value below $f_{\rm major} = \mathcal{O}(0.1)$, as low mass subhaloes become eligible to be centrals. Since they are more abundant than more massive subhaloes, it becomes increasingly likely to pick a low mass subhalo as a central instead of a more "adequate" massive subhalo. The supplementary plot shows an example where this happens, which leads to wild variations in mass. Conversely, we do not recommend using a value of $f_{\rm major} = 1$, since it would be too restrictive during the selection of a central subhalo. For example, two central subhaloes with the same $M_{\rm 200c}$ but different amount of mass in satellites would make the code choose the one with least mass in satellites (recall that mass is assigned exclusively).
 
-However, we note that the choice of central is not solely determined by the combination of the mass threshold and orbital kinetic energy criterion. If after unbinding it turns out that the central subhalo identified during this step is not the most massive subhalo in the host FoF group, the central is changed to be the most massive. However, the accretion of particles in that output would reflect the orginally incorrect central choice.
+However, we note that the choice of central is not solely determined by the combination of the mass threshold and orbital kinetic energy criterion. If after unbinding it turns out that the central subhalo identified during this step is not the most massive subhalo in the host FoF group, the central is changed to be the most massive. However, the accretion of particles in that output would reflect the originally incorrect central choice.
 
 === "$M_{\mathrm{200c}}$"
 
