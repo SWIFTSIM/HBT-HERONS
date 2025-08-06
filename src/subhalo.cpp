@@ -588,3 +588,11 @@ vector<HBTInt> Subhalo_t::GetMostBoundTracerIds(HBTInt n)
 
   return Ids;
 }
+
+/* Returns number of tracer particles that are used to estimate the phase-space
+ * position of a given subhalo. Relevant for determininig if two more subhaloes
+ * overlap in phase space. */
+HBTInt Subhalo_t::GetCoreSize()
+{
+  return std::max(static_cast<HBTInt>(Nbound * HBTConfig.SubCoreSizeFactor), HBTConfig.SubCoreSizeMin);
+}

@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 #endif
 
   int snapshot_start, snapshot_end;
-  if (0 == world.rank())
+  if (world.rank() == 0)
   {
     ParseHBTParams(argc, argv, HBTConfig, snapshot_start, snapshot_end);
     mkdir(HBTConfig.SubhaloPath.c_str(), 0755);

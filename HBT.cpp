@@ -18,8 +18,10 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
+
   MPI_Init(&argc, &argv);
   MpiWorker_t world(MPI_COMM_WORLD);
+
 #ifdef _OPENMP
   // omp_set_nested(0);
   omp_set_max_active_levels(1); // max_active_level 0: no para; 1: single layer; >1: nest enabled
@@ -29,7 +31,7 @@ int main(int argc, char **argv)
   if (world.rank() == 0)
   {
     // Print information about the version being run.
-    cout << "HBT compiled using git branch: " << branch_name << " and commit: " << commit_hash;
+    cout << "HBT-HERONS compiled using git branch: " << branch_name << " and commit: " << commit_hash;
     if (uncommitted_changes)
       cout << " (with uncommitted changes)";
     else
@@ -61,14 +63,6 @@ int main(int argc, char **argv)
 
   if (world.rank() == 0)
     cout << endl;
-
-  /* Create the timing log file */
-  ofstream time_log;
-  if (world.rank() == 0)
-  {
-    time_log.open(HBTConfig.SubhaloPath + "/timing.log", fstream::out | fstream::app);
-    time_log << fixed << setprecision(3);
-  }
 
   /* Main loop, iterate over chosen data outputs */
   for (int isnap = snapshot_start; isnap <= snapshot_end; isnap++)
@@ -165,28 +159,37 @@ int main(int argc, char **argv)
     merger_tree.FindDescendants(subsnap.Subhalos, world);
     global_timer.Tick("merger_tree", world.Communicator);
 
-    /* Save */
+    /* Save subhaloes */
     subsnap.Save(world);
     global_timer.Tick("write_subhalos", world.Communicator);
 
-    /* Output timing information */
     if (world.rank() == 0)
     {
-      // To report on how long the snapshot took to analyse in total
-      double total_time = 0;
+      /* Create or open the timing log file */
+      std::ofstream TimeLog;
+      TimeLog.open(HBTConfig.SubhaloPath + "/timing.log", std::fstream::out | std::fstream::app);
+      TimeLog << std::fixed << std::setprecision(3);
 
-      time_log << isnap << " \t" << subsnap.GetSnapshotId();
+      /* To report on how long the snapshot took to analyse in total. Only rank 0
+       * will print, so no need to synchronise. */
+      double TotalTime = 0;
+
+      /* Append line */
+      TimeLog << subsnap.GetSnapshotIndex() << " \t" << subsnap.GetSnapshotId();
       for (int i = 1; i < global_timer.Size(); i++)
       {
-        time_log << "\t" << global_timer.names[i] << "=" << global_timer.GetSeconds(i);
-        total_time += global_timer.GetSeconds(i);
+        TimeLog << "\t" << global_timer.names[i] << "=" << global_timer.GetSeconds(i);
+        TotalTime += global_timer.GetSeconds(i);
       }
-      time_log << endl;
+      TimeLog << std::endl;
+      /* Done. */
+      TimeLog.close();
 
-      cout << "Snapshot " << subsnap.GetSnapshotId() << " (SnapshotIndex = " << isnap << ")" << " done. It took " << total_time << " seconds." << endl;
-      cout << endl;
+      std::cout << "Snapshot " << subsnap.GetSnapshotId() << " (SnapshotIndex = " << isnap << ")" << " done. It took " << total_time << " seconds." << std::endl;
+      std::cout << std::endl;
     }
     global_timer.Reset();
+
   }
 
   MPI_Finalize();

@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 #
 # Set project name and language
 #
-project(hbtplus)
+project(hbt-herons)
 enable_language(C)
 enable_language(CXX)
 include(CTest)
@@ -146,6 +146,11 @@ hbt_option(HBT_REAL4_MASS              HBT_REAL4_MASS          "Enable to store 
 hbt_option(HBT_UNBIND_WITH_THERMAL_ENERGY UNBIND_WITH_THERMAL_ENERGY "Enable use of thermal energy when unbinding" OFF)
 hbt_option(HBT_CHECK_TRACER_INDEX      CHECK_TRACER_INDEX      "For debugging: check that tracer particle has the expected ID" OFF)
 hbt_option(HBT_DISABLE_STRIPPING      NO_STRIPPING             "Prevents subhaloes from passing unbound particles to their parents." OFF)
+
+#
+# Allow passing in extra mpiexec flags for unit tests. Needed for github workflow.
+#
+set(HBT_MPI_TEST_FLAGS "" CACHE STRING "Extra mpiexec flags to use for unit tests")
 
 #
 # Determine if we're going to output git revision info

@@ -194,6 +194,12 @@ public:
 #endif
   }
   vector<HBTInt> GetMostBoundTracerIds(HBTInt n);
+
+private:
+  /* To determine number of most bound tracer particles used to estimate the
+   * position and velocity of the subhalo.*/
+   HBTInt GetCoreSize();
+
 };
 
 class MemberShipTable_t
@@ -344,21 +350,6 @@ public:
     return Subhalos[index].GetMass();
   }
 };
-
-inline HBTInt GetCoreSize(HBTInt nbound)
-/* get the size of the core that determines the position of the subhalo.
- * coresize controlled by SubCoreSizeFactor and SubCoreSizeMin.
- * if you do not want a cored center, then
- * set SubCoreSizeFactor=0 and SubCoreSizeMin=1 to use most-bound particle;
- * set SubCoreSizeFactor=1 to use all the particles*/
-{
-  int coresize = nbound * HBTConfig.SubCoreSizeFactor;
-  if (coresize < HBTConfig.SubCoreSizeMin)
-    coresize = HBTConfig.SubCoreSizeMin;
-  if (coresize > nbound)
-    coresize = nbound;
-  return coresize;
-}
 
 class TrackKeyList_t : public KeyList_t<HBTInt, HBTInt>
 {
