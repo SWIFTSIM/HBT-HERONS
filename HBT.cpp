@@ -185,7 +185,7 @@ int main(int argc, char **argv)
       /* Done. */
       TimeLog.close();
 
-      std::cout << "Snapshot " << subsnap.GetSnapshotId() << " (SnapshotIndex = " << isnap << ")" << " done. It took " << total_time << " seconds." << std::endl;
+      std::cout << "Snapshot " << subsnap.GetSnapshotId() << " (SnapshotIndex = " << isnap << ")" << " done. It took " << TotalTime << " seconds." << std::endl;
       std::cout << std::endl;
     }
     global_timer.Reset();
