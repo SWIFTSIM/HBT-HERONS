@@ -177,18 +177,20 @@ We recommend using a sufficiently high value so that subhaloes are subject to at
         ![image_title](../images/parameter_changes/BoundMassPrecision/growth_factors/growth_factor_satellites.png){ width="600" }
         </figure>
 
-#### `SourceSubRelaxFactor`
+#### `MajorProgenitorMassRatio`
 
-This parameter, which defaults to $f_{\rm source} = 3$, determines how many particles a subhalo can have associated to it relative to the number of bound particles it has. Its primary use is to allow particles that were previously bound to a satellite subhalo to be "re-accreted". This can for example happen after a pericentric passage, where the tidal forces may make some amount of mass unbound, which may later found as bound once the tidal perturbations have subsided. This can also happen secularly, since any given particle may be unbound in a single output by pure chance.
+This parameter, which defaults to $f_{\rm major} = 0.8$, determines the mass threshold (expressed relative to the subhalo with the largest mass in the previous output) above which subhaloes in a FoF group will be considered to be a central subhalo candidate. The central subhalo will be chosen among the pool of central subhalo candidates, based on the one with the lowest orbital specific kinetic energy in the centre of mass frame of their host FoF group. Lowering the value increases the number of central subhalo candidates, with a value of $f_{\rm major} = 1.0$ forcing the choice to be the subhalo which was the most massive in the previous output.
 
-We recommend using a value that is larger than $f_{\rm source} = 1$, to prevent the secular loss of mass over time. Any particle that is momentarely unbound will lose its association the subhalo it belonged to, preventing its reaccretion at a later time. Over time, this leads to the secular decrease of mass of satellites, which stunts their mass growth. Despite the fact that larger values than the default do not affect results based on our tests, we advise using much larger values. First, the computational cost increases. Second, the retention of too many unbound particles in the source can affect the centre of mass estimate of a subhalo. As its position and velocity plays an important role during unbinding, it can lead to artificial disruption.
+We recommend not lowering the value below $f_{\rm major} = \mathcal{O}(0.1)$, as low mass subhaloes become eligible to be centrals. Since they are more abundant than more massive subhaloes, it becomes increasingly likely to pick a low mass subhalo as a central instead of a more "adequate" massive subhalo. The supplementary plot shows an example where this happens, which leads to wild variations in mass. Conversely, we do not recommend using a value of $f_{\rm major} = 1$, since it would be too restrictive during the selection of a central subhalo. For example, two central subhaloes with the same $M_{\rm 200c}$ but different amount of mass in satellites would make the code choose the one with least mass in satellites (recall that mass is assigned exclusively).
+
+However, we note that the choice of central is not solely determined by the combination of the mass threshold and orbital kinetic energy criterion. If after unbinding it turns out that the central subhalo identified during this step is not the most massive subhalo in the host FoF group, the central is changed to be the most massive. However, the accretion of particles in that output would reflect the orginally incorrect central choice.
 
 === "$M_{\mathrm{200c}}$"
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/z0/m200c_mass_function.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/z0/m200c_mass_function.png){ width="600" }
         </figure>
 
 === "$M^{\rm z=0}_{\mathrm{bound}}$"
@@ -196,19 +198,19 @@ We recommend using a value that is larger than $f_{\rm source} = 1$, to prevent 
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/z0/bound_mass_function_z0_all.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/z0/bound_mass_function_z0_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/z0/bound_mass_function_z0_centrals.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/z0/bound_mass_function_z0_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/z0/bound_mass_function_z0_satellites.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/z0/bound_mass_function_z0_satellites.png){ width="600" }
         </figure>
 
 === "$M^{\rm peak}_{\mathrm{bound}}$"
@@ -216,19 +218,19 @@ We recommend using a value that is larger than $f_{\rm source} = 1$, to prevent 
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/peak/bound_mass_function_peak_all.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/peak/bound_mass_function_peak_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/peak/bound_mass_function_peak_centrals.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/peak/bound_mass_function_peak_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/peak/bound_mass_function_peak_satellites.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/peak/bound_mass_function_peak_satellites.png){ width="600" }
         </figure>
 
 === "$V^{\rm z=0}_{\mathrm{max}}$"
@@ -236,19 +238,19 @@ We recommend using a value that is larger than $f_{\rm source} = 1$, to prevent 
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/z0/vmax_function_z0_all.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/z0/vmax_function_z0_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/z0/vmax_function_z0_centrals.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/z0/vmax_function_z0_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/z0/vmax_function_z0_satellites.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/z0/vmax_function_z0_satellites.png){ width="600" }
         </figure>
 
 === "$V^{\rm peak}_{\mathrm{max}}$"
@@ -257,19 +259,19 @@ We recommend using a value that is larger than $f_{\rm source} = 1$, to prevent 
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/peak/vmax_function_peak_all.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/peak/vmax_function_peak_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/peak/vmax_function_peak_centrals.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/peak/vmax_function_peak_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/peak/vmax_function_peak_satellites.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/peak/vmax_function_peak_satellites.png){ width="600" }
         </figure>
 
 === "$L_{\rm progenitor}$"
@@ -277,19 +279,19 @@ We recommend using a value that is larger than $f_{\rm source} = 1$, to prevent 
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/main_branch_length/distribution_all.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/main_branch_length/distribution_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/main_branch_length/distribution_centrals.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/main_branch_length/distribution_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/main_branch_length/distribution_satellites.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/main_branch_length/distribution_satellites.png){ width="600" }
         </figure>
 
 === "$\beta_{\rm M}$"
@@ -297,19 +299,19 @@ We recommend using a value that is larger than $f_{\rm source} = 1$, to prevent 
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/growth_factors/growth_factor_all.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/growth_factors/growth_factor_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/growth_factors/growth_factor_centrals.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/growth_factors/growth_factor_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/growth_factors/growth_factor_satellites.png){ width="600" }
+        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/growth_factors/growth_factor_satellites.png){ width="600" }
         </figure>
 
 #### `MaxSampleSizeOfPotentialEstimate`
@@ -447,142 +449,6 @@ We recommend using a non-zero value of $N_{\rm subsample}$ as it speeds up the u
         ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/growth_factors/growth_factor_satellites.png){ width="600" }
         </figure>
 
-#### `MinNumPartOfSub`
-
-This parameter, which defaults to $N^{\rm min}_{\rm bound} = 20$, is the minimum number of particles of any type that should be bound to a subhalo for it to be deemed as self-bound. Modifying the value changes the number of subhaloes that are classified as self-bound in the catalogue. This has important implications on the bound mass and velocity functions owing to the fact that HBT-HERONS uses an *exclusive mass definition*.
-
-We recommend using a small value of $N^{\rm min}_{\rm bound}$, as "physical" self-bound subhaloes are clearly seen to exist at that cutoff scale. Indeed, we see in the supplementary plot that virtually all residual clumps of self-bound dark matter are removed when using $N^{\rm min}_{\rm bound} \leq 20$. We advise against lowering the value below 20, since the computational and data storage requirements increase drastically due to the fact that low mass subhaloes are much greater in number than massive subhaloes. It additionally increases the chances of spurious subhaloes to be detected as self-bound.
-
-=== "$M_{\mathrm{200c}}$"
-
-    === "Central subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/z0/m200c_mass_function.png){ width="600" }
-        </figure>
-
-=== "$M^{\rm z=0}_{\mathrm{bound}}$"
-
-    === "All subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/z0/bound_mass_function_z0_all.png){ width="600" }
-        </figure>
-
-    === "Central subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/z0/bound_mass_function_z0_centrals.png){ width="600" }
-        </figure>
-
-    === "Satellite subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/z0/bound_mass_function_z0_satellites.png){ width="600" }
-        </figure>
-
-=== "$M^{\rm peak}_{\mathrm{bound}}$"
-
-    === "All subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/peak/bound_mass_function_peak_all.png){ width="600" }
-        </figure>
-
-    === "Central subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/peak/bound_mass_function_peak_centrals.png){ width="600" }
-        </figure>
-
-    === "Satellite subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/peak/bound_mass_function_peak_satellites.png){ width="600" }
-        </figure>
-
-=== "$V^{\rm z=0}_{\mathrm{max}}$"
-
-    === "All subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/z0/vmax_function_z0_all.png){ width="600" }
-        </figure>
-
-    === "Central subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/z0/vmax_function_z0_centrals.png){ width="600" }
-        </figure>
-
-    === "Satellite subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/z0/vmax_function_z0_satellites.png){ width="600" }
-        </figure>
-
-=== "$V^{\rm peak}_{\mathrm{max}}$"
-
-
-    === "All subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/peak/vmax_function_peak_all.png){ width="600" }
-        </figure>
-
-    === "Central subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/peak/vmax_function_peak_centrals.png){ width="600" }
-        </figure>
-
-    === "Satellite subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/peak/vmax_function_peak_satellites.png){ width="600" }
-        </figure>
-
-=== "$L_{\rm progenitor}$"
-
-    === "All subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/main_branch_length/distribution_all.png){ width="600" }
-        </figure>
-
-    === "Central subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/main_branch_length/distribution_centrals.png){ width="600" }
-        </figure>
-
-    === "Satellite subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/main_branch_length/distribution_satellites.png){ width="600" }
-        </figure>
-
-=== "$\beta_{\rm M}$"
-
-    === "All subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/growth_factors/growth_factor_all.png){ width="600" }
-        </figure>
-
-    === "Central subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/growth_factors/growth_factor_centrals.png){ width="600" }
-        </figure>
-
-    === "Satellite subhaloes"
-
-        <figure markdown="span">
-        ![image_title](../images/parameter_changes/MinNumPartOfSub/growth_factors/growth_factor_satellites.png){ width="600" }
-        </figure>
-
-
 #### `MinCoreSize`
 
 This parameter, which defaults to $N_{\rm core} = 20$, determines the number of most bound particle tracers used to compute the phase-space coordinates and dispersion of self-bound subhaloes. Increasing the value means that more tracer particles (with lower binding energies) are included in the calculation, which primarily increases the measured phase-space dispersion of the subhalo core. Since the phase-space dispersion is used as a normalising term when determining whether two subhaloes overlap, and hence whether one of the pair will be forcefully disrupted, using larger values makes the condition trigger more frequently.
@@ -718,20 +584,20 @@ We recommend not increasing the value beyond the chosen default of $N_{\rm core}
         ![image_title](../images/parameter_changes/MinCoreSize/growth_factors/growth_factor_satellites.png){ width="600" }
         </figure>
 
-#### `MajorProgenitorMassRatio`
+#### `MinNumPartOfSub`
 
-This parameter, which defaults to $f_{\rm major} = 0.8$, determines the mass threshold (expressed relative to the subhalo with the largest mass in the previous output) above which subhaloes in a FoF group will be considered to be a central subhalo candidate. The central subhalo will be chosen among the pool of central subhalo candidates, based on the one with the lowest orbital specific kinetic energy in the centre of mass frame of their host FoF group. Lowering the value increases the number of central subhalo candidates, with a value of $f_{\rm major} = 1.0$ forcing the choice to be the subhalo which was the most massive in the previous output.
+This parameter, which defaults to $N^{\rm min}_{\rm bound} = 20$, is the minimum number of particles of any type that should be bound to a subhalo for it to be deemed as self-bound. Modifying the value changes the number of subhaloes that are classified as self-bound in the catalogue. This has important implications on the bound mass and velocity functions owing to the fact that HBT-HERONS uses an *exclusive mass definition*.
 
-We recommend not lowering the value below $f_{\rm major} = \mathcal{O}(0.1)$, as low mass subhaloes become eligible to be centrals. Since they are more abundant than more massive subhaloes, it becomes increasingly likely to pick a low mass subhalo as a central instead of a more "adequate" massive subhalo. The supplementary plot shows an example where this happens, which leads to wild variations in mass. Conversely, we do not recommend using a value of $f_{\rm major} = 1$, since it would be too restrictive during the selection of a central subhalo. For example, two central subhaloes with the same $M_{\rm 200c}$ but different amount of mass in satellites would make the code choose the one with least mass in satellites (recall that mass is assigned exclusively).
+We recommend using a small value of $N^{\rm min}_{\rm bound}$, as "physical" self-bound subhaloes are clearly seen to exist at that cutoff scale. Indeed, we see in the supplementary plot that virtually all residual clumps of self-bound dark matter are removed when using $N^{\rm min}_{\rm bound} \leq 20$. We advise against lowering the value below 20, since the computational and data storage requirements increase drastically due to the fact that low mass subhaloes are much greater in number than massive subhaloes. It additionally increases the chances of spurious subhaloes to be detected as self-bound.
 
-However, we note that the choice of central is not solely determined by the combination of the mass threshold and orbital kinetic energy criterion. If after unbinding it turns out that the central subhalo identified during this step is not the most massive subhalo in the host FoF group, the central is changed to be the most massive. However, the accretion of particles in that output would reflect the orginally incorrect central choice.
+??? abstract "Supplementary plot"
 
 === "$M_{\mathrm{200c}}$"
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/z0/m200c_mass_function.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/z0/m200c_mass_function.png){ width="600" }
         </figure>
 
 === "$M^{\rm z=0}_{\mathrm{bound}}$"
@@ -739,19 +605,19 @@ However, we note that the choice of central is not solely determined by the comb
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/z0/bound_mass_function_z0_all.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/z0/bound_mass_function_z0_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/z0/bound_mass_function_z0_centrals.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/z0/bound_mass_function_z0_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/z0/bound_mass_function_z0_satellites.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/z0/bound_mass_function_z0_satellites.png){ width="600" }
         </figure>
 
 === "$M^{\rm peak}_{\mathrm{bound}}$"
@@ -759,19 +625,19 @@ However, we note that the choice of central is not solely determined by the comb
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/peak/bound_mass_function_peak_all.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/peak/bound_mass_function_peak_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/peak/bound_mass_function_peak_centrals.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/peak/bound_mass_function_peak_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/mass_functions/peak/bound_mass_function_peak_satellites.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/mass_functions/peak/bound_mass_function_peak_satellites.png){ width="600" }
         </figure>
 
 === "$V^{\rm z=0}_{\mathrm{max}}$"
@@ -779,19 +645,19 @@ However, we note that the choice of central is not solely determined by the comb
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/z0/vmax_function_z0_all.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/z0/vmax_function_z0_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/z0/vmax_function_z0_centrals.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/z0/vmax_function_z0_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/z0/vmax_function_z0_satellites.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/z0/vmax_function_z0_satellites.png){ width="600" }
         </figure>
 
 === "$V^{\rm peak}_{\mathrm{max}}$"
@@ -800,19 +666,19 @@ However, we note that the choice of central is not solely determined by the comb
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/peak/vmax_function_peak_all.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/peak/vmax_function_peak_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/peak/vmax_function_peak_centrals.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/peak/vmax_function_peak_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/velocity_functions/peak/vmax_function_peak_satellites.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/velocity_functions/peak/vmax_function_peak_satellites.png){ width="600" }
         </figure>
 
 === "$L_{\rm progenitor}$"
@@ -820,19 +686,19 @@ However, we note that the choice of central is not solely determined by the comb
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/main_branch_length/distribution_all.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/main_branch_length/distribution_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/main_branch_length/distribution_centrals.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/main_branch_length/distribution_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/main_branch_length/distribution_satellites.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/main_branch_length/distribution_satellites.png){ width="600" }
         </figure>
 
 === "$\beta_{\rm M}$"
@@ -840,17 +706,152 @@ However, we note that the choice of central is not solely determined by the comb
     === "All subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/growth_factors/growth_factor_all.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/growth_factors/growth_factor_all.png){ width="600" }
         </figure>
 
     === "Central subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/growth_factors/growth_factor_centrals.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/growth_factors/growth_factor_centrals.png){ width="600" }
         </figure>
 
     === "Satellite subhaloes"
 
         <figure markdown="span">
-        ![image_title](../images/parameter_changes/MajorProgenitorMassRatio/growth_factors/growth_factor_satellites.png){ width="600" }
+        ![image_title](../images/parameter_changes/MinNumPartOfSub/growth_factors/growth_factor_satellites.png){ width="600" }
+        </figure>
+
+#### `SourceSubRelaxFactor`
+
+This parameter, which defaults to $f_{\rm source} = 3$, determines how many particles a subhalo can have associated to it relative to the number of bound particles it has. Its primary use is to allow particles that were previously bound to a satellite subhalo to be "re-accreted". This can for example happen after a pericentric passage, where the tidal forces may make some amount of mass unbound, which may later found as bound once the tidal perturbations have subsided. This can also happen secularly, since any given particle may be unbound in a single output by pure chance.
+
+We recommend using a value that is larger than $f_{\rm source} = 1$, to prevent the secular loss of mass over time. Any particle that is momentarely unbound will lose its association the subhalo it belonged to, preventing its reaccretion at a later time. Over time, this leads to the secular decrease of mass of satellites, which stunts their mass growth. Despite the fact that larger values than the default do not affect results based on our tests, we advise using much larger values. First, the computational cost increases. Second, the retention of too many unbound particles in the source can affect the centre of mass estimate of a subhalo. As its position and velocity plays an important role during unbinding, it can lead to artificial disruption.
+
+=== "$M_{\mathrm{200c}}$"
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/z0/m200c_mass_function.png){ width="600" }
+        </figure>
+
+=== "$M^{\rm z=0}_{\mathrm{bound}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/z0/bound_mass_function_z0_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/z0/bound_mass_function_z0_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/z0/bound_mass_function_z0_satellites.png){ width="600" }
+        </figure>
+
+=== "$M^{\rm peak}_{\mathrm{bound}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/peak/bound_mass_function_peak_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/peak/bound_mass_function_peak_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/mass_functions/peak/bound_mass_function_peak_satellites.png){ width="600" }
+        </figure>
+
+=== "$V^{\rm z=0}_{\mathrm{max}}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/z0/vmax_function_z0_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/z0/vmax_function_z0_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/z0/vmax_function_z0_satellites.png){ width="600" }
+        </figure>
+
+=== "$V^{\rm peak}_{\mathrm{max}}$"
+
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/peak/vmax_function_peak_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/peak/vmax_function_peak_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/velocity_functions/peak/vmax_function_peak_satellites.png){ width="600" }
+        </figure>
+
+=== "$L_{\rm progenitor}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/main_branch_length/distribution_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/main_branch_length/distribution_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/main_branch_length/distribution_satellites.png){ width="600" }
+        </figure>
+
+=== "$\beta_{\rm M}$"
+
+    === "All subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/growth_factors/growth_factor_all.png){ width="600" }
+        </figure>
+
+    === "Central subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/growth_factors/growth_factor_centrals.png){ width="600" }
+        </figure>
+
+    === "Satellite subhaloes"
+
+        <figure markdown="span">
+        ![image_title](../images/parameter_changes/SourceSubRelaxFactor/growth_factors/growth_factor_satellites.png){ width="600" }
         </figure>
