@@ -41,9 +41,7 @@ nav:
   - Algorithm:
       - ./algorithm/overview.md
       - ./algorithm/parameter_choices.md
-  - Installation:
-    - ./installation/requirements.md
-    - ./installation/compiling.md
+  - ./installation.md
   - Running:
     - ./running/start.md
     - ./running/parameter_file.md
