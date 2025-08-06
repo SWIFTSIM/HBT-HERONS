@@ -38,6 +38,9 @@ extra_javascript:
 
 nav:
   - Welcome: index.md
+  - Algorithm:
+      - ./algorithm/overview.md
+      - ./algorithm/parameter_choices.md
   - Installation:
     - ./installation/requirements.md
     - ./installation/compiling.md
@@ -49,9 +52,6 @@ nav:
       - ./outputs/format.md
       - ./outputs/subhalo_properties.md
       - ./outputs/merger_trees.md
-  - Algorithm:
-      - ./algorithm/overview.md
-      - ./algorithm/parameter_choices.md
 
 repo_url: https://github.com/SWIFTSIM/HBT-HERONS
 repo_name: SWIFTSIM/HBT-HERONS
