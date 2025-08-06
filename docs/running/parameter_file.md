@@ -87,8 +87,7 @@ The value of the softening used for the gravity kernel. Should always be provide
 
 ## Subhaloes
 
-Various options that tell the code how to do the unbinding, the subhalo self-boundness conditions and the tracking of subhaloes.
-<!-- Since the choices the user makes here will affect to some degree the properties and tracking of subhaloes, we show [here](../algorithm/parameter_choices.md) how subhalo-related summary statistics change with the choice of parameters. -->
+Various options that tell the code how to do the unbinding, the subhalo self-boundness conditions and the tracking of subhaloes. Since the choices the user makes here will affect to some degree the properties and tracking of subhaloes, we show [here](../algorithm/parameter_choices.md) how subhalo-related summary statistics change with the choice of parameters.
 
 ### Unbinding
 
