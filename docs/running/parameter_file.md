@@ -48,7 +48,7 @@ These options specify the format of the simulation particle and FoF group data. 
 The unit system used by the simulation and used in the outputs. For `Swift` outputs,
 the values are set using the snapshot metadata.
 
-| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:590px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
 | `MassInMsunh`                   | 1e10 | Mass of particles in units of $\mathrm{M}_{\odot}\,h^{-1}$.                   |
 | `LengthInMpch`                           | 1 | Lengths in units of $\mathrm{Mpc}\,h^{-1}$. |
@@ -59,7 +59,7 @@ the values are set using the snapshot metadata.
 If the box is periodic, and if so, the box size.
 
 <!-- | <div style="width:260px">Property</div> | <div style="width:787px">Description</div>       | -->
-| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:590px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
 | `PeriodicBoundaryOn`                    | `1` | Whether the box is periodic.                   |
 | `BoxSize`                               | - | Side length of each side of the box. Only cubes are supported. |
