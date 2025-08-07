@@ -273,17 +273,44 @@ void ParticleExchanger_t<Halo_T>::Exchange()
 template <class Halo_T>
 void DecideTargetProcessor(int NumProc, vector<Halo_T> &InHalos, vector<IdRank_t> &TargetRank)
 {
-  auto dims = ClosestFactors(NumProc, 3);
-  HBTxyz step;
-  for (int i = 0; i < 3; i++)
-    step[i] = HBTConfig.BoxSize / dims[i];
+  // get halo particle counts and total count
+  vector<HBTInt> InHaloSizes(InHalos.size());
+  HBTInt TotalParticles = 0;
+  for (HBTInt haloid = 0; haloid < InHalos.size(); haloid++)
+  {
+    InHaloSizes[haloid] = InHalos[haloid].Particles.size();
+    TotalParticles += InHalos[haloid].Particles.size();
+  }
 
-#pragma omp parallel for
+  HBTInt DesiredPartPerRank = TotalParticles / NumProc;
+  float tolerance = 1.15; // make this configurable, or start small (1.05?) and keep increasing until a solution is found
+  int ThisRank = 0;
+  HBTInt ParticlesThisRank = 0;
   for (HBTInt i = 0; i < InHalos.size(); i++)
   {
-    InHalos[i].AverageCoordinates();
     TargetRank[i].Id = i;
-    TargetRank[i].Rank = AssignCell(InHalos[i].ComovingAveragePosition, step, dims);
+    if((ParticlesThisRank + InHaloSizes[i] < DesiredPartPerRank * tolerance)
+       or (ParticlesThisRank == 0))  // allow at least one halo per rank, even if it's big
+      {
+	// there is space for the halo left on this rank
+	TargetRank[i].Rank = ThisRank;
+	ParticlesThisRank += InHaloSizes[i];
+      }
+    else if(ThisRank >= NumProc)
+      {
+	// we have run out of ranks before running out of halos, abort
+	stringstream error_message;
+	error_message << "Could not distribute halos with particle balance tolerance " << tolerance << ". Try again with larger tolerance." << endl;
+	throw runtime_error(error_message.str());
+      }
+    else
+      {
+	// start a new rank
+	ThisRank += 1;
+	ParticlesThisRank = 0;
+	TargetRank[i].Rank = ThisRank;
+      }
+    ParticlesThisRank += InHaloSizes[i];
   }
 }
 
