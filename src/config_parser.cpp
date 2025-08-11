@@ -402,11 +402,11 @@ void ParseHBTParams(int argc, char **argv, Parameter_t &config, int &snapshot_st
 {
   if (argc < 2)
   {
-    cerr << "Usage: " << argv[0] << " [param_file] <snapshot_start> <snapshot_end>\n";
+    std::cerr << "Usage: " << argv[0] << " [parameter_file] <SnapshotIndex_start> <SnapshotIndex_end>" << std::endl;
     exit(1);
   }
   config.ParseConfigFile(argv[1]);
-  if (2 == argc)
+  if (argc == 2)
   {
     snapshot_start = config.MinSnapshotIndex;
     snapshot_end = config.MaxSnapshotIndex;
@@ -419,8 +419,10 @@ void ParseHBTParams(int argc, char **argv, Parameter_t &config, int &snapshot_st
     else
       snapshot_end = snapshot_start;
   }
-  cout << "Running " << argv[0] << " from snapshot " << snapshot_start << " to " << snapshot_end
-       << " using configuration file " << argv[1] << endl;
+  std::cout << "Running " << argv[0] << " from SnapshotIndex (SnapshotId) " << snapshot_start \
+            << " (" << (HBTConfig.SnapshotIdList.size() ? HBTConfig.SnapshotIdList[snapshot_start] : snapshot_start) \
+            << ") to " << snapshot_end <<  " (" << (HBTConfig.SnapshotIdList.size() ? HBTConfig.SnapshotIdList[snapshot_end] : snapshot_end) \
+            << ") using configuration file " << argv[1] << std::endl;
 }
 
 void Parameter_t::BroadCast(MpiWorker_t &world, int root)

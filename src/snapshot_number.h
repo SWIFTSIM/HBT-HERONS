@@ -5,9 +5,6 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-// #include <cstdlib>
-// #include <cstdio>
-// #include <unordered_map>
 #include "config_parser.h"
 #include "datatypes.h"
 
@@ -41,28 +38,40 @@ public:
   void SetSnapshotIndex(int snapshot_index);
   int GetSnapshotIndex() const;
   int GetSnapshotId() const;
+  int GetSnapshotId(const int &snapshot_index) const;
 };
+
 inline int SnapshotNumber_t::GetSnapshotIndex() const
 {
   return SnapshotIndex;
 }
+
 inline int SnapshotNumber_t::GetSnapshotId() const
 {
   return SnapshotId;
 }
+
+/* Used to set SnapshotId member, and to retrieve the snapshot number of a given
+ * snapshot index in different parts of the code. */
+inline int SnapshotNumber_t::GetSnapshotId(const int &snapshot_index) const
+{
+  if (HBTConfig.SnapshotIdList.empty())
+    return snapshot_index;
+  else
+    return HBTConfig.SnapshotIdList[snapshot_index];
+}
+
 inline void SnapshotNumber_t::FormatSnapshotId(stringstream &ss)
 {
   ss << std::setw(3) << std::setfill('0') << SnapshotId;
 }
+
 inline void SnapshotNumber_t::SetSnapshotIndex(int snapshot_index)
 {
   assert(snapshot_index >= HBTConfig.MinSnapshotIndex && snapshot_index <= HBTConfig.MaxSnapshotIndex);
-  //   assert(SpecialConst::NullSnapshotId!=snapshot_index);
+
   SnapshotIndex = snapshot_index;
-  if (HBTConfig.SnapshotIdList.empty())
-    SnapshotId = SnapshotIndex;
-  else
-    SnapshotId = HBTConfig.SnapshotIdList[SnapshotIndex];
+  SnapshotId = GetSnapshotId(snapshot_index);
 }
 
 #endif
