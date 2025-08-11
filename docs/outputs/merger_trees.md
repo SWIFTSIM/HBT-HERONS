@@ -38,8 +38,8 @@ We assume the simulation has 64 outputs throughout this example.
     # Get the TrackId of the most massive subhalo, when it was first identified and when it disrupted/merged.
     with h5py.File(catalogue_path.format(output_number = max_output_number)) as catalogue:
         TrackId_to_follow = catalogue['Subhalos']['Mbound'][()].argmax()
-        output_start = catalogue['Subhalos']['SnapshotIndexOfBirth'][TrackId_to_follow]
-        output_end   = catalogue['Subhalos']['SnapshotIndexOfDeath'][TrackId_to_follow]
+        output_start = catalogue['Subhalos']['SnapshotOfBirth'][TrackId_to_follow]
+        output_end   = catalogue['Subhalos']['SnapshotOfDeath'][TrackId_to_follow]
 
     # If output_end is equal to -1, that means it is still resolved at the time when the output was saved.
     output_end = output_end if output_end != -1 else max_output_number
