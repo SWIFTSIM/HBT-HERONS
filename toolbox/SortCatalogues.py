@@ -82,8 +82,8 @@ def read_snapshot(snapshot_file, snap_nr, particle_ids):
 
 def read_hbt_particles(filenames, nr_local_subhalos, prop_name='SubhaloParticles'):
     """
-    Read in the ParticleIDs/PotentialEnergies belonging to the subhalos on this MPI
-    rank from the specified SubSnap files. Returns a single array with
+    Read in the ParticleIDs/PotentialEnergies/BindingEnergies belonging to the subhalos 
+    on this MPI rank from the specified SubSnap files. Returns a single array with
     the concatenated IDs from all local subhalos in the order they
     appear in the SubSnap files.
     """
@@ -139,7 +139,7 @@ def read_hbt_particles(filenames, nr_local_subhalos, prop_name='SubhaloParticles
 
     return prop_values
 
-def sort_hbt_output(basedir, snap_nr, outdir, with_particles, with_potential_energy, snapshot_file, quiet):
+def sort_hbt_output(basedir, snap_nr, outdir, with_particles, with_potential_energy, with_binding_energy, snapshot_file, quiet):
     """
     This reorganizes a set of HBT SubSnap files into a single file which
     contains one HDF5 dataset for each subhalo property. Subhalos are written
@@ -170,6 +170,10 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, with_potential_ene
         if with_potential_energy:
             log(f"Reading potential energy", quiet=quiet)
             potential_energies = read_hbt_particles(filenames, len(subhalos), prop_name='PotentialEnergies')
+
+        if with_binding_energy:
+            log(f"Reading binding energy", quiet=quiet)
+            binding_energies = read_hbt_particles(filenames, len(subhalos), prop_name='BindingEnergies')
 
         # Assign TrackIds to the particles
         particle_sort_key = np.repeat(subhalos["TrackId"], subhalos["Nbound"]).astype(np.int64)
@@ -218,6 +222,9 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, with_potential_ene
         if with_potential_energy:
             log(f"Reordering potential energies by TrackId and energy", quiet=quiet)
             potential_energies = psort.fetch_elements(potential_energies, order, comm=comm)
+        if with_binding_energy:
+            log(f"Reordering binding energies by TrackId and energy", quiet=quiet)
+            binding_energies = psort.fetch_elements(binding_energies, order, comm=comm)
         del order
         del particle_sort_key
 
@@ -252,6 +259,8 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, with_potential_ene
             phdf5.collective_write(subhalo_group, "ParticleOffset", particle_offset, comm)            
             if with_potential_energy:
                 phdf5.collective_write(particle_group, "PotentialEnergies", potential_energies, comm)            
+            if with_binding_energy:
+                phdf5.collective_write(particle_group, "BindingEnergies", binding_energies, comm)            
             if snapshot_file is not None:
                 for name, data in particle_data.items():
                     phdf5.collective_write(particle_group, name, data, comm)
@@ -281,6 +290,7 @@ if __name__ == "__main__":
     parser.add_argument("outdir",  type=str, help="Directory in which to write the output")
     parser.add_argument("--with-particles", action="store_true", help="Also copy the particle IDs to the output")
     parser.add_argument("--with-potential-energy", action="store_true", help="Also copy the particle potential energies to the output")
+    parser.add_argument("--with-binding-energy", action="store_true", help="Also copy the particle binding energies to the output")
     parser.add_argument("--snapshot-file", type=str, help="Format string for snapshot files (f-string using {snap_nr}, {file_nr})")
     parser.add_argument("--quiet", action="store_true", help="Suppress logging")
 
@@ -290,7 +300,7 @@ if __name__ == "__main__":
     for key, value in vars(args).items():
         log(f'  {key}: {value}')
 
-    if args.snapshot_file or args.with_potential_energy:
+    if args.snapshot_file or args.with_potential_energy or args.with_binding_energy:
         assert args.with_particles
 
     sort_hbt_output(**vars(args))
