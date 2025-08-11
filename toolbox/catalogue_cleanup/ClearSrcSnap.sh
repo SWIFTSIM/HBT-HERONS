@@ -4,7 +4,7 @@ set -e
 # Check if we have provided a path
 if [ "$#" -ne 1 ]
 then
-  echo "Usage: ./ClearSubSnap.sh <PATH_TO_HBT_DIR>"
+  echo "Usage: ./ClearSrcSnap.sh <PATH_TO_HBT_DIR>"
   exit 1
 fi
 
