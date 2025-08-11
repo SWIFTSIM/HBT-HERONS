@@ -20,8 +20,7 @@ The `TrackId` of a subhalo is a unique identifier that persists in time througho
 
 <h4>Code example</h4>
 
-Here we show how to follow the mass evolution of the most massive subhalo identified in the last output of a simulation.
-We assume the simulation has 64 outputs throughout this example.
+Here we show how to follow the mass evolution of the most massive subhalo identified in the last output of a HBT-HERONS analysis.
 
 === "After running `toolbox/catalogue_cleanup/SortCatalogues.py`"
 
@@ -123,7 +122,7 @@ To identify the descendant of a disrupted subhalo, HBT-HERONS uses the `NumTrace
 
 <h4>Code example</h4>
 
-Here we show how to identify all subhaloes that disrupted and hence merged with the same subhalo of the [first example](#evolution-of-a-single-subhalo). We assume the simulation has 64 outputs throughout this example.
+Here we show how to identify all subhaloes that disrupted and hence merged with the same subhalo of the [first example](#evolution-of-a-single-subhalo).
 
 === "After running `toolbox/catalogue_cleanup/SortCatalogues.py`"
 
@@ -171,7 +170,7 @@ Formally, HBT-HERONS checks the phase-space offset between the cores of subhaloe
 
 <h4>Code example</h4>
 
-Here we show how to identify all subhaloes that directly sunk with the same subhalo of the [first example](#evolution-of-a-single-subhalo). We assume the simulation has 64 outputs throughout this example.
+Here we show how to identify all subhaloes that directly sunk with the same subhalo of the [first example](#evolution-of-a-single-subhalo).
 
 === "After running `toolbox/catalogue_cleanup/SortCatalogues.py`"
 
