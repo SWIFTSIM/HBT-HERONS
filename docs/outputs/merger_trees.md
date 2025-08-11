@@ -29,7 +29,7 @@ We assume the simulation has 64 outputs throughout this example.
     import h5py
     from glob import glob
 
-    # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access it paths by output number.
+    # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access its paths by output number.
     catalogue_paths = sorted(glob("<SORTED_CATALOGUE_BASE_PATH>/OrderedSubSnap_*.hdf5"))
     catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
     max_output_number = list(catalogue_paths)[-1]
@@ -131,12 +131,14 @@ Here we show how to identify all subhaloes that disrupted and hence merged with 
     import h5py
     from glob import glob
 
-    # Get ordered list to the sorted subhalo catalogues.
+    # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access its paths by output number.
     catalogue_paths = sorted(glob("<SORTED_CATALOGUE_BASE_PATH>/OrderedSubSnap_*.hdf5"))
+    catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
+    max_output_number = list(catalogue_paths)[-1]
 
     # Get the TrackId of the most massive subhalo in the last available output, and
     # all progenitor TrackIds.
-    with h5py.File(catalogue_paths[-1]) as catalogue:
+    with h5py.File(catalogue_paths[max_output_number]) as catalogue:
         TrackId_to_follow = catalogue["Subhalos"]["Mbound"][()].argmax()
         disrupted_progenitors  = np.where(catalogue["Subhalos/DescendantTrackId"][()] == TrackId_to_follow)[0]
     ```
@@ -177,12 +179,14 @@ Here we show how to identify all subhaloes that directly sunk with the same subh
     import h5py
     from glob import glob
 
-    # Get ordered list to the sorted subhalo catalogues .
+    # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access its paths by output number.
     catalogue_paths = sorted(glob("<SORTED_CATALOGUE_BASE_PATH>/OrderedSubSnap_*.hdf5"))
+    catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
+    max_output_number = list(catalogue_paths)[-1]
 
     # Get the TrackId of the most massive subhalo in the last available output, and
     # all progenitor TrackIds.
-    with h5py.File(catalogue_paths[-1]) as catalogue:
+    with h5py.File(catalogue_paths[max_output_number]) as catalogue:
         TrackId_to_follow = catalogue["Subhalos"]["Mbound"][()].argmax()
         sink_progenitors  = np.where(catalogue["Subhalos/SinkTrackId"][()] == TrackId_to_follow)[0]
     ```
