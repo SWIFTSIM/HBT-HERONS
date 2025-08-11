@@ -40,19 +40,37 @@ We assume the simulation has 64 outputs throughout this example.
     output_end = output_end if output_end != -1 else max_output_number
 
     # Create an array to hold values we are interested in tracking (number of bound particles)
-    Nbound_evolution = - np.ones(output_end - output_start + 1)
+    Mbound_evolution = - np.ones(output_end - output_start + 1)
 
     # Iterate over catalogues to obtain Nbound value of the entry with the TrackId we want to follow.
     for i, output_number in enumerate(range(output_start, output_end + 1)):
         with h5py.File(catalogue_path.format(output_number = output_number)) as catalogue:
-          Nbound_evolution[i] = catalogue['Subhalos/Nbound'][TrackId_to_follow]
+          Mbound_evolution[i] = catalogue['Subhalos/Mbound'][TrackId_to_follow]
+
+    Snapshot_evolution = np.arange(output_start, output_end + 1)
     ```
 
 === "Without running `toolbox/SortCatalogues.py`"
 
+    ```python
+    import sys
+    sys.path.append("<HBT-HERONS_PATH>/toolbox")
+    from HBTReader import HBTReader
 
-    ``` python
-    EXAMPLE INCOMING SOON!
+    # The reader will parse the base folder and parameter file to identify number
+    # of outputs and if any are missing
+    catalogue = HBTReader("<HBT-HERONS_CATALOGUE_BASE_PATH>")
+
+    # Get the TrackId of the most massive subhalo. The reader loads the latest
+    # available snapshot by default and all subhalo properties.
+    subhaloes = catalogue.LoadSubhalos()
+    TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
+
+    # Get its bound mass evolution, which returns by default all properties and
+    # the associated scale factors and snashot output numbers.
+    subhalo_evolution  = catalogue.GetTrackEvolution(TrackId_to_follow)
+    Mbound_evolution   = subhalo_evolution["Mbound"]
+    Snapshot_evolution = subhalo_evolution["Snapshot"]
     ```
 
 We now have an array that contains the number of bound particles for that subhalo across time. We can plot it using
@@ -62,9 +80,9 @@ the code below:
 import matplotlib.pyplot as plt
 
 fig, ax1 = plt.subplots(1)
-ax1.plot(np.arange(output_start, output_end + 1), Nbound_evolution, 'k-')
+ax1.plot(Snapshot_evolution, Mbound_evolution, 'k-')
 ax1.set_xlabel('Output Number')
-ax1.set_ylabel('Total number of bound particles')
+ax1.set_ylabel('Total mass of bound particles [HBT-HERONS units]')
 ax1.set_yscale('log')
 plt.show()
 ```
