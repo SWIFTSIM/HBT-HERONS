@@ -77,15 +77,15 @@ class HBTReader:
     Class to read HBT-HERONS catalogues.
     """
 
-    def __init__(self, base_path):
+    def __init__(self, base_dir):
         """
-        Initialize HBTReader to read data from base_path where all the outputs
+        Initialize HBTReader to read data from base_dir where all the outputs
         are saved. A parameter file must exist there (Parameters.log dumped by
         HBT-HERONS during runtime).
         """
 
-        self.Options = ConfigReader(base_path +'/Parameters.log').Options
-        self.base_dir = self.Options['SubhaloPath']
+        self.Options = ConfigReader(base_dir +'/Parameters.log').Options
+        self.base_dir = base_dir
 
         # To know which files to open.
         self.MinimumSnapshotIndex = int(self.Options['MinSnapshotIndex'])
@@ -98,6 +98,8 @@ class HBTReader:
         # Generate an f-formated list of files
         self._file_list = sorted(glob(self.base_dir+'/*/SubSnap_*.0.hdf5'),key=get_hbt_snapnum)
         self._file_list = [path.replace(".0.hdf5",".{subfile_nr}.hdf5") for path in self._file_list]
+
+
 
         # Do we have the same number of files as we expect? If not, remove the
         # missing catalogues.
