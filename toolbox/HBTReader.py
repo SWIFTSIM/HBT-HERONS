@@ -258,17 +258,17 @@ class HBTReader:
         with h5py.File(self.GetFileName(snap_nr, 0), 'r') as file:
             return file["NumberOfSubhalosInAllFiles"][0]
 
-    def LoadParticleIDs(self, subhalo_index, snap_nr=None, filetype='Sub'):
+    def LoadParticleIDs(self, TrackId=None, snap_nr=None, filetype='Sub'):
         """
         Load the particles that are bound or are part of the source subhalo
         for the specified subhalo.
 
         Parameters
         ==========
-        subhalo_index: int
-            The array entry to load from the subhalo catalogues. Note
-            that this does NOT correspond to the TrackId of the subhalo, as
-            the catalogues are not sorted in TrackId.
+        TrackId: int, opt
+            The TrackId of the subhalo whose particles we are interested in. If
+            not specified, this function will return the particle IDs of all
+            TrackIds in the catalogue.
         snap_nr : int, opt
             Snapshot number of the catalogue we are interested in. It defaults
             to the last snapshot with currently available catalogues.
@@ -292,12 +292,21 @@ class HBTReader:
             raise ValueError(f"Requested filetype ({filetype}) is not valid. Only \"Sub\" or \"Src\" are accepted.")
         key_to_load = "SubhaloParticles" if filetype == "Sub" else "SrchaloParticles"
 
-        load_single_subhalo = subhalo_index is not None
-        if (load_single_subhalo):
-            if not isinstance(subhalo_index, (np.integer, int)):
-                raise TypeError("Parameter subhalo_index is not of the required type (int).")
-            if subhalo_index >= self.GetNumberOfSubhalos(snap_nr):
-                raise ValueError(f"Selected subhalo entry ({subhalo_index}) is larger than the number of existing subhaloes ({self.GetNumberOfSubhalos(snap_nr)})")
+        # Find the index location of the subhalo entry if we requested a given
+        # TrackId. If we do not find it, it does not exist at this point.
+        load_single_subhalo = TrackId is not None
+        if load_single_subhalo:
+
+            if not isinstance(TrackId, (np.integer, int)):
+                raise TypeError("Parameter TrackId is not of the required type (int).")
+
+            subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection='TrackId') == TrackId)
+            if len(subhalo_index) == 0:
+                raise LookupError("The requested TrackId does not exist in the snapshot of interest.")
+            subhalo_index = subhalo_index[0]
+
+        else:
+            subhalo_index = None
 
         # Determine number of files for requested output, only present in SubSnap
         # files.
