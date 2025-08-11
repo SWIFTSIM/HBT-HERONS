@@ -93,7 +93,7 @@ class HBTReader:
         if "SnapshotIdList" in self.Options:
             self.SnapshotIdList = np.array(self.Options["SnapshotIdList"], int)
         else:
-            self.SnapshotIdList = np.arange(self.MinimumSnapshotIndex, self.MaximumSnapshotIndex)
+            self.SnapshotIdList = np.arange(self.MinimumSnapshotIndex, self.MaximumSnapshotIndex + 1)
 
         # Generate an f-formated list of files
         self._file_list = sorted(glob(self.base_dir+'/*/SubSnap_*.0.hdf5'),key=get_hbt_snapnum)
