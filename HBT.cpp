@@ -144,8 +144,8 @@ int main(int argc, char **argv)
      * triggers re-unbinding). We also truncate the source of each
      * subhalo based on its number of bound particles.  */
     if (world.rank() == 0)
-      cout << "Unbinding...\n";
-    subsnap.RefineParticles();
+      std::cout << "Unbinding...\n";
+    subsnap.RefineParticles(world);
     global_timer.Tick("unbind", world.Communicator);
 
     /* Assign a unique TrackId to newly created subgroups. Update depth values,

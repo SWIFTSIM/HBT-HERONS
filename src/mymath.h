@@ -63,47 +63,54 @@ inline void RemoveFromVector(vector<T> &v, UnaryPredicate p)
 
 class Timer_t
 {
+private:
+  int FixTickNum(int itick)
+  {
+    return itick < 0 ? itick + Size() : itick;
+  }
 public:
   vector<chrono::high_resolution_clock::time_point> tickers;
   vector<string> names;
-  Timer_t()
-  {
-    tickers.reserve(20);
-  }
+  Timer_t() {tickers.reserve(20);}
+
+  /* Every rank store the time without waiting for other ranks to finish. */
   void Tick(string name)
   {
     tickers.push_back(chrono::high_resolution_clock::now());
     names.push_back(name);
   }
+
+  /* We only store the time once all ranks reach the barrier, i.e. synchronised
+   * ticking. */
   void Tick(string name, MPI_Comm comm)
-  // synchronized tick. wait for all processes to tick together.
   {
     MPI_Barrier(comm);
     Tick(name);
   }
+
+  /* Clear all time information */
   void Reset()
   {
     tickers.clear();
     names.clear();
   }
+
+  /* Number of entries in the ticker vector. */
   size_t Size()
   {
     return tickers.size();
   }
-  int FixTickNum(int itick)
-  {
-    return itick < 0 ? itick + Size() : itick;
-  }
+
+  /* Returns the seconds spent from two consecutive tick entries. If unspecified,
+   * it returns the interval between the last two ticks. */
   double GetSeconds(int itick = -1)
-  /*get the time spent from the previous tick to the current tick
-   * if itick not specified, return the current interval
-   * if itick<0, it will be interpreted as end()+itick */
   {
     itick = FixTickNum(itick);
     return GetSeconds(itick, itick - 1);
   }
+
+  /* Returns the seconds spent from two arbitrary timer entries. */
   double GetSeconds(int itick, int itick0)
-  /*get the time spent from itick0 to itick*/
   {
     itick = FixTickNum(itick);
     itick0 = FixTickNum(itick0);

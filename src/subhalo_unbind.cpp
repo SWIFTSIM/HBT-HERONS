@@ -1,8 +1,8 @@
-// TODO: unify the reference frame for specificProperties...
-#include <algorithm>
-#include <iostream>
 #include <new>
 #include <omp.h>
+#include <chrono>
+#include <iostream>
+#include <algorithm>
 
 #include "datatypes.h"
 #include "gravity_tree.h"
@@ -34,7 +34,7 @@ inline bool IsNotSubsampleParticleType(const Particle_t &a)
  * of Elist */
 static HBTInt RemoveUnboundParticles(vector<ParticleEnergy_t> &Elist, const size_t NumPart)
 {
-  /* Separate bound from unbound particles. Stable partition since we want to 
+  /* Separate bound from unbound particles. Stable partition since we want to
    * keep original relative ordering (bound particles that cannot be subsampled
    * will stay at the beginning). */
   auto iter = std::stable_partition(Elist.begin(), Elist.begin() + NumPart, IsBound);
@@ -271,7 +271,7 @@ public:
         MassPerType[GetType(i)] += GetMass(i);
    }
 
-  /* Accumulates the total mass of particles and per particle type between the 
+  /* Accumulates the total mass of particles and per particle type between the
    * Nstart and Nfinish most bound particle. */
    void AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish, float &Mass, float MassPerType[])
    {
@@ -292,7 +292,7 @@ public:
     ResetMassUpscaleFactor(); /* To get true particle mass */
 
     /* Compute the total mass of particles that are not subsampled, to subtract
-     * contribution from Mlast and hence get total true mass of subsampled 
+     * contribution from Mlast and hence get total true mass of subsampled
      * particles. */
     HBTReal Munsampled = 0;
     if(Nunsample > 0)
@@ -318,7 +318,7 @@ public:
 
 #ifndef DM_ONLY
   /* Finds the factor by which the mass of particles need to be multiplied after
-   * subsampling, to ensure mass conservation. Contrary to GetMassUpscaleFactor, 
+   * subsampling, to ensure mass conservation. Contrary to GetMassUpscaleFactor,
    * we define the upscale factor based on a particle type level. */
   std::vector<HBTReal> GetMassUpscaleFactorPerParticleType(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
   {
@@ -337,15 +337,15 @@ public:
       MassPerTypeTotal[type] += MassPerTypeSubsample[type];
 
     /* Ratio of both gives the mass upscale factor for each particle type.
-     * We do not set values with zero particle types, but those particle types 
-     * would not contribute to potential since by definition there are none in 
+     * We do not set values with zero particle types, but those particle types
+     * would not contribute to potential since by definition there are none in
      * the subsampled set. */
     std::vector<HBTReal> MassUpscaleFactor = std::vector<HBTReal>(TypeMax, 0);
     for(int type = 0; type < TypeMax; type++)
       if(MassPerTypeSubsample[type])
         MassUpscaleFactor[type] = MassPerTypeTotal[type] / MassPerTypeSubsample[type];
 
-    /* Ensure total mass conservation if we are missing a particle type from 
+    /* Ensure total mass conservation if we are missing a particle type from
      * our subsampled set. */
     float TotalScaledMass = 0, TotalTrueMass = 0;
     for(int type = 0; type < TypeMax; type++)
@@ -361,7 +361,7 @@ public:
   }
 #endif
 
-  /* Makes it so GetMass(i) returns the true mass of the ith most bound 
+  /* Makes it so GetMass(i) returns the true mass of the ith most bound
    * particle. */
   void ResetMassUpscaleFactor()
   {
@@ -369,11 +369,11 @@ public:
   }
 
   /* Upscales the masses of particles if they are subsampled for potential
-   * calculation purposes, or leaves them as is if the subhalo is small. 
+   * calculation purposes, or leaves them as is if the subhalo is small.
    * Returns the number of particles that will be gravity sources. */
   HBTInt SetMassUpscaleFactor(const HBTInt &Nlast, const HBTReal &Mlast, const HBTInt &MaxSampleSize, const HBTInt &Nunsample)
   {
-    /* Subsampling disabled by user or the subhalo does not cross the threshold 
+    /* Subsampling disabled by user or the subhalo does not cross the threshold
      * to subsample. Use all currently bound particles in tree. */
     if((MaxSampleSize == 0) || (Nlast < (MaxSampleSize + Nunsample)))
       return Nlast;
@@ -424,12 +424,12 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
   }
 }
 
-/* Randomly shuffles the particles whose type are eligible to be subsampled 
+/* Randomly shuffles the particles whose type are eligible to be subsampled
  * during unbinding. Particles types that are not eligible will be placed at the
  * start of the vector. */
 HBTInt PrepareParticlesForSubsampling(vector<Particle_t> &Particles)
 {
-  /* We first partition the particle vector into those which we will 
+  /* We first partition the particle vector into those which we will
    * subsample and those which we will not. */
   auto iter = std::partition(Particles.begin(), Particles.end(), IsNotSubsampleParticleType);
 
@@ -508,7 +508,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   GravityTree_t tree;
   tree.Reserve(Particles.size());
 
-  /* Shuffle the particle vector, which we use as our basis of random 
+  /* Shuffle the particle vector, which we use as our basis of random
    * subsamples. */
   HBTInt Nunsample = 0;
   if (MaxSampleSize > 0 && Nbound > MaxSampleSize)
@@ -531,12 +531,12 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   ESnap.AccumulateMass(0, Nbound, Mbound, MboundType);
 #endif
 
-  /* Used to determine when iterative unbinding has converged to within the 
+  /* Used to determine when iterative unbinding has converged to within the
    * specified accuracy. */
   HBTInt Nlast;
   HBTReal Mlast;
 
-  /* Iteratively unbind until we find that the subhalo bound particle number (or 
+  /* Iteratively unbind until we find that the subhalo bound particle number (or
    * mass) has either converged or the subhalo has disrupted. */
   bool CorrectionLoop = false;
   while (true)
@@ -551,7 +551,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       epoch.RelativeVelocity(OldRefPos, OldRefVel, RefPos, RefVel, RefVelDiff);
       HBTReal dK = 0.5 * VecNorm(RefVelDiff);
 
-      /* The tree will only contain particles that were identified as unbound in 
+      /* The tree will only contain particles that were identified as unbound in
        * the last unbinding iteration. */
       EnergySnapshot_t ESnapCorrection(&Elist[Nbound], Nlast - Nbound, Particles,
                                        epoch);
@@ -590,7 +590,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         HBTReal particle_mass = (i < NGravitySources) ? ESnap.GetMass(i) : 0.;
 
         HBTInt index = Elist[i].ParticleIndex;
-        Elist[i].Energy = tree.BindingEnergy(Particles[index].ComovingPosition, 
+        Elist[i].Energy = tree.BindingEnergy(Particles[index].ComovingPosition,
                                              Particles[index].GetPhysicalVelocity(),
                                              RefPos, RefVel, particle_mass);
 #ifdef UNBIND_WITH_THERMAL_ENERGY
@@ -598,12 +598,12 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 #endif
       }
 
-      /* This ensures we use the true particle mass if there is no subsampling 
+      /* This ensures we use the true particle mass if there is no subsampling
        * in the next unbinding iteration. */
       ESnap.ResetMassUpscaleFactor();
     }
 
-    /* If we disable stripping, the we do no update Nbound nor Nunsample, and 
+    /* If we disable stripping, the we do no update Nbound nor Nunsample, and
      * they retain the values assigned before the first unbinding iteration. */
 #ifndef NO_STRIPPING
     Nbound = RemoveUnboundParticles(Elist, Nlast); // TODO: parallelize this.
@@ -668,12 +668,12 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     /* We have converged according to the user specified threshold. */
     if (Nbound >= Nlast * BoundMassPrecision)
     {
-      /* Since we have a resolved subhalo, we reset the death and sink 
+      /* Since we have a resolved subhalo, we reset the death and sink
        * information. */
       if (!IsAlive())
       {
         SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
-        DescendantTrackId = SpecialConst::NullSnapshotId;
+        DescendantTrackId = SpecialConst::NullTrackId;
       }
       if (IsTrapped())
       {
@@ -699,7 +699,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         /* Computes self-binding energy of the SampleSizeCenterRefinement most bound
          * particles, and sorts them according to their binding energy. */
         // NOTE: Elist.Energies is not updated, so if we save binding energies
-        // in the output, the values will be "out of order" since they reflect 
+        // in the output, the values will be "out of order" since they reflect
         // the subsampled energy estimate.
         RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
       }
@@ -806,7 +806,7 @@ void Subhalo_t::TruncateSource()
   Particles.resize(Nsource);
 }
 
-void SubhaloSnapshot_t::RefineParticles()
+void SubhaloSnapshot_t::RefineParticles(MpiWorker_t &world)
 { // it's more expensive to build an exclusive list. so do inclusive here.
   // TODO: ensure the inclusive unbinding is stable (contaminating particles from big subhaloes may hurdle the unbinding
 
@@ -856,5 +856,47 @@ void SubhaloSnapshot_t::RefineParticles()
     for (HBTInt i = 0; i < NumSub; i++)
       Subhalos[i].TruncateSource();
   }
-#endif
+#endif // INCLUSIVE_MASS
+
+  PrintSubhaloStatistics(world);
+}
+
+void SubhaloSnapshot_t::PrintSubhaloStatistics(MpiWorker_t &world)
+{
+  /* Output information about how many subhaloes have been sunk, disrupted, newly
+   * idenfied and failed subhaloes. */
+   HBTInt LocalSunkSubhaloes = 0, LocalDisruptedSubhaloes = 0, LocalNewSubhaloes = 0, LocalFakeSubhaloes = 0;
+   for(auto &sub:Subhalos)
+   {
+     /* Sunk subhaloes */
+      LocalSunkSubhaloes += (sub.SnapshotIndexOfDeath == GetSnapshotIndex()) \
+                          & (sub.SnapshotIndexOfSink  == GetSnapshotIndex());
+
+     /* Disrupted subhaloes */
+      LocalDisruptedSubhaloes += (sub.SnapshotIndexOfDeath == GetSnapshotIndex()) \
+                               & (sub.SnapshotIndexOfSink  == SpecialConst::NullSnapshotId);
+
+     /* A subhalo that was never self-bound. */
+      LocalFakeSubhaloes += (sub.SnapshotIndexOfBirth == GetSnapshotIndex()) \
+                          & (sub.SnapshotIndexOfDeath == GetSnapshotIndex());
+
+     /* A subhalo that was just identified as self-bound for the first time. */
+      LocalNewSubhaloes += (sub.SnapshotIndexOfBirth == GetSnapshotIndex()) \
+                         & (sub.SnapshotIndexOfDeath == SpecialConst::NullSnapshotId);
+   }
+
+  /* Gather across ranks */
+  HBTInt TotalSunkSubhaloes = 0, TotalDisruptedSubhaloes = 0, TotalNewSubhaloes = 0, TotalFakeSubhaloes = 0;
+  MPI_Allreduce(&LocalSunkSubhaloes     , &TotalSunkSubhaloes     , 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  MPI_Allreduce(&LocalDisruptedSubhaloes, &TotalDisruptedSubhaloes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  MPI_Allreduce(&LocalNewSubhaloes      , &TotalNewSubhaloes      , 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  MPI_Allreduce(&LocalFakeSubhaloes     , &TotalFakeSubhaloes     , 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+
+  if(world.rank() == 0)
+  {
+    cout << "    Total number of merged subhaloes = " << TotalSunkSubhaloes << "\n";
+    cout << "    Total number of disrupted subhaloes = " << TotalDisruptedSubhaloes << "\n";
+    cout << "    Total number of newly identified subhaloes = " << TotalNewSubhaloes << "\n";
+    cout << "    Total number of FOF groups without any self-bound subhaloes = " << TotalFakeSubhaloes << "\n";
+  }
 }
