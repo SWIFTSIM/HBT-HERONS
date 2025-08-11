@@ -1,9 +1,9 @@
 """
-Class to read the HBT outputs. 
-NOTE: only use for small simulations, as this method is very slow to 
+Class to read the HBT outputs.
+NOTE: only use for small simulations, as this method is very slow to
 retrieve the properties of all subhaloes. Suggested alternative is to
 instead run the script "./SortCatalogues.py", which will sort catalogues in
-ascending TrackId order. 
+ascending TrackId order.
 
 To use it, initialize the reader with the parameter file under the subhalo directory, e.g.,
 
@@ -39,7 +39,7 @@ class ConfigReader:
         """
         Loads which options are present in the HBT-HERONS parameter file, and
         their values.
-        
+
         Parameters
         ==========
         path_to_config_file: str
@@ -73,14 +73,14 @@ def get_hbt_snapnum(snapname):
     return int(snapname.rsplit('SubSnap_')[1].split('.')[0])
 
 class HBTReader:
-    """ 
-    Class to read HBT-HERONS catalogues. 
+    """
+    Class to read HBT-HERONS catalogues.
     """
 
     def __init__(self, base_path):
-        """ 
+        """
         Initialize HBTReader to read data from base_path where all the outputs
-        are saved. A parameter file must exist there (Parameters.log dumped by 
+        are saved. A parameter file must exist there (Parameters.log dumped by
         HBT-HERONS during runtime).
         """
 
@@ -155,34 +155,34 @@ class HBTReader:
         Parameters
         ==========
         snap_nr: int, opt
-            The snapshot number we are interested in. It defaults to the 
+            The snapshot number we are interested in. It defaults to the
             latest snapshot with available catalogues.
         subhalo_index: int, opt
-            If specified, only load the subhalo in the specified entry. Note 
+            If specified, only load the subhalo in the specified entry. Note
             that this does NOT correspond to the TrackId of the subhalo, as
-            the catalogues are not sorted in TrackId. If not provided, all 
-            subhaloes will be loaded. 
+            the catalogues are not sorted in TrackId. If not provided, all
+            subhaloes will be loaded.
         property_selection: tuple or list of strings, opt
-            If specified, only load the specified properties. If not provided, 
+            If specified, only load the specified properties. If not provided,
             all subhalo properties will be loaded.
         show_progess: bool, opt
-            Prints progress bar indicating how many subfiles have been loaded. 
+            Prints progress bar indicating how many subfiles have been loaded.
             Defaults to false.
 
         Returns
         =======
         subhalos: np.ndarray
             Specified properties for the requested subhaloes at the snapshot
-            of interest. The array contains multiple dtypes, with each 
-            corresponding to a different subhalo property. They can be accessed 
+            of interest. The array contains multiple dtypes, with each
+            corresponding to a different subhalo property. They can be accessed
             via indexing, e.g. subhalos["PROPERTY_NAME"]
         """
 
         if snap_nr is None:
             snap_nr = self.SnapshotIdList.max()
 
-        load_single_subhalo = subhalo_index is not None 
-        if (load_single_subhalo): 
+        load_single_subhalo = subhalo_index is not None
+        if (load_single_subhalo):
             if not isinstance(subhalo_index, (np.integer, int)):
                 raise TypeError("Parameter subhalo_index is not of the required type (int).")
             if subhalo_index >= self.GetNumberOfSubhalos(snap_nr):
@@ -223,7 +223,7 @@ class HBTReader:
 
                 # Load everything
                 subhalos.append(subfile['Subhalos'][property_selection])
-        
+
         if len(subhalos):
             subhalos = np.hstack(subhalos)
         else:
@@ -268,7 +268,7 @@ class HBTReader:
             Snapshot number of the catalogue we are interested in. It defaults
             to the last snapshot with currently available catalogues.
         subhalo_index: int
-            The array entry to load from the subhalo catalogues. Note 
+            The array entry to load from the subhalo catalogues. Note
             that this does NOT correspond to the TrackId of the subhalo, as
             the catalogues are not sorted in TrackId.
 
@@ -284,8 +284,8 @@ class HBTReader:
         if snap_nr is None:
             snap_nr = self.SnapshotIdList.max()
 
-        load_single_subhalo = subhalo_index is not None 
-        if (load_single_subhalo): 
+        load_single_subhalo = subhalo_index is not None
+        if (load_single_subhalo):
             if not isinstance(subhalo_index, (np.integer, int)):
                 raise TypeError("Parameter subhalo_index is not of the required type (int).")
             if subhalo_index >= self.GetNumberOfSubhalos(snap_nr):
@@ -326,7 +326,7 @@ class HBTReader:
         return subhalo_particles
 
     def GetTrackSnapshot(self, TrackId, snap_nr=None, fields=None):
-        """ 
+        """
         Load the properties of a given TrackId in the specified snapshot.
 
         Parameters
@@ -340,7 +340,7 @@ class HBTReader:
             everything.
         """
 
-        # Find the  index location of the requested TrackId. If we do not find 
+        # Find the  index location of the requested TrackId. If we do not find
         # it, it does not exist at this point.
         subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection='TrackId') == TrackId)
         if len(subhalo_index) == 0:
@@ -352,7 +352,7 @@ class HBTReader:
         return subhalo
 
     def GetTrackEvolution(self, TrackId, fields=None):
-        """ 
+        """
         Load the entire evolution of a given TrackId, from when it was first
         resolved until the latest snapshot with available catalogues (even if it
         the subhalo is unresolved by that time).
@@ -366,8 +366,12 @@ class HBTReader:
             everything.
         """
 
-        # Only load information from when the subhalo was resolved.
-        SnapshotOfBirth = self.GetTrackSnapshot(TrackId)['SnapshotOfBirth']
+        # Only load information from when the subhalo was resolved. We try using
+        # the old and new dataset name for backwards compatibility.
+        try:
+            SnapshotOfBirth = self.GetTrackSnapshot(TrackId)['SnapshotOfBirth']
+        except:
+            SnapshotOfBirth = self.GetTrackSnapshot(TrackId)['SnapshotIndexOfBirth']
         snapshots_to_load = self.SnapshotIdList[self.SnapshotIdList >= SnapshotOfBirth]
 
         track = np.array(
