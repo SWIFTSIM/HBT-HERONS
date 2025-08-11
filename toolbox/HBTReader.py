@@ -98,8 +98,7 @@ class HBTReader:
         # Generate an f-formated list of files
         self._file_list = sorted(glob(self.base_dir+'/*/SubSnap_*.0.hdf5'),key=get_hbt_snapnum)
         self._file_list = [path.replace(".0.hdf5",".{subfile_nr}.hdf5") for path in self._file_list]
-
-
+        self._file_list = [path.replace("SubSnap","{filetype}Snap") for path in self._file_list]
 
         # Do we have the same number of files as we expect? If not, remove the
         # missing catalogues.
@@ -131,7 +130,7 @@ class HBTReader:
         if len(index) == 0:
             raise ValueError(f"The requested snapshot number ({snap_nr}) is not available. Possible values:\n {self.SnapshotIdList}")
 
-        return self._file_list[index[0]].format(subfile_nr = subfile_nr)
+        return self._file_list[index[0]].format(subfile_nr = subfile_nr, filetype = filetype)
 
     def LoadNestedSubhalos(self, snap_nr=None):
         """
@@ -259,20 +258,23 @@ class HBTReader:
         with h5py.File(self.GetFileName(snap_nr, 0), 'r') as file:
             return file["NumberOfSubhalosInAllFiles"][0]
 
-    def LoadParticleIDs(self, snap_nr=None, subhalo_index=None, filetype='Sub'):
+    def LoadParticleIDs(self, subhalo_index, snap_nr=None, filetype='Sub'):
         """
         Load the particles that are bound or are part of the source subhalo
         for the specified subhalo.
 
         Parameters
         ==========
-        snap_nr : int, opt
-            Snapshot number of the catalogue we are interested in. It defaults
-            to the last snapshot with currently available catalogues.
         subhalo_index: int
             The array entry to load from the subhalo catalogues. Note
             that this does NOT correspond to the TrackId of the subhalo, as
             the catalogues are not sorted in TrackId.
+        snap_nr : int, opt
+            Snapshot number of the catalogue we are interested in. It defaults
+            to the last snapshot with currently available catalogues.
+        file_type: str, opt
+            Whether to load particles bound ('Sub') or associated ('Src') of
+            the subhalo.
 
         Returns
         =======
@@ -286,6 +288,10 @@ class HBTReader:
         if snap_nr is None:
             snap_nr = self.SnapshotIdList.max()
 
+        if filetype not in ["Sub","Src"]:
+            raise ValueError(f"Requested filetype ({filetype}) is not valid. Only \"Sub\" or \"Src\" are accepted.")
+        key_to_load = "SubhaloParticles" if filetype == "Sub" else "SrchaloParticles"
+
         load_single_subhalo = subhalo_index is not None
         if (load_single_subhalo):
             if not isinstance(subhalo_index, (np.integer, int)):
@@ -293,19 +299,16 @@ class HBTReader:
             if subhalo_index >= self.GetNumberOfSubhalos(snap_nr):
                 raise ValueError(f"Selected subhalo entry ({subhalo_index}) is larger than the number of existing subhaloes ({self.GetNumberOfSubhalos(snap_nr)})")
 
-        # Determine number of files for requested output
-        with h5py.File(self.GetFileName(snap_nr), 'r') as subfile:
-            number_subfiles = subfile['NumberOfFiles'][0]
-
-        # Determine number of files for requested output
+        # Determine number of files for requested output, only present in SubSnap
+        # files.
         with h5py.File(self.GetFileName(snap_nr), 'r') as subfile:
             number_subfiles = subfile['NumberOfFiles'][0]
 
         offset = 0
         subhalo_particles = []
         for subfile_nr in range(number_subfiles):
-            with h5py.File(self.GetFileName(snap_nr, subfile_nr), 'r') as subfile:
-                nsub = subfile['Subhalos'].shape[0]
+            with h5py.File(self.GetFileName(snap_nr, subfile_nr, filetype), 'r') as subfile:
+                nsub = subfile['Subhalos'].shape[0] if filetype == "Sub" else subfile[key_to_load].shape[0]
 
                 # Nothing to load
                 if nsub == 0:
@@ -314,7 +317,7 @@ class HBTReader:
                 # Keep iterating over subfiles until we find our target entry.
                 if load_single_subhalo:
                     if (offset+nsub > subhalo_index):
-                        subhalo_particles.append(subfile['SubhaloParticles'][subhalo_index-offset])
+                        subhalo_particles.append(subfile[key_to_load][subhalo_index-offset])
                         break
                     else:
                         offset += nsub
