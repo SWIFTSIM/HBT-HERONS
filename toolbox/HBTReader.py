@@ -1,32 +1,32 @@
 """
-Class to read the HBT outputs.
+Class to read HBT-HERONS outputs.
 NOTE: only use for small simulations, as this method is very slow to
 retrieve the properties of all subhaloes. Suggested alternative is to
 instead run the script "./SortCatalogues.py", which will sort catalogues in
 ascending TrackId order.
 
-To use it, initialize the reader with the parameter file under the subhalo directory, e.g.,
+To use it, initialize the reader by pointing it to the directory containing the
+subhalo catalogues, e.g.
 
   from HBTReader import HBTReader
+  catalogues = HBTReader("<PATH_TO_SUBHALO_CATALOGUES>")
 
-  reader=HBTReader('subcat')
+  # Load all subhaloes and their properties in the last analysed snapshot.
+  subhaloes = reader.LoadSubhalos()
 
-  snapshotnumber=-1 # or 0~MaxSnap. -1 means last snapshot
+  # Loads the Nbound of all subhaloes in the last analysed snapshot.
+  Nbound = reader.LoadSubhalos("Nbound")
 
-  subs=reader.LoadSubhalos(snapshotnumber) #load all
+  # Loads the Nbound of the eight subhalo entry in the last analysed snapshot.
+  subhalo_Nbound = reader.LoadSubhalos(subindex = 8)
 
-  nbound=reader.LoadSubhalos(snapshotnumber, 'Nbound') #only Nbound
-
-  sub2=reader.LoadSubhalos(snapshotnumber, subindex=2) #only subhalo 2
-
-  track2=reader.GetTrackEvolution(2) #track 2
-
+  # Gets the property evolution of TrackId = 2
+  subhalo_evolution = reader.GetTrackEvolution(2)
 """
+
 import h5py
-import os.path
 import numpy as np
 from glob import glob
-# TODO: check whether they are required
 from numpy.lib.recfunctions import append_fields
 
 class ConfigReader:
