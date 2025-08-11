@@ -27,31 +27,39 @@ We assume the simulation has 64 outputs throughout this example.
 
     ```python
     import h5py
+    from glob import glob
 
-    # Path to where the sorted catalogues are located.
-    catalogue_path = "<SORTED_CATALOGUE_BASE_PATH>/OrderedSubSnap_{output_number:03d}.hdf5"
+    # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access it paths by output number.
+    catalogue_paths = sorted(glob("<SORTED_CATALOGUE_BASE_PATH>/OrderedSubSnap_*.hdf5"))
+    catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
+    max_output_number = list(catalogue_paths)[-1]
 
-    # Maximum output number for this example (64 outputs but SnapshotIndex uses 0-indexing)
-    max_output_number = 63
-
-    # Get the TrackId of the most massive subhalo, when it was first identified and when it disrupted/merged.
-    with h5py.File(catalogue_path.format(output_number = max_output_number)) as catalogue:
-        TrackId_to_follow = catalogue['Subhalos']['Mbound'][()].argmax()
-        output_start = catalogue['Subhalos']['SnapshotOfBirth'][TrackId_to_follow]
-        output_end   = catalogue['Subhalos']['SnapshotOfDeath'][TrackId_to_follow]
+    # Get the TrackId of the most massive subhalo at the last available output,
+    # when it was first identified and when it disrupted/merged.
+    with h5py.File(catalogue_paths[max_output_number]) as catalogue:
+        TrackId_to_follow = catalogue["Subhalos"]["Mbound"][()].argmax()
+        output_start = catalogue["Subhalos"]["SnapshotOfBirth"][TrackId_to_follow]
+        output_end   = catalogue["Subhalos"]["SnapshotOfDeath"][TrackId_to_follow]
 
     # If output_end is equal to -1, that means it is still resolved at the time when the output was saved.
     output_end = output_end if output_end != -1 else max_output_number
 
     # Create an array to hold values we are interested in tracking (number of bound particles)
-    Mbound_evolution = - np.ones(output_end - output_start + 1)
+    number_resolved_outputs = list(catalogue_paths).index(output_end) \
+                            - list(catalogue_paths).index(output_start) + 1
+    Mbound_evolution   = - np.ones(number_resolved_outputs)
+    Snapshot_evolution = - np.ones(number_resolved_outputs)
 
     # Iterate over catalogues to obtain Nbound value of the entry with the TrackId we want to follow.
-    for i, output_number in enumerate(range(output_start, output_end + 1)):
-        with h5py.File(catalogue_path.format(output_number = output_number)) as catalogue:
-          Mbound_evolution[i] = catalogue['Subhalos/Mbound'][TrackId_to_follow]
+    entry_nr = 0
+    for output_number, path in catalogue_paths.items():
+        if (output_number < output_start) | (output_number > output_end):
+            continue
 
-    Snapshot_evolution = np.arange(output_start, output_end + 1)
+        with h5py.File(path) as catalogue:
+            Mbound_evolution[entry_nr] = catalogue["Subhalos/Mbound"][TrackId_to_follow]
+            Snapshot_evolution[entry_nr] = output_number
+        entry_nr += 1
     ```
 
 === "Without running `toolbox/catalogue_cleanup/SortCatalogues.py`"
@@ -121,16 +129,15 @@ Here we show how to identify all subhaloes that disrupted and hence merged with 
 
     ```python
     import h5py
+    from glob import glob
 
-    # Path to where the sorted catalogues are located.
-    catalogue_path = "<SORTED_CATALOGUE_BASE_PATH>/OrderedSubSnap_{output_number:03d}.hdf5"
+    # Get ordered list to the sorted subhalo catalogues.
+    catalogue_paths = sorted(glob("<SORTED_CATALOGUE_BASE_PATH>/OrderedSubSnap_*.hdf5"))
 
-    # Maximum output number for this example (64 outputs but SnapshotIndex uses 0-indexing)
-    max_output_number = 63
-
-    # Get the TrackId of the most massive subhalo, when it was first identified and when it disrupted/merged.
-    with h5py.File(catalogue_path.format(output_number = max_output_number)) as catalogue:
-        TrackId_to_follow = catalogue['Subhalos']['Mbound'][()].argmax()
+    # Get the TrackId of the most massive subhalo in the last available output, and
+    # all progenitor TrackIds.
+    with h5py.File(catalogue_paths[-1]) as catalogue:
+        TrackId_to_follow = catalogue["Subhalos"]["Mbound"][()].argmax()
         disrupted_progenitors  = np.where(catalogue["Subhalos/DescendantTrackId"][()] == TrackId_to_follow)[0]
     ```
 
@@ -168,16 +175,15 @@ Here we show how to identify all subhaloes that directly sunk with the same subh
 
     ```python
     import h5py
+    from glob import glob
 
-    # Path to where the sorted catalogues are located.
-    catalogue_path = "<SORTED_CATALOGUE_BASE_PATH>/OrderedSubSnap_{output_number:03d}.hdf5"
+    # Get ordered list to the sorted subhalo catalogues .
+    catalogue_paths = sorted(glob("<SORTED_CATALOGUE_BASE_PATH>/OrderedSubSnap_*.hdf5"))
 
-    # Maximum output number for this example (64 outputs but SnapshotIndex uses 0-indexing)
-    max_output_number = 63
-
-    # Get the TrackId of the most massive subhalo, and use it to find the TrackIds that directly sunk to it.
-    with h5py.File(catalogue_path.format(output_number = max_output_number)) as catalogue:
-        TrackId_to_follow = catalogue['Subhalos']['Mbound'][()].argmax()
+    # Get the TrackId of the most massive subhalo in the last available output, and
+    # all progenitor TrackIds.
+    with h5py.File(catalogue_paths[-1]) as catalogue:
+        TrackId_to_follow = catalogue["Subhalos"]["Mbound"][()].argmax()
         sink_progenitors  = np.where(catalogue["Subhalos/SinkTrackId"][()] == TrackId_to_follow)[0]
     ```
 
