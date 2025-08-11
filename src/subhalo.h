@@ -293,6 +293,7 @@ private:
   void HandleTracerlessSubhalos(MpiWorker_t &world, vector<Subhalo_t> &LocalSubhalos);
 
   void PrintSubhaloStatistics(MpiWorker_t &world);
+  void PrintTimeImbalanceStatistics(MpiWorker_t &world, Timer_t Timer);
 
 public:
   SubhaloList_t Subhalos;

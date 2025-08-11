@@ -810,6 +810,9 @@ void SubhaloSnapshot_t::RefineParticles(MpiWorker_t &world)
 { // it's more expensive to build an exclusive list. so do inclusive here.
   // TODO: ensure the inclusive unbinding is stable (contaminating particles from big subhaloes may hurdle the unbinding
 
+  Timer_t ImbalanceTimer;
+  ImbalanceTimer.Tick("start");
+
 #ifdef INCLUSIVE_MASS
 #pragma omp parallel for schedule(dynamic, 1) if (ParallelizeHaloes)
   for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
@@ -858,7 +861,30 @@ void SubhaloSnapshot_t::RefineParticles(MpiWorker_t &world)
   }
 #endif // INCLUSIVE_MASS
 
+  ImbalanceTimer.Tick("end");
+
+  PrintTimeImbalanceStatistics(world, ImbalanceTimer);
   PrintSubhaloStatistics(world);
+}
+
+/* Prints the maximum time taken by a rank, and its associated imbalance. */
+void SubhaloSnapshot_t::PrintTimeImbalanceStatistics(MpiWorker_t &world, Timer_t Timer)
+{
+  double LocalElapsedTime = Timer.GetSeconds();
+  std::vector<double> AllElapsedTime(world.size(), 0);
+  MPI_Allgather(&LocalElapsedTime, 1, MPI_DOUBLE, AllElapsedTime.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+
+  /* Compute average run time */
+  double AverageTime = 0, MaxTime=0;
+  for(auto &TimePerRank:AllElapsedTime)
+  {
+    AverageTime += TimePerRank;
+    MaxTime = std::max(TimePerRank, MaxTime);
+  }
+  AverageTime /= world.size();
+
+  if (world.rank() == 0)
+    std::cout << "Took " << MaxTime <<" seconds. Maximum imbalance across ranks was " << MaxTime / AverageTime << std::endl;
 }
 
 void SubhaloSnapshot_t::PrintSubhaloStatistics(MpiWorker_t &world)
