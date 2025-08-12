@@ -2,7 +2,6 @@ site_name: HBT-HERONS
 
 theme:
   name: material
-  color_mode: light
   features:
     - search.highlight
     - navigation.path
@@ -11,6 +10,18 @@ theme:
     - toc.integrate
     - content.code.copy
     - content.tabs.link
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
 
 markdown_extensions:
   - admonition
