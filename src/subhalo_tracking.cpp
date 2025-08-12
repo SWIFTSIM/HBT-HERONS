@@ -1454,7 +1454,7 @@ void SubhaloSnapshot_t::PrintHostStatistics(MpiWorker_t &world)
 
   if(world.rank() == 0)
   {
-    std::cout << "    Total number of hostless subhaloes = " << TotalHostlessSubhaloes << std::endl;
-    std::cout << "    Total number of FOF groups without pre-existing subhaloes = " << TotalEmptyFOFs << std::endl;
+    std::cout << "    Number of hostless subhaloes = " << TotalHostlessSubhaloes << std::endl;
+    std::cout << "    Number of FOF groups without pre-existing subhaloes = " << TotalEmptyFOFs << std::endl;
   }
 }

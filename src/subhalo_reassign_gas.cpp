@@ -193,5 +193,5 @@ void SubhaloSnapshot_t::ReassignParticles(MpiWorker_t &world, HaloSnapshot_t &ha
   HBTInt nr_reassigned_tot;
   MPI_Allreduce(&nr_reassigned, &nr_reassigned_tot, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
   if (world.rank() == 0)
-    std::cout << "    Total number of particles reassigned = " << nr_reassigned_tot << std::endl;
+    std::cout << "    Number of reassigned particles = " << nr_reassigned_tot << std::endl;
 }
