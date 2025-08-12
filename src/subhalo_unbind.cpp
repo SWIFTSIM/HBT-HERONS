@@ -672,7 +672,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
        * information. */
       if (!IsAlive())
       {
-        SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
+        SnapshotOfDeath = SpecialConst::NullSnapshotId;
         DescendantTrackId = SpecialConst::NullTrackId;
       }
       if (IsTrapped())
@@ -895,20 +895,20 @@ void SubhaloSnapshot_t::PrintSubhaloStatistics(MpiWorker_t &world)
    for(auto &sub:Subhalos)
    {
      /* Sunk subhaloes */
-      LocalSunkSubhaloes += (sub.SnapshotIndexOfDeath == GetSnapshotIndex()) \
-                          & (sub.SnapshotIndexOfSink  == GetSnapshotIndex());
+      LocalSunkSubhaloes += (sub.SnapshotOfDeath == GetSnapshotIndex()) \
+                          & (sub.SnapshotOfSink  == GetSnapshotIndex());
 
      /* Disrupted subhaloes */
-      LocalDisruptedSubhaloes += (sub.SnapshotIndexOfDeath == GetSnapshotIndex()) \
-                               & (sub.SnapshotIndexOfSink  == SpecialConst::NullSnapshotId);
+      LocalDisruptedSubhaloes += (sub.SnapshotOfDeath == GetSnapshotIndex()) \
+                               & (sub.SnapshotOfSink  == SpecialConst::NullSnapshotId);
 
      /* A subhalo that was never self-bound. */
-      LocalFakeSubhaloes += (sub.SnapshotIndexOfBirth == GetSnapshotIndex()) \
-                          & (sub.SnapshotIndexOfDeath == GetSnapshotIndex());
+      LocalFakeSubhaloes += (sub.SnapshotOfBirth == GetSnapshotIndex()) \
+                          & (sub.SnapshotOfDeath == GetSnapshotIndex());
 
      /* A subhalo that was just identified as self-bound for the first time. */
-      LocalNewSubhaloes += (sub.SnapshotIndexOfBirth == GetSnapshotIndex()) \
-                         & (sub.SnapshotIndexOfDeath == SpecialConst::NullSnapshotId);
+      LocalNewSubhaloes += (sub.SnapshotOfBirth == GetSnapshotIndex()) \
+                         & (sub.SnapshotOfDeath == SpecialConst::NullSnapshotId);
    }
 
   /* Gather across ranks */
