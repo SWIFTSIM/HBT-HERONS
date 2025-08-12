@@ -1440,12 +1440,21 @@ void SubhaloSnapshot_t::PrintHostStatistics(MpiWorker_t &world)
     LocalHostlessSubhaloes += (sub.HostHaloId == -1);
   }
 
+  HBTInt LocalEmptyFOFs = 0;
+  for (HBTInt hostid = 0; hostid < MemberTable.SubGroups.size(); hostid++)
+  {
+    LocalEmptyFOFs += (MemberTable.SubGroups[hostid].size() == 0);
+  }
+
   /* Gather across ranks */
   HBTInt TotalHostlessSubhaloes = 0;
   MPI_Allreduce(&LocalHostlessSubhaloes, &TotalHostlessSubhaloes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  HBTInt TotalEmptyFOFs = 0;
+  MPI_Allreduce(&LocalEmptyFOFs, &TotalEmptyFOFs, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
 
   if(world.rank() == 0)
   {
     std::cout << "    Total number of hostless subhaloes = " << TotalHostlessSubhaloes << std::endl;
+    std::cout << "    Total number of FOF groups without pre-existing subhaloes = " << TotalEmptyFOFs << std::endl;
   }
 }

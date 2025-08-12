@@ -296,7 +296,7 @@ void SubhaloSnapshot_t::WriteBoundFiles(MpiWorker_t &world, const int &number_ra
   MPI_Allreduce(&NumSubs, &NumSubsAll, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
 
   if (world.rank() == 0)
-    cout << "Saving " << NumSubsAll << " subhalos to " << GetSubDir() << endl;
+    std::cout << "Saving " << NumSubsAll << " subhalos to " << GetSubDir() << std::endl;
 
   /* Allow a limited number of ranks per node to write simultaneously */
   int writes_done = 0;
