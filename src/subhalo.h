@@ -292,6 +292,8 @@ private:
 
   void HandleTracerlessSubhalos(MpiWorker_t &world, vector<Subhalo_t> &LocalSubhalos);
 
+  /* Methods to print information of how the analysis of each output is going. */
+  void PrintHostStatistics(MpiWorker_t &world);
   void PrintSubhaloStatistics(MpiWorker_t &world);
   void PrintTimeImbalanceStatistics(MpiWorker_t &world, Timer_t Timer);
 

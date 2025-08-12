@@ -920,9 +920,9 @@ void SubhaloSnapshot_t::PrintSubhaloStatistics(MpiWorker_t &world)
 
   if(world.rank() == 0)
   {
-    cout << "    Total number of merged subhaloes = " << TotalSunkSubhaloes << "\n";
-    cout << "    Total number of disrupted subhaloes = " << TotalDisruptedSubhaloes << "\n";
-    cout << "    Total number of newly identified subhaloes = " << TotalNewSubhaloes << "\n";
-    cout << "    Total number of FOF groups without any self-bound subhaloes = " << TotalFakeSubhaloes << "\n";
+    std::cout << "    Total number of merged subhaloes = " << TotalSunkSubhaloes << std::endl;
+    std::cout << "    Total number of disrupted subhaloes = " << TotalDisruptedSubhaloes << std::endl;
+    std::cout << "    Total number of newly identified subhaloes = " << TotalNewSubhaloes << std::endl;
+    std::cout << "    Total number of FOF groups without any self-bound subhaloes = " << TotalFakeSubhaloes << std::endl;
   }
 }

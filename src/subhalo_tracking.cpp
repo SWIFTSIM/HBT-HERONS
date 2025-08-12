@@ -641,9 +641,11 @@ void FindOtherHostsSafely(MpiWorker_t &world, int root, const HaloSnapshot_t &ha
     }
   }
 }
+
+/* Find host FOF groups for pre-existing subhaloes, and build a MemberTable. Each subhalo
+ * is moved to the processor of its host halo, with its HostHaloId set to the local haloid
+ * of the host */
 void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap)
-/* find host haloes for subhaloes, and build MemberTable. Each subhalo is moved to the processor of its host halo, with
- * its HostHaloId set to the local haloid of the host*/
 {
   ParallelizeHaloes = halo_snap.NumPartOfLargestHalo < 0.1 * halo_snap.TotNumberOfParticles; // no dominating objects
 
@@ -669,6 +671,8 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
   halo_snap.ClearParticleHash();
 
   MemberTable.Build(halo_snap.Halos.size(), Subhalos, true);
+
+  PrintHostStatistics(world);
 }
 
 /* This function iterates over Subhalos and assigns a default HostHaloId (-1) to all Subhalos
@@ -1425,5 +1429,24 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
     for (int j = 0; j < 3; j++)
       Subhalos[i].ComovingAveragePosition[j] =
         position_modulus(Subhalos[i].ComovingAveragePosition[j], HBTConfig.BoxSize);
+  }
+}
+
+/* Prints how many FOF groups */
+void SubhaloSnapshot_t::PrintHostStatistics(MpiWorker_t &world)
+{
+  HBTInt LocalHostlessSubhaloes = 0;
+  for(auto &sub:Subhalos)
+  {
+    LocalHostlessSubhaloes += (sub.HostHaloId == -1);
+  }
+
+  /* Gather across ranks */
+  HBTInt TotalHostlessSubhaloes = 0;
+  MPI_Allreduce(&LocalHostlessSubhaloes, &TotalHostlessSubhaloes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+
+  if(world.rank() == 0)
+  {
+    std::cout << "    Total number of hostless subhaloes = " << TotalHostlessSubhaloes << std::endl;
   }
 }
