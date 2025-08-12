@@ -46,6 +46,7 @@ int main(int argc, char **argv)
 #pragma omp parallel
 #pragma omp master
     cout << ", each with " << omp_get_num_threads() << " threads";
+    cout << endl;
 #endif
     cout << endl;
     cout << "Configured with the following data type sizes (bytes):" << endl;
@@ -58,7 +59,6 @@ int main(int argc, char **argv)
   HBTConfig.BroadCast(world, 0, snapshot_start, snapshot_end);
 
   SubhaloSnapshot_t subsnap;
-
   subsnap.Load(world, snapshot_start - 1, SubReaderDepth_t::SrcParticles);
 
   if (world.rank() == 0)
@@ -182,11 +182,10 @@ int main(int argc, char **argv)
         TotalTime += global_timer.GetSeconds(i);
       }
       TimeLog << std::endl;
-
       /* Done. */
       TimeLog.close();
 
-      std::cout << "SnapshotIndex " << subsnap.GetSnapshotIndex()  << " done. It took " << TotalTime << " seconds." << std::endl;
+      std::cout << "Snapshot " << subsnap.GetSnapshotId() << " (SnapshotIndex = " << isnap << ")" << " done. It took " << TotalTime << " seconds." << std::endl;
       std::cout << std::endl;
     }
     global_timer.Reset();
