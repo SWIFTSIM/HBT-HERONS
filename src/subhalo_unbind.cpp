@@ -895,19 +895,19 @@ void SubhaloSnapshot_t::PrintSubhaloStatistics(MpiWorker_t &world)
    for(auto &sub:Subhalos)
    {
      /* Sunk subhaloes */
-      LocalSunkSubhaloes += (sub.SnapshotOfDeath == GetSnapshotIndex()) \
-                          & (sub.SnapshotOfSink  == GetSnapshotIndex());
+      LocalSunkSubhaloes += (sub.SnapshotOfDeath == GetSnapshotId()) \
+                          & (sub.SnapshotOfSink  == GetSnapshotId());
 
      /* Disrupted subhaloes */
-      LocalDisruptedSubhaloes += (sub.SnapshotOfDeath == GetSnapshotIndex()) \
+      LocalDisruptedSubhaloes += (sub.SnapshotOfDeath == GetSnapshotId()) \
                                & (sub.SnapshotOfSink  == SpecialConst::NullSnapshotId);
 
      /* A subhalo that was never self-bound. */
-      LocalFakeSubhaloes += (sub.SnapshotOfBirth == GetSnapshotIndex()) \
-                          & (sub.SnapshotOfDeath == GetSnapshotIndex());
+      LocalFakeSubhaloes += (sub.SnapshotOfBirth == GetSnapshotId()) \
+                          & (sub.SnapshotOfDeath == GetSnapshotId());
 
      /* A subhalo that was just identified as self-bound for the first time. */
-      LocalNewSubhaloes += (sub.SnapshotOfBirth == GetSnapshotIndex()) \
+      LocalNewSubhaloes += (sub.SnapshotOfBirth == GetSnapshotId()) \
                          & (sub.SnapshotOfDeath == SpecialConst::NullSnapshotId);
    }
 
