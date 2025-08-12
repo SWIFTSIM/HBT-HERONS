@@ -894,19 +894,20 @@ void SubhaloSnapshot_t::PrintSubhaloStatistics(MpiWorker_t &world)
    HBTInt LocalSunkSubhaloes = 0, LocalDisruptedSubhaloes = 0, LocalNewSubhaloes = 0, LocalFakeSubhaloes = 0;
    for(auto &sub:Subhalos)
    {
-     /* Sunk subhaloes */
+      /* Sunk subhaloes */
       LocalSunkSubhaloes += (sub.SnapshotOfDeath == GetSnapshotId()) \
                           & (sub.SnapshotOfSink  == GetSnapshotId());
 
-     /* Disrupted subhaloes */
-      LocalDisruptedSubhaloes += (sub.SnapshotOfDeath == GetSnapshotId()) \
+      /* Disrupted subhaloes */
+      LocalDisruptedSubhaloes += (sub.SnapshotOfBirth < GetSnapshotId())  \
+                               & (sub.SnapshotOfDeath == GetSnapshotId()) \
                                & (sub.SnapshotOfSink  == SpecialConst::NullSnapshotId);
 
-     /* A subhalo that was never self-bound. */
+      /* A subhalo that was never self-bound. */
       LocalFakeSubhaloes += (sub.SnapshotOfBirth == GetSnapshotId()) \
                           & (sub.SnapshotOfDeath == GetSnapshotId());
 
-     /* A subhalo that was just identified as self-bound for the first time. */
+      /* A subhalo that was just identified as self-bound for the first time. */
       LocalNewSubhaloes += (sub.SnapshotOfBirth == GetSnapshotId()) \
                          & (sub.SnapshotOfDeath == SpecialConst::NullSnapshotId);
    }

@@ -48,7 +48,7 @@ void MergerTreeInfo::FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world)
   // DescendantTrackId==SinkTrackId, although this is not guaranteed.
   if (world.rank() == 0)
   {
-    std::cout << "Finding descendants of disrupted subhaloes..." << std::endl;
+    std::cout << "Finding descendants of merged and disrupted subhaloes..." << std::endl;
   }
 
   std::vector<HBTInt> count_found(0);
