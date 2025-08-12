@@ -874,7 +874,7 @@ void SubhaloSnapshot_t::PrintTimeImbalanceStatistics(MpiWorker_t &world, Timer_t
   std::vector<double> AllElapsedTime(world.size(), 0);
   MPI_Allgather(&LocalElapsedTime, 1, MPI_DOUBLE, AllElapsedTime.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
 
-  /* Compute average run time */
+  /* Compute average run time and maximum time across all ranks */
   double AverageTime = 0, MaxTime=0;
   for(auto &TimePerRank:AllElapsedTime)
   {
@@ -884,13 +884,13 @@ void SubhaloSnapshot_t::PrintTimeImbalanceStatistics(MpiWorker_t &world, Timer_t
   AverageTime /= world.size();
 
   if (world.rank() == 0)
-    std::cout << "Took " << MaxTime <<" seconds. Maximum imbalance across ranks was " << MaxTime / AverageTime << std::endl;
+    std::cout << "Took " << MaxTime << " seconds. Maximum imbalance across ranks was " << MaxTime / AverageTime << "." << std::endl;
 }
 
+/* Print information about how many subhaloes have been sunk, disrupted, newly
+ * idenfied and failed subhaloes. */
 void SubhaloSnapshot_t::PrintSubhaloStatistics(MpiWorker_t &world)
 {
-  /* Output information about how many subhaloes have been sunk, disrupted, newly
-   * idenfied and failed subhaloes. */
    HBTInt LocalSunkSubhaloes = 0, LocalDisruptedSubhaloes = 0, LocalNewSubhaloes = 0, LocalFakeSubhaloes = 0;
    for(auto &sub:Subhalos)
    {
