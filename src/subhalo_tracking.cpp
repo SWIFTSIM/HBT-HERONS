@@ -1435,22 +1435,26 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
  * subhaloes have no FOF assigned to them. */
 void SubhaloSnapshot_t::PrintHostStatistics(MpiWorker_t &world)
 {
-  HBTInt LocalHostlessSubhaloes = 0;
-  for(auto &sub:Subhalos)
+  HBTInt LocalHostlessSubhaloes = 0, LocalEmptyFOFs = 0;
+
+#pragma omp parallel if (Subhalos.size() > 1000 || MemberTable.SubGroups.size() > 100)
+{
+  #pragma omp for reduction(+ : LocalHostlessSubhaloes)
+  for(size_t subhalo_index = 0;  subhalo_index < Subhalos.size(); subhalo_index++)
   {
-    LocalHostlessSubhaloes += (sub.HostHaloId == -1);
+    LocalHostlessSubhaloes += (Subhalos[subhalo_index].HostHaloId == -1);
   }
 
-  HBTInt LocalEmptyFOFs = 0;
-  for (HBTInt hostid = 0; hostid < MemberTable.SubGroups.size(); hostid++)
+  #pragma omp for reduction(+ : LocalEmptyFOFs)
+  for(size_t fof_index = 0;  fof_index < MemberTable.SubGroups.size(); fof_index++)
   {
-    LocalEmptyFOFs += (MemberTable.SubGroups[hostid].size() == 0);
+    LocalEmptyFOFs += (MemberTable.SubGroups[fof_index].size() == 0);
   }
+}
 
   /* Gather across ranks */
-  HBTInt TotalHostlessSubhaloes = 0;
+  HBTInt TotalHostlessSubhaloes = 0, TotalEmptyFOFs = 0;
   MPI_Allreduce(&LocalHostlessSubhaloes, &TotalHostlessSubhaloes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
-  HBTInt TotalEmptyFOFs = 0;
   MPI_Allreduce(&LocalEmptyFOFs, &TotalEmptyFOFs, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
 
   if(world.rank() == 0)

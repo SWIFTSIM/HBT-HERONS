@@ -892,8 +892,11 @@ void SubhaloSnapshot_t::PrintTimeImbalanceStatistics(MpiWorker_t &world, Timer_t
 void SubhaloSnapshot_t::PrintSubhaloStatistics(MpiWorker_t &world)
 {
    HBTInt LocalSunkSubhaloes = 0, LocalDisruptedSubhaloes = 0, LocalNewSubhaloes = 0, LocalFakeSubhaloes = 0;
-   for(auto &sub:Subhalos)
+#pragma omp parallel for reduction(+ : LocalSunkSubhaloes, LocalDisruptedSubhaloes, LocalNewSubhaloes, LocalFakeSubhaloes) if (Subhalos.size() > 1000)
+   for(size_t subhalo_index = 0;  subhalo_index < Subhalos.size(); subhalo_index++)
    {
+      Subhalo_t &sub = Subhalos[subhalo_index];
+
       /* Sunk subhaloes */
       LocalSunkSubhaloes += (sub.SnapshotOfDeath == GetSnapshotId()) \
                           & (sub.SnapshotOfSink  == GetSnapshotId());
