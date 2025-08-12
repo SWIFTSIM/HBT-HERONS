@@ -1431,7 +1431,8 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
   }
 }
 
-/* Prints how many FOF groups */
+/* Prints how many FOF groups have no subhaloes associated to them and how many
+ * subhaloes have no FOF assigned to them. */
 void SubhaloSnapshot_t::PrintHostStatistics(MpiWorker_t &world)
 {
   HBTInt LocalHostlessSubhaloes = 0;
