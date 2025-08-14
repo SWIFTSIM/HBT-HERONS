@@ -49,11 +49,12 @@ void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
       NumPartOfLargestHalo = np;
   }
 
-  HBTInt NumHalos = Halos.size(), NumHalosAll = 0;
+  HBTInt NumHalos = Halos.size(), NumHalosAll = 0, GlobalNumPartOfLargestHalo =0;
   MPI_Reduce(&NumHalos, &NumHalosAll, 1, MPI_HBT_INT, MPI_SUM, 0, world.Communicator);
+  MPI_Reduce(&NumPartOfLargestHalo, &GlobalNumPartOfLargestHalo, 1, MPI_HBT_INT, MPI_MAX, 0, world.Communicator);
   if (world.rank() == 0)
-    std::cout << NumHalosAll << " groups loaded from snapshot " << SnapshotId << " (SnapshotIndex = " \
-              << snapshot_index << ")" << std::endl;
+    std::cout << NumHalosAll << " FOF groups loaded from snapshot " << SnapshotId << " (SnapshotIndex = " \
+              << snapshot_index << "). Largest FOF group has " << GlobalNumPartOfLargestHalo << " particles." << std::endl;
 }
 
 #ifdef TEST_halo_io

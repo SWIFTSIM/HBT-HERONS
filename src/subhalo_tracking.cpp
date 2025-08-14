@@ -641,9 +641,11 @@ void FindOtherHostsSafely(MpiWorker_t &world, int root, const HaloSnapshot_t &ha
     }
   }
 }
+
+/* Find host FOF groups for pre-existing subhaloes, and build a MemberTable. Each subhalo
+ * is moved to the processor of its host halo, with its HostHaloId set to the local haloid
+ * of the host */
 void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap)
-/* find host haloes for subhaloes, and build MemberTable. Each subhalo is moved to the processor of its host halo, with
- * its HostHaloId set to the local haloid of the host*/
 {
   ParallelizeHaloes = halo_snap.NumPartOfLargestHalo < 0.1 * halo_snap.TotNumberOfParticles; // no dominating objects
 
@@ -669,6 +671,8 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
   halo_snap.ClearParticleHash();
 
   MemberTable.Build(halo_snap.Halos.size(), Subhalos, true);
+
+  PrintHostStatistics(world);
 }
 
 /* This function iterates over Subhalos and assigns a default HostHaloId (-1) to all Subhalos
@@ -1424,5 +1428,38 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
     for (int j = 0; j < 3; j++)
       Subhalos[i].ComovingAveragePosition[j] =
         position_modulus(Subhalos[i].ComovingAveragePosition[j], HBTConfig.BoxSize);
+  }
+}
+
+/* Prints how many FOF groups have no subhaloes associated to them and how many
+ * subhaloes have no FOF assigned to them. */
+void SubhaloSnapshot_t::PrintHostStatistics(MpiWorker_t &world)
+{
+  HBTInt LocalHostlessSubhaloes = 0, LocalEmptyFOFs = 0;
+
+#pragma omp parallel if (Subhalos.size() > 1000 || MemberTable.SubGroups.size() > 100)
+{
+  #pragma omp for reduction(+ : LocalHostlessSubhaloes)
+  for(size_t subhalo_index = 0;  subhalo_index < Subhalos.size(); subhalo_index++)
+  {
+    LocalHostlessSubhaloes += (Subhalos[subhalo_index].HostHaloId == -1);
+  }
+
+  #pragma omp for reduction(+ : LocalEmptyFOFs)
+  for(size_t fof_index = 0;  fof_index < MemberTable.SubGroups.size(); fof_index++)
+  {
+    LocalEmptyFOFs += (MemberTable.SubGroups[fof_index].size() == 0);
+  }
+}
+
+  /* Gather across ranks */
+  HBTInt TotalHostlessSubhaloes = 0, TotalEmptyFOFs = 0;
+  MPI_Allreduce(&LocalHostlessSubhaloes, &TotalHostlessSubhaloes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  MPI_Allreduce(&LocalEmptyFOFs, &TotalEmptyFOFs, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+
+  if(world.rank() == 0)
+  {
+    std::cout << "    Number of hostless subhaloes = " << TotalHostlessSubhaloes << std::endl;
+    std::cout << "    Number of FOF groups without pre-existing subhaloes = " << TotalEmptyFOFs << std::endl;
   }
 }

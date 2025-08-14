@@ -46,6 +46,10 @@ void MergerTreeInfo::FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world)
   // In most cases subhalos which remain resolved will have
   // DescendantTrackId==TrackId and subhalos which sink will have
   // DescendantTrackId==SinkTrackId, although this is not guaranteed.
+  if (world.rank() == 0)
+  {
+    std::cout << "Finding descendants of merged and disrupted subhaloes..." << std::endl;
+  }
 
   std::vector<HBTInt> count_found(0);
   std::vector<HBTInt> trackids_found(0);
@@ -193,7 +197,7 @@ void MergerTreeInfo::FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world)
     std::vector<HBTInt> subhalo_order = argsort<HBTInt, HBTInt>(subhalo_trackid);
 
     // Iterate through (TrackId, DescendantTrackId) pairs finding matching subhalos
-    HBTInt sub_nr = 0;
+    HBTInt sub_nr = 0, LocalUpdatedSubhaloes = 0, LocalNoDescendants = 0;
     for (const auto &p : DescendantTrackIds)
     {
       const HBTInt TrackId1 = p.first;  // TrackId of the progenitor
@@ -208,7 +212,21 @@ void MergerTreeInfo::FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world)
       /* Only update descendant for subhaloes that are disrupted but which
        * do not have an assigned descendant already. */
       if(!Subhalos[subhalo_order[sub_nr]].IsAlive() && Subhalos[subhalo_order[sub_nr]].DescendantTrackId == SpecialConst::NullTrackId)
+      {
         Subhalos[subhalo_order[sub_nr]].DescendantTrackId = TrackId2;
+        LocalUpdatedSubhaloes++;
+        LocalNoDescendants += (TrackId2 == -1);
+      }
+    }
+
+    HBTInt TotalUpdatedSubhaloes = 0, TotalNoDescendants = 0;
+    MPI_Allreduce(&LocalUpdatedSubhaloes, &TotalUpdatedSubhaloes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+    MPI_Allreduce(&LocalNoDescendants   , &TotalNoDescendants   , 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+
+    if (world.rank() == 0)
+    {
+      std::cout << "    Number of subhaloes assigned a descendant = " << TotalUpdatedSubhaloes - TotalNoDescendants << std::endl;
+      std::cout << "    Number of subhaloes without identified descendants = " << TotalNoDescendants << std::endl;
     }
   }
 

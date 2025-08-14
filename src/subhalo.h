@@ -248,6 +248,7 @@ public:
   void SubIdToTrackId(const SubhaloList_t &Subhalos);
   void TrackIdToSubId(SubhaloList_t &Subhalos);
 };
+
 class SubhaloSnapshot_t : public Snapshot_t
 {
 private:
@@ -281,6 +282,11 @@ private:
   void SetNestedParentIds();
 
   void HandleTracerlessSubhalos(MpiWorker_t &world, vector<Subhalo_t> &LocalSubhalos);
+
+  /* Methods to print information of how the analysis of each output is going. */
+  void PrintHostStatistics(MpiWorker_t &world);
+  void PrintSubhaloStatistics(MpiWorker_t &world);
+  void PrintTimeImbalanceStatistics(MpiWorker_t &world, Timer_t Timer);
 
 public:
   SubhaloList_t Subhalos;
@@ -322,7 +328,7 @@ public:
   void AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap);
   void ConstrainToSingleHost(const HaloSnapshot_t &halo_snap);
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
-  void RefineParticles();
+  void RefineParticles(MpiWorker_t &world);
   void ReassignParticles(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
 
