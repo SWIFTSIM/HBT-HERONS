@@ -101,6 +101,7 @@ void MemberShipTable_t::FillMemberLists(const SubhaloList_t &Subhalos, bool incl
         SubGroups[Subhalos[subid].HostHaloId].PushBack(subid);
   }
 }
+
 struct CompareMass_t
 {
   const SubhaloList_t *Subhalos;
@@ -759,26 +760,37 @@ void SubhaloSnapshot_t::DecideCentrals(const HaloSnapshot_t &halo_snap)
     MemberShipTable_t::MemberList_t &List = MemberTable.SubGroups[hostid];
     if (List.size() > 1)
     {
-      int n_major;
-      HBTReal MassLimit = Subhalos[List[0]].Mbound * HBTConfig.MajorProgenitorMassRatio;
-      for (n_major = 1; n_major < List.size(); n_major++)
-        if (Subhalos[List[n_major]].Mbound < MassLimit)
-          break;
-      if (n_major > 1)
+      /* In Bonsai, we force the first TrackID to always be the central. In the
+       * setup we use, it will always correspond to the primary. */
+      if(HBTConfig.SnapshotFormat == "bonsai")
       {
-        HBTReal dmin = Subhalos[List[0]].KineticDistance(halo_snap.Halos[hostid], *this);
-        int icenter = 0;
-        for (int i = 1; i < n_major; i++)
+        bool needs_swap = Subhalos[List[0]].TrackId > Subhalos[List[1]].TrackId;
+        if(needs_swap)
+          swap(List[1], List[0]);
+      }
+      else
+      {
+        int n_major;
+        HBTReal MassLimit = Subhalos[List[0]].Mbound * HBTConfig.MajorProgenitorMassRatio;
+        for (n_major = 1; n_major < List.size(); n_major++)
+          if (Subhalos[List[n_major]].Mbound < MassLimit)
+            break;
+        if (n_major > 1)
         {
-          HBTReal d = Subhalos[List[i]].KineticDistance(halo_snap.Halos[hostid], *this);
-          if (dmin > d)
+          HBTReal dmin = Subhalos[List[0]].KineticDistance(halo_snap.Halos[hostid], *this);
+          int icenter = 0;
+          for (int i = 1; i < n_major; i++)
           {
-            dmin = d;
-            icenter = i;
+            HBTReal d = Subhalos[List[i]].KineticDistance(halo_snap.Halos[hostid], *this);
+            if (dmin > d)
+            {
+              dmin = d;
+              icenter = i;
+            }
           }
+          if (icenter)
+            swap(List[0], List[icenter]);
         }
-        if (icenter)
-          swap(List[0], List[icenter]);
       }
     }
   }
@@ -873,6 +885,21 @@ void SubhaloSnapshot_t::RegisterNewTracks(MpiWorker_t &world)
   MPI_Allreduce(&NumSubOld, &GlobalNumberOfSubs, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
   MPI_Scan(&NBirth, &TrackIdOffset, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
   TrackIdOffset = TrackIdOffset + GlobalNumberOfSubs - NBirth;
+
+  /* Sort the new subhaloes according to their local ranking of FoF group ID. Since
+   * these are new tracks, the are guaranteed to have a host FOF group. */
+  {
+
+    struct
+    {
+        bool operator()(const Subhalo_t &sub_a, const Subhalo_t &sub_b) const { return sub_a.HostHaloId < sub_b.HostHaloId;}
+    }
+    compare_host_id;
+
+    std::sort(Subhalos.begin() + NumSubOld, Subhalos.end(), compare_host_id);
+  }
+
+  /* Now that we have sorted, we have more reproducible results */
   for (HBTInt i = NumSubOld; i < NumSubNew; i++)
     Subhalos[i].TrackId = TrackIdOffset++;
 }
