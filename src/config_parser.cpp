@@ -347,6 +347,21 @@ void Parameter_t::CheckValidityParameters()
     throw invalid_argument(error_message.str());
   }
 
+  /* We always need at least one particle for core properties of self-bound subhaloes. */
+  if(SubCoreSizeMin < 1)
+  {
+    error_message << "SubCoreSizeMin: the minimum allowed value is 1. Increase the value of SubCoreSizeMin. " << endl;
+    throw invalid_argument(error_message.str());
+  }
+
+  /* No negative values for SubCoreSizeFactor allowed and we cannot use more than
+   * Nbound particles. */
+  if((SubCoreSizeFactor < 0.) | (SubCoreSizeFactor > 1.))
+  {
+    error_message << "SubCoreSizeFactor: allowed values are only within [0, 1], with 0 disabling the core size scaling with Nbound." << endl;
+    throw invalid_argument(error_message.str());
+  }
+
   /* Cannot say we subsample in DMO and then disable DM particle subsampling.
    * Conversely, we cannot subsample in hydro and then disable subsampling for all
    * relevant particle types */
@@ -387,11 +402,11 @@ void ParseHBTParams(int argc, char **argv, Parameter_t &config, int &snapshot_st
 {
   if (argc < 2)
   {
-    cerr << "Usage: " << argv[0] << " [param_file] <snapshot_start> <snapshot_end>\n";
+    std::cerr << "Usage: " << argv[0] << " [parameter_file] <SnapshotIndex_start> <SnapshotIndex_end>" << std::endl;
     exit(1);
   }
   config.ParseConfigFile(argv[1]);
-  if (2 == argc)
+  if (argc == 2)
   {
     snapshot_start = config.MinSnapshotIndex;
     snapshot_end = config.MaxSnapshotIndex;
@@ -404,8 +419,10 @@ void ParseHBTParams(int argc, char **argv, Parameter_t &config, int &snapshot_st
     else
       snapshot_end = snapshot_start;
   }
-  cout << "Running " << argv[0] << " from snapshot " << snapshot_start << " to " << snapshot_end
-       << " using configuration file " << argv[1] << endl;
+  std::cout << "Running " << argv[0] << " from SnapshotIndex (SnapshotId) " << snapshot_start \
+            << " (" << (HBTConfig.SnapshotIdList.size() ? HBTConfig.SnapshotIdList[snapshot_start] : snapshot_start) \
+            << ") to " << snapshot_end <<  " (" << (HBTConfig.SnapshotIdList.size() ? HBTConfig.SnapshotIdList[snapshot_end] : snapshot_end) \
+            << ") using configuration file " << argv[1] << std::endl;
 }
 
 void Parameter_t::BroadCast(MpiWorker_t &world, int root)

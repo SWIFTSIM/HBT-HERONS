@@ -39,24 +39,20 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(Rank, H5T_HBTInt);
   InsertMember(Depth, H5T_NATIVE_INT);
   InsertMember(LastMaxMass, H5T_NATIVE_FLOAT);
-  InsertMember(SnapshotIndexOfLastMaxMass, H5T_NATIVE_INT);
-  InsertMember(SnapshotIndexOfLastIsolation, H5T_NATIVE_INT);
-  InsertMember(SnapshotIndexOfBirth, H5T_NATIVE_INT);
-  InsertMember(SnapshotIndexOfDeath, H5T_NATIVE_INT);
-  InsertMember(SnapshotIndexOfSink, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfLastMaxMass, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfLastIsolation, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfBirth, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfDeath, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfSink, H5T_NATIVE_INT);
   InsertMember(RmaxComoving, H5T_NATIVE_FLOAT);
   InsertMember(RmaxComovingOfLastMaxVmax, H5T_NATIVE_FLOAT);
   InsertMember(VmaxPhysical, H5T_NATIVE_FLOAT);
   InsertMember(LastMaxVmaxPhysical, H5T_NATIVE_FLOAT);
-  InsertMember(SnapshotIndexOfLastMaxVmax, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfLastMaxVmax, H5T_NATIVE_INT);
   InsertMember(REncloseComoving, H5T_NATIVE_FLOAT);
   InsertMember(RHalfComoving, H5T_NATIVE_FLOAT);
   InsertMember(BoundR200CritComoving, H5T_NATIVE_FLOAT);
-  //   InsertMember(R200MeanComoving, H5T_NATIVE_FLOAT);
-  //   InsertMember(RVirComoving, H5T_NATIVE_FLOAT);
   InsertMember(BoundM200Crit, H5T_NATIVE_FLOAT);
-  //   InsertMember(M200Mean, H5T_NATIVE_FLOAT);
-  //   InsertMember(MVir, H5T_NATIVE_FLOAT);
   InsertMember(SpecificSelfPotentialEnergy, H5T_NATIVE_FLOAT);
   InsertMember(SpecificSelfKineticEnergy, H5T_NATIVE_FLOAT);
   InsertMember(SpecificAngularMomentum, H5T_FloatVec3);
@@ -103,19 +99,22 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   H5Tclose(H5T_FloatVec3);
   H5Tclose(H5T_HBTxyz);
 }
+
 string SubhaloSnapshot_t::GetSubDir()
 {
   stringstream formater;
-  formater << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << SnapshotIndex;
+  formater << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << SnapshotId;
   return formater.str();
 }
+
 void SubhaloSnapshot_t::GetSubFileName(string &filename, int iFile, const string &ftype)
 {
   stringstream formater;
-  formater << GetSubDir() << "/" + ftype + "Snap_" << setw(3) << setfill('0') << SnapshotIndex << "." << iFile
+  formater << GetSubDir() << "/" + ftype + "Snap_" << setw(3) << setfill('0') << SnapshotId << "." << iFile
            << ".hdf5"; // or use snapshotid
   filename = formater.str();
 }
+
 void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubReaderDepth_t depth)
 {
   if (snapshot_index < HBTConfig.MinSnapshotIndex)
@@ -168,7 +167,8 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
           << ", loaded=" << NumSubsAll_loaded << endl;
       throw runtime_error(msg.str().c_str());
     }
-    cout << TotNumberOfSubs << " subhalos loaded at snapshot " << SnapshotIndex << "(" << SnapshotId << ")\n";
+    std::cout << TotNumberOfSubs << " subhalos loaded from snapshot " << SnapshotId << " (SnapshotIndex = " \
+              << snapshot_index << ")" << std::endl;
   }
 
 #ifndef NDEBUG
@@ -186,6 +186,7 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
 #endif
 #endif
 }
+
 void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
 { // Read iFile for current snapshot.
 
@@ -295,7 +296,7 @@ void SubhaloSnapshot_t::WriteBoundFiles(MpiWorker_t &world, const int &number_ra
   MPI_Allreduce(&NumSubs, &NumSubsAll, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
 
   if (world.rank() == 0)
-    cout << "saving " << NumSubsAll << " subhalos to " << GetSubDir() << endl;
+    std::cout << "Saving " << NumSubsAll << " subhalos to " << GetSubDir() << std::endl;
 
   /* Allow a limited number of ranks per node to write simultaneously */
   int writes_done = 0;

@@ -8,7 +8,6 @@
 #include "snapshot_number.h"
 #include "subhalo.h"
 
-#define NumPartCoreMax 20
 #define PhaseSpaceDistanceThreshold 2.
 
 /* Computes distance in phase space between the current subhalo and a reference
@@ -27,17 +26,17 @@ bool Subhalo_t::AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo)
 }
 
 /* Store information about the merger that has just occured. */
-void Subhalo_t::SetMergerInformation(const HBTInt &ReferenceTrackId, const int &CurrentSnapshotIndex)
+void Subhalo_t::SetMergerInformation(const HBTInt &ReferenceTrackId, const int &CurrentSnapshotId)
 {
   /* When this occured */
-  SnapshotIndexOfSink = CurrentSnapshotIndex;
+  SnapshotOfSink = CurrentSnapshotId; // Will need to change this
 
   /* Which TrackId it merged with */
   SinkTrackId = ReferenceTrackId;
 
   /* Death time if this merger caused it. */
   if (IsAlive())
-    SnapshotIndexOfDeath = CurrentSnapshotIndex;
+    SnapshotOfDeath = CurrentSnapshotId;
 }
 
 /* Recursively checks in a depth-first approach whether any of the subhaloes
@@ -72,12 +71,12 @@ bool Subhalo_t::MergeRecursively(SubhaloList_t &Subhalos, const Snapshot_t &snap
   {
     if (AreOverlappingInPhaseSpace(ReferenceSubhalo))
     {
-      SetMergerInformation(ReferenceSubhalo.TrackId, snap.GetSnapshotIndex());
+      SetMergerInformation(ReferenceSubhalo.TrackId, snap.GetSnapshotId());
 
       /* Flag if the subhalo was previously resolved, and hence the reference
        * subhalo will accrete particles resulting from the merger. We do not
        * overwrite the value in case we find a merger with an unresolved subhalo
-       * after finding a merger with a resolved subhalo.  */
+       * after finding a merger with a resolved subhalo. */
       ExperiencedMerger = Nbound > 1 | ExperiencedMerger;
 
       /* If enabled, pass the particles to the reference subhalo we merged to. */
@@ -110,6 +109,9 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
   double msum = 0;
   vector<double> pos(3, 0), pos2(3, 0);
   vector<double> vel(3, 0), vel2(3, 0);
+
+  /* How many particles we will use */
+  HBTInt CoreSize = GetCoreSize();
 
   // Use first particle as reference point for box wrap
   vector<double> origin(3, 0);
@@ -148,11 +150,11 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
           vel2[dim] += m * dv * dv;
         }
       }
-      if (NumPart == NumPartCoreMax)
+      if (NumPart == CoreSize)
         break;
       /* Next particle in subhalo */
     }
-    if (NumPart == NumPartCoreMax)
+    if (NumPart == CoreSize)
       break;
     /* Next pass */
   }

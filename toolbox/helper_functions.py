@@ -306,7 +306,7 @@ def match_single_track(original_catalogue_reader, new_catalogue_reader, original
     
     # Get formation time of object
     subs = original_catalogue_reader.LoadSubhalos(-1)
-    formation_snapshot  = subs['SnapshotIndexOfBirth'][subs['TrackId'] == original_TrackId]
+    formation_snapshot  = subs['SnapshotOfBirth'][subs['TrackId'] == original_TrackId]
     
     # Get FOF ID of where the object spawned 
     subs = original_catalogue_reader.LoadSubhalos(formation_snapshot)

@@ -1,8 +1,8 @@
-// TODO: unify the reference frame for specificProperties...
-#include <algorithm>
-#include <iostream>
 #include <new>
 #include <omp.h>
+#include <chrono>
+#include <iostream>
+#include <algorithm>
 
 #include "datatypes.h"
 #include "gravity_tree.h"
@@ -631,7 +631,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     {
       /* Store when it disrupted. */
       if (IsAlive())
-        SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
+        SnapshotOfDeath = epoch.GetSnapshotId();
 
       /* The most bound positions of the new orphan were found when updating
        * every subhalo particles. Copy over to the comoving ones. For future
@@ -672,12 +672,12 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
        * information. */
       if (!IsAlive())
       {
-        SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
-        DescendantTrackId = SpecialConst::NullSnapshotId;
+        SnapshotOfDeath = SpecialConst::NullSnapshotId;
+        DescendantTrackId = SpecialConst::NullTrackId;
       }
       if (IsTrapped())
       {
-        SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
+        SnapshotOfSink = SpecialConst::NullSnapshotId;
         SinkTrackId = SpecialConst::NullTrackId;
       }
 
@@ -806,9 +806,12 @@ void Subhalo_t::TruncateSource()
   Particles.resize(Nsource);
 }
 
-void SubhaloSnapshot_t::RefineParticles()
+void SubhaloSnapshot_t::RefineParticles(MpiWorker_t &world)
 { // it's more expensive to build an exclusive list. so do inclusive here.
   // TODO: ensure the inclusive unbinding is stable (contaminating particles from big subhaloes may hurdle the unbinding
+
+  Timer_t ImbalanceTimer;
+  ImbalanceTimer.Tick("start");
 
 #ifdef INCLUSIVE_MASS
 #pragma omp parallel for schedule(dynamic, 1) if (ParallelizeHaloes)
@@ -856,5 +859,74 @@ void SubhaloSnapshot_t::RefineParticles()
     for (HBTInt i = 0; i < NumSub; i++)
       Subhalos[i].TruncateSource();
   }
-#endif
+#endif // INCLUSIVE_MASS
+
+  ImbalanceTimer.Tick("end");
+
+  PrintTimeImbalanceStatistics(world, ImbalanceTimer);
+  PrintSubhaloStatistics(world);
+}
+
+/* Prints the maximum time taken by a rank, and its associated imbalance. */
+void SubhaloSnapshot_t::PrintTimeImbalanceStatistics(MpiWorker_t &world, Timer_t Timer)
+{
+  double LocalElapsedTime = Timer.GetSeconds();
+  std::vector<double> AllElapsedTime(world.size(), 0);
+  MPI_Allgather(&LocalElapsedTime, 1, MPI_DOUBLE, AllElapsedTime.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+
+  /* Compute average run time and maximum time across all ranks */
+  double AverageTime = 0, MaxTime=0;
+  for(auto &TimePerRank:AllElapsedTime)
+  {
+    AverageTime += TimePerRank;
+    MaxTime = std::max(TimePerRank, MaxTime);
+  }
+  AverageTime /= world.size();
+
+  if (world.rank() == 0)
+    std::cout << "Took " << MaxTime << " seconds. Maximum imbalance across ranks was " << MaxTime / AverageTime << "." << std::endl;
+}
+
+/* Print information about how many subhaloes have been sunk, disrupted, newly
+ * idenfied and failed subhaloes. */
+void SubhaloSnapshot_t::PrintSubhaloStatistics(MpiWorker_t &world)
+{
+   HBTInt LocalSunkSubhaloes = 0, LocalDisruptedSubhaloes = 0, LocalNewSubhaloes = 0, LocalFakeSubhaloes = 0;
+#pragma omp parallel for reduction(+ : LocalSunkSubhaloes, LocalDisruptedSubhaloes, LocalNewSubhaloes, LocalFakeSubhaloes) if (Subhalos.size() > 1000)
+   for(size_t subhalo_index = 0;  subhalo_index < Subhalos.size(); subhalo_index++)
+   {
+      Subhalo_t &sub = Subhalos[subhalo_index];
+
+      /* Sunk subhaloes */
+      LocalSunkSubhaloes += (sub.SnapshotOfDeath == GetSnapshotId()) \
+                          & (sub.SnapshotOfSink  == GetSnapshotId());
+
+      /* Disrupted subhaloes */
+      LocalDisruptedSubhaloes += (sub.SnapshotOfBirth < GetSnapshotId())  \
+                               & (sub.SnapshotOfDeath == GetSnapshotId()) \
+                               & (sub.SnapshotOfSink  == SpecialConst::NullSnapshotId);
+
+      /* A subhalo that was never self-bound. */
+      LocalFakeSubhaloes += (sub.SnapshotOfBirth == GetSnapshotId()) \
+                          & (sub.SnapshotOfDeath == GetSnapshotId());
+
+      /* A subhalo that was just identified as self-bound for the first time. */
+      LocalNewSubhaloes += (sub.SnapshotOfBirth == GetSnapshotId()) \
+                         & (sub.SnapshotOfDeath == SpecialConst::NullSnapshotId);
+   }
+
+  /* Gather across ranks */
+  HBTInt TotalSunkSubhaloes = 0, TotalDisruptedSubhaloes = 0, TotalNewSubhaloes = 0, TotalFakeSubhaloes = 0;
+  MPI_Allreduce(&LocalSunkSubhaloes     , &TotalSunkSubhaloes     , 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  MPI_Allreduce(&LocalDisruptedSubhaloes, &TotalDisruptedSubhaloes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  MPI_Allreduce(&LocalNewSubhaloes      , &TotalNewSubhaloes      , 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  MPI_Allreduce(&LocalFakeSubhaloes     , &TotalFakeSubhaloes     , 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+
+  if(world.rank() == 0)
+  {
+    std::cout << "    Number of merged subhaloes = " << TotalSunkSubhaloes << std::endl;
+    std::cout << "    Number of disrupted subhaloes = " << TotalDisruptedSubhaloes << std::endl;
+    std::cout << "    Number of newly identified subhaloes = " << TotalNewSubhaloes << std::endl;
+    std::cout << "    Number of FOF groups without any self-bound subhaloes = " << TotalFakeSubhaloes << std::endl;
+  }
 }

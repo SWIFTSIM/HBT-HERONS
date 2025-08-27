@@ -79,7 +79,7 @@ def check_consistency_orphan_tracers(basedir, hbt_nr):
     # snapshot N + 1, and hence their MostBoundParticleId would change to reflect 
     # this
     subhalos_after = np.array([sub for sub in subhalos_after \
-                               if (sub['Nbound'] <= 1) & (sub['SnapshotIndexOfSink'] != (hbt_nr+1))]) 
+                               if (sub['Nbound'] <= 1) & (sub['SnapshotOfSink'] != (hbt_nr+1))]) 
 
     field_names = list(subhalos_after.dtype.fields)
 

@@ -2,7 +2,6 @@ site_name: HBT-HERONS
 
 theme:
   name: material
-  color_mode: light
   features:
     - search.highlight
     - navigation.path
@@ -10,32 +9,59 @@ theme:
     - navigation.tabs.sticky
     - toc.integrate
     - content.code.copy
+    - content.tabs.link
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
 
 markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+  - def_list
   - pymdownx.tabbed:
       alternate_style: true
   - abbr
   - attr_list
   - pymdownx.snippets
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.arithmatex:
+      generic: true
+  - md_in_html
+  - pymdownx.blocks.caption
+
+# For Latex equations
+extra_javascript:
+  - javascripts/config.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
   - Welcome: index.md
-  - Installation: 
-    - ./installation/requirements.md
-    - ./installation/compiling.md
-  - Running: 
+  - Algorithm:
+      - ./algorithm/overview.md
+      - ./algorithm/parameter_choices.md
+  - ./installation.md
+  - Running:
     - ./running/start.md
     - ./running/parameter_file.md
     - ./running/diagnostics.md
-  - Outputs: 
+  - Outputs:
       - ./outputs/format.md
       - ./outputs/subhalo_properties.md
       - ./outputs/merger_trees.md
-  - Examples:
-    - examples.md
 
 repo_url: https://github.com/SWIFTSIM/HBT-HERONS
 repo_name: SWIFTSIM/HBT-HERONS

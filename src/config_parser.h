@@ -125,7 +125,7 @@ public:
     MajorProgenitorMassRatio = 0.8;
     BoundMassPrecision = 0.995;
     SourceSubRelaxFactor = 3.;
-    SubCoreSizeFactor = 0.25;
+    SubCoreSizeFactor = 0;
     SubCoreSizeMin = 20;
     TreeAllocFactor = 0.8; /* a value of 2 should be more than sufficient*/
     TreeNodeOpenAngle = 0.45;
@@ -136,6 +136,8 @@ public:
     BoundFractionCenterRefinement = 0.1; /* Default values chosen based on tests */
     GroupLoadedFullParticle = false;
     MaxPhysicalSofteningHalo = -1; // Indicates no max. physical softening is used.
+
+    ParticleNullGroupId = -1; /* Value of FoF group corresponding to no FoF */
 
     /* Tracer-related parameters. If unset, only use collisionless particles (DM
      * + Stars) as tracer. Here we assume they correspond to particle types 1

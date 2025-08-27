@@ -14,17 +14,17 @@ void Subhalo_t::UpdateTrack(const Snapshot_t &epoch)
   if (TrackId == SpecialConst::NullTrackId)
     return;
 
-  if (0 == Rank)
+  if (Rank == 0)
   {
-    if (SnapshotIndexOfLastIsolation != SpecialConst::NullSnapshotId)
+    if (SnapshotOfLastIsolation != SpecialConst::NullSnapshotId)
     {
       // Subhalo has been a satellite at some point in the past
-      SnapshotIndexOfLastIsolation = epoch.GetSnapshotIndex();
+      SnapshotOfLastIsolation = epoch.GetSnapshotId();
     }
   }
   if (Mbound >= LastMaxMass)
   {
-    SnapshotIndexOfLastMaxMass = epoch.GetSnapshotIndex();
+    SnapshotOfLastMaxMass = epoch.GetSnapshotId();
     LastMaxMass = Mbound;
   }
 }
@@ -642,9 +642,11 @@ void FindOtherHostsSafely(MpiWorker_t &world, int root, const HaloSnapshot_t &ha
     }
   }
 }
+
+/* Find host FOF groups for pre-existing subhaloes, and build a MemberTable. Each subhalo
+ * is moved to the processor of its host halo, with its HostHaloId set to the local haloid
+ * of the host */
 void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap)
-/* find host haloes for subhaloes, and build MemberTable. Each subhalo is moved to the processor of its host halo, with
- * its HostHaloId set to the local haloid of the host*/
 {
   ParallelizeHaloes = halo_snap.NumPartOfLargestHalo < 0.1 * halo_snap.TotNumberOfParticles; // no dominating objects
 
@@ -670,6 +672,8 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
   halo_snap.ClearParticleHash();
 
   MemberTable.Build(halo_snap.Halos.size(), Subhalos, true);
+
+  PrintHostStatistics(world);
 }
 
 /* This function iterates over Subhalos and assigns a default HostHaloId (-1) to all Subhalos
@@ -803,7 +807,6 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
 #pragma omp single
   {
     Npro = Subhalos.size();
-    // Subhalos.reserve(Snapshot->size()*0.1);//reserve enough	branches.......
     Subhalos.resize(Npro + MemberTable.NBirth);
   }
 #pragma omp for
@@ -824,7 +827,7 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
       copyHBTxyz(central.PhysicalAverageVelocity, Host.PhysicalAverageVelocity);
       central.Particles.swap(Host.Particles);
       central.Nbound = central.Particles.size(); // init Nbound to source size.
-      central.SnapshotIndexOfBirth = SnapshotIndex;
+      central.SnapshotOfBirth = SnapshotId;
     }
     else
     {
@@ -960,10 +963,10 @@ void SubhaloSnapshot_t::SetNestedParentIds()
     for (auto &nested_trackid : subhalo.NestedSubhalos)
     {
       HBTInt child_index = TrackHash.GetIndex(nested_trackid);
-      if (Subhalos[child_index].SnapshotIndexOfLastIsolation == SpecialConst::NullSnapshotId)
+      if (Subhalos[child_index].SnapshotOfLastIsolation == SpecialConst::NullSnapshotId)
       {
         // Subhalo had been a central up to this snapshot
-        Subhalos[child_index].SnapshotIndexOfLastIsolation = GetSnapshotIndex() - 1;
+        Subhalos[child_index].SnapshotOfLastIsolation = GetSnapshotId(GetSnapshotIndex() - 1);
       }
       Subhalos[child_index].NestedParentTrackId = subhalo.TrackId;
     }
@@ -1175,18 +1178,18 @@ public:
   }
   /* This routine masks particles by giving preference to subhaloes deeper in
    * the hierarchy. */
-  void Mask(HBTInt subid, vector<Subhalo_t> &Subhalos, int SnapshotIndex)
+  void Mask(HBTInt subid, vector<Subhalo_t> &Subhalos, int SnapshotId)
   {
     auto &subhalo = Subhalos[subid];
     for (auto nestedid :
          subhalo
            .NestedSubhalos) // TODO: do we have to do it recursively? satellites are already masked among themselves?
-      Mask(nestedid, Subhalos, SnapshotIndex);
+      Mask(nestedid, Subhalos, SnapshotId);
 
     if (subhalo.Nbound <= 1)
       return; // skip orphans
 
-    if (subhalo.SnapshotIndexOfBirth == SnapshotIndex)
+    if (subhalo.SnapshotOfBirth == SnapshotId)
       return; // skip newly created centrals
 
     auto it_begin = subhalo.Particles.begin(), it_save = it_begin;
@@ -1375,7 +1378,7 @@ void SubhaloSnapshot_t::MaskSubhalos()
     // update central member list (append other heads except itself)
     nest.insert(nest.end(), heads.begin() + 1, heads.end());
     SubhaloMasker_t Masker(central.Particles.size() * 1.2);
-    Masker.Mask(Group[0], Subhalos, SnapshotIndex);
+    Masker.Mask(Group[0], Subhalos, SnapshotId);
     nest.resize(old_membercount); // TODO: better way to do this? or do not change the nest for central?
   }
 }
@@ -1452,5 +1455,38 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
     for (int j = 0; j < 3; j++)
       Subhalos[i].ComovingAveragePosition[j] =
         position_modulus(Subhalos[i].ComovingAveragePosition[j], HBTConfig.BoxSize);
+  }
+}
+
+/* Prints how many FOF groups have no subhaloes associated to them and how many
+ * subhaloes have no FOF assigned to them. */
+void SubhaloSnapshot_t::PrintHostStatistics(MpiWorker_t &world)
+{
+  HBTInt LocalHostlessSubhaloes = 0, LocalEmptyFOFs = 0;
+
+#pragma omp parallel if (Subhalos.size() > 1000 || MemberTable.SubGroups.size() > 100)
+{
+  #pragma omp for reduction(+ : LocalHostlessSubhaloes)
+  for(size_t subhalo_index = 0;  subhalo_index < Subhalos.size(); subhalo_index++)
+  {
+    LocalHostlessSubhaloes += (Subhalos[subhalo_index].HostHaloId == -1);
+  }
+
+  #pragma omp for reduction(+ : LocalEmptyFOFs)
+  for(size_t fof_index = 0;  fof_index < MemberTable.SubGroups.size(); fof_index++)
+  {
+    LocalEmptyFOFs += (MemberTable.SubGroups[fof_index].size() == 0);
+  }
+}
+
+  /* Gather across ranks */
+  HBTInt TotalHostlessSubhaloes = 0, TotalEmptyFOFs = 0;
+  MPI_Allreduce(&LocalHostlessSubhaloes, &TotalHostlessSubhaloes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  MPI_Allreduce(&LocalEmptyFOFs, &TotalEmptyFOFs, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+
+  if(world.rank() == 0)
+  {
+    std::cout << "    Number of hostless subhaloes = " << TotalHostlessSubhaloes << std::endl;
+    std::cout << "    Number of FOF groups without pre-existing subhaloes = " << TotalEmptyFOFs << std::endl;
   }
 }
