@@ -114,6 +114,13 @@ public:
   float CoreComovingSigmaR;
   float CorePhysicalSigmaV;
 
+#ifdef MEASURE_UNBINDING_TIME
+  int NumberUnbindingIterations;
+  float UnbindingTime;
+  float CentreRefinementTime;
+  float PropertyCalculationTime;
+#endif // MEASURE_UNBINDING_TIME
+
   Subhalo_t()
     : Nbound(0), Rank(0), Mbound(0), Depth(0)
 #ifndef DM_ONLY
