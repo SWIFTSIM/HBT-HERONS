@@ -48,7 +48,7 @@ fi
 
 # No new snapshots exist. We cannot run HBT-HERONS.
 if [ $MAX_HBT_OUTPUT -eq $MAX_SNAPSHOT ]; then
-  echo "HBT-HERONS was done up to snapshot $(($MAX_HBT_OUTPUT - 1)). SWIFT outputs exist up to snapshot $(($MAX_SNAPSHOT - 1)). Cannot do more HBT-HERONS now. Exiting."
+  echo "HBT-HERONS was done up to snapshot $(($MAX_HBT_OUTPUT)). SWIFT outputs exist up to snapshot $(($MAX_SNAPSHOT)). Cannot do more HBT-HERONS now. Exiting."
   exit 1
 fi
 
@@ -66,7 +66,7 @@ echo "HBT-HERONS was done up to snapshot $(($MAX_HBT_OUTPUT - 1)), and ParticleS
 
 # This executes if we still need to generate the splitting of particles
 if [ $MAX_PARTICLE_SPLIT_OUTPUT -ne $MAX_SNAPSHOT ]; then
-  echo "Submitting splitting information from snapshots $MAX_PARTICLE_SPLIT_OUTPUT to $(($MAX_SNAPSHOT - 1))"
+  echo "Submitting splitting information from snapshots $MAX_PARTICLE_SPLIT_OUTPUT to $(($MAX_SNAPSHOT))"
   JOB_ID_SPLITS=$(sbatch --parsable \
     --output ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.out \
     --error ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.err \
@@ -75,7 +75,7 @@ if [ $MAX_PARTICLE_SPLIT_OUTPUT -ne $MAX_SNAPSHOT ]; then
     ${HBT_FOLDER}/submit_particle_splits.sh $HBT_FOLDER/config.txt)
 
   # Submit an HBT job with a dependency on the splitting of particles
-  echo "Submitting HBT-HERONS dependency job, running from snapshots $MAX_HBT_OUTPUT to $(($MAX_SNAPSHOT - 1))"
+  echo "Submitting HBT-HERONS dependency job, running from snapshots $MAX_HBT_OUTPUT to $(($MAX_SNAPSHOT))"
   sbatch -J "HBT-${1}" \
     --dependency=afterok:$JOB_ID_SPLITS \
     --output ${HBT_LOGS_DIR}/HBT.%j.out \
@@ -83,9 +83,9 @@ if [ $MAX_PARTICLE_SPLIT_OUTPUT -ne $MAX_SNAPSHOT ]; then
     ${HBT_FOLDER}/submit_HBT.sh $HBT_FOLDER/config.txt $MAX_HBT_OUTPUT $(($MAX_SNAPSHOT - 1))
 else
   # We already have the splitting information, so we just need to run HBT without dependencies
-  echo "Submitting HBT-HERONS job without dependencies, running from snapshots $MAX_HBT_OUTPUT to $(($MAX_SNAPSHOT - 1))"
+  echo "Submitting HBT-HERONS job, running from snapshots $MAX_HBT_OUTPUT to $(($MAX_SNAPSHOT))"
   sbatch -J "HBT-${1}" \
     --output ${HBT_LOGS_DIR}/HBT.%j.out \
     --error ${HBT_LOGS_DIR}/HBT.%J.err \
-    ${HBT_FOLDER}/submit_HBT.sh $HBT_FOLDER/config.txt $MAX_HBT_OUTPUT $(($MAX_SNAPSHOT - 1))
+    ${HBT_FOLDER}/submit_HBT.sh $HBT_FOLDER/config.txt $MAX_HBT_OUTPUT $(($MAX_SNAPSHOT))
 fi
