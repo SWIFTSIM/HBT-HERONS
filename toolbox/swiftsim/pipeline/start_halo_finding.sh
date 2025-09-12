@@ -1,5 +1,6 @@
 #!/bin/bash
 
+. ./helper_functions.sh
 set -e
 
 # Check if we have provided a path
@@ -18,17 +19,11 @@ if [ ! -d $HBT_FOLDER ]; then
     echo "No HBT-HERONS folder found in provided path. Check whether path is correct, and if so, create an HBT-HERONS folder first."
 fi
 
-# Where logs for particle splits and HBT will be saved
+# Where logs for HBT will be saved
 HBT_LOGS_DIR="${HBT_FOLDER}/logs"
-PARTICLE_SPLITS_LOGS_DIR="${HBT_LOGS_DIR}/particle_splits"
-mkdir -p $PARTICLE_SPLITS_LOGS_DIR
 
 # Set permissions
 chmod ug+rw $HBT_LOGS_DIR
-chmod ug+rw $PARTICLE_SPLITS_LOGS_DIR
-
-# Where particle splits will be saved
-mkdir "${HBT_FOLDER}/ParticleSplits"
 
 # Copy over the configuration file with the correct paths
 (cd ./templates/;. generate_config.sh $BASE_FOLDER $HBT_FOLDER)
@@ -40,7 +35,7 @@ SNAPSHOT_BASENAME=$(grep 'SnapshotFileBase' $HBT_FOLDER/config.txt | awk '{print
 
 # We now check how many COLIBRE snapshots have been done at the time of submission
 MIN_SNAPSHOT=0
-LATEST_SNAPSHOT=$(find $SNAPSHOT_FOLDER -maxdepth 2 -name "${SNAPSHOT_BASENAME}_????.hdf5" | sort -V | tail -n 1)
+LATEST_SNAPSHOT=$(find $SNAPSHOT_FOLDER/ -maxdepth 2 -name "${SNAPSHOT_BASENAME}_????.hdf5" | sort -V | tail -n 1)
 MAX_SNAPSHOT=$(echo "${LATEST_SNAPSHOT: -9:4}" | sed 's/^0*//')
 
 # Abort if no snapshots are found
@@ -49,28 +44,65 @@ if [ $MAX_SNAPSHOT -eq  0 ]; then
   exit 1
 fi
 
-echo "Submitting an HBT-HERONS job running from snapshots $MIN_SNAPSHOT to $(($MAX_SNAPSHOT - 1))"
+# Check whether splitting information of particles is enabled or not.
+if [ ! -f $BASE_FOLDER/used_parameters.yml ]; then
+   echo "Cannot find used_parameters.yml in $BASE_FOLDER"
+fi
+parameters=($(parse_yaml $BASE_FOLDER/used_parameters.yml))
+
+# Iterate over each string and find the parameters that we want
+SPLITS_ENABLED=0
+for i in "${parameters[@]}"
+do
+   if stringContain "SPH_particle_splitting=" "$i"; then
+     SPLITS_ENABLED=`echo "$i" | cut -d'"' -f 2`
+   fi
+done
 
 # Copy the submission scripts into the HBT folders
 cp ./submission_scripts/submit_HBT.sh $HBT_FOLDER
-cp ./submission_scripts/submit_particle_splits.sh $HBT_FOLDER
 
-# Replace the current PWD in those submission scripts, so that they have the global path of the HBT
+# Replace the current PWD in those submission scripts, so that they have the global
+# path of the HBT-HERONS executable
 sed -i "s@CURRENT_PWD@${PWD}@g" $HBT_FOLDER/submit_HBT.sh
-sed -i "s@CURRENT_PWD@${PWD}@g" $HBT_FOLDER/submit_particle_splits.sh
-sed -i "s@BASE_FOLDER@${BASE_FOLDER}@g" $HBT_FOLDER/submit_particle_splits.sh
 
-# We first generate the splitting of particles 
-JOB_ID_SPLITS=$(sbatch --parsable \
-  --output ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.out \
-  --error ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.err \
-  --array=$MIN_SNAPSHOT-$(($MAX_SNAPSHOT - 1))%10 \
-  -J "PS-${1}" \
-  $HBT_FOLDER/submit_particle_splits.sh $HBT_FOLDER/config.txt)
+if [ "$SPLITS_ENABLED" -eq 1 ]; then
+  # Logging of particle split jobs
+  PARTICLE_SPLITS_LOGS_DIR="${HBT_LOGS_DIR}/particle_splits"
+  mkdir -p $PARTICLE_SPLITS_LOGS_DIR
 
-# Submit an HBT job with a dependency on the splitting of particles
-sbatch -J "HBT-${1}" \
-  --dependency=afterok:$JOB_ID_SPLITS \
-  --output ${HBT_LOGS_DIR}/HBT.%j.out \
-  --error ${HBT_LOGS_DIR}/HBT.%J.err \
-  $HBT_FOLDER/submit_HBT.sh $HBT_FOLDER/config.txt $MIN_SNAPSHOT $(($MAX_SNAPSHOT - 1))
+  # Where particle splits will be saved
+  chmod ug+rw $PARTICLE_SPLITS_LOGS_DIR
+  mkdir "${HBT_FOLDER}/ParticleSplits"
+
+  # Submission scripts and paths.
+  cp ./submission_scripts/submit_particle_splits.sh $HBT_FOLDER
+  sed -i "s@CURRENT_PWD@${PWD}@g" $HBT_FOLDER/submit_particle_splits.sh
+  sed -i "s@BASE_FOLDER@${BASE_FOLDER}@g" $HBT_FOLDER/submit_particle_splits.sh
+fi
+
+# Submit splitting of particles if required, with a dependency
+if [ "$SPLITS_ENABLED" -eq 1 ]; then
+  echo "Submitting splitting information from snapshots $MIN_SNAPSHOT to $(($MAX_SNAPSHOT))"
+  JOB_ID_SPLITS=$(sbatch --parsable \
+    --output ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.out \
+    --error ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.err \
+    --array=$MIN_SNAPSHOT-$(($MAX_SNAPSHOT))%10 \
+    -J "PS-${1}" \
+    $HBT_FOLDER/submit_particle_splits.sh $HBT_FOLDER/config.txt)
+
+  # Submit an HBT job with a dependency on the splitting of particles
+  echo "Submitting HBT-HERONS dependency job, running from snapshots $MIN_SNAPSHOT to $(($MAX_SNAPSHOT))"
+  sbatch -J "HBT-${1}" \
+    --dependency=afterok:$JOB_ID_SPLITS \
+    --output ${HBT_LOGS_DIR}/HBT.%j.out \
+    --error ${HBT_LOGS_DIR}/HBT.%J.err \
+    $HBT_FOLDER/submit_HBT.sh $HBT_FOLDER/config.txt $MIN_SNAPSHOT $(($MAX_SNAPSHOT))
+else
+  # Submit an HBT job with a dependency on the splitting of particles
+  echo "Submitting HBT-HERONS job, running from snapshots $MIN_SNAPSHOT to $(($MAX_SNAPSHOT))"
+  sbatch -J "HBT-${1}" \
+    --output ${HBT_LOGS_DIR}/HBT.%j.out \
+    --error ${HBT_LOGS_DIR}/HBT.%J.err \
+    $HBT_FOLDER/submit_HBT.sh $HBT_FOLDER/config.txt $MIN_SNAPSHOT $(($MAX_SNAPSHOT))
+fi
