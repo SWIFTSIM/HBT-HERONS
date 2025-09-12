@@ -1,5 +1,6 @@
 #!/bin/bash
 
+. ./helper_functions.sh
 set -e
 
 if [ "$#" -ne 1 ]
@@ -62,10 +63,29 @@ while true; do
     MAX_PARTICLE_SPLIT_OUTPUT=$((MAX_PARTICLE_SPLIT_OUTPUT + 1))
 done
 
-echo "HBT-HERONS was done up to snapshot $(($MAX_HBT_OUTPUT - 1)), and ParticleSplit information exists up to $(($MAX_PARTICLE_SPLIT_OUTPUT - 1)). SWIFT outputs exist up to snapshot $(($MAX_SNAPSHOT - 1))"
+# Check whether splitting information of particles is enabled or not.
+if [ ! -f $BASE_FOLDER/used_parameters.yml ]; then
+   echo "Cannot find used_parameters.yml in $BASE_FOLDER"
+fi
+parameters=($(parse_yaml $BASE_FOLDER/used_parameters.yml))
+
+# Iterate over each string and find the parameters that we want
+SPLITS_ENABLED=0
+for i in "${parameters[@]}"
+do
+   if stringContain "SPH_particle_splitting=" "$i"; then
+     SPLITS_ENABLED=`echo "$i" | cut -d'"' -f 2`
+   fi
+done
+
+if [ "$SPLITS_ENABLED" -eq 1 ]; then
+  echo "HBT-HERONS was done up to snapshot $(($MAX_HBT_OUTPUT)), and ParticleSplit information exists up to $(($MAX_PARTICLE_SPLIT_OUTPUT)). SWIFT outputs exist up to snapshot $(($MAX_SNAPSHOT))"
+else
+  echo "HBT-HERONS was done up to snapshot $(($MAX_HBT_OUTPUT)). SWIFT outputs exist up to snapshot $(($MAX_SNAPSHOT))"
+fi
 
 # This executes if we still need to generate the splitting of particles
-if [ $MAX_PARTICLE_SPLIT_OUTPUT -ne $MAX_SNAPSHOT ]; then
+if [ $MAX_PARTICLE_SPLIT_OUTPUT -ne $MAX_SNAPSHOT ] && [ "$SPLITS_ENABLED" -eq 1 ]; then
   echo "Submitting splitting information from snapshots $MAX_PARTICLE_SPLIT_OUTPUT to $(($MAX_SNAPSHOT))"
   JOB_ID_SPLITS=$(sbatch --parsable \
     --output ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.out \
