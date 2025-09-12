@@ -463,6 +463,17 @@ HBTInt CountUnsampledParticles(const vector<ParticleEnergy_t> &Elist, const vect
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
 
+#ifdef MEASURE_UNBINDING_TIME
+  /* We use default -1 for times because not all times will be valid, e.g.
+   * for orphans there is no CentreRefinement. */
+  NumberUnbindingIterations = 0;
+  UnbindingTime = -1;
+  CentreRefinementTime = -1;
+  PropertyCalculationTime = -1;
+  Timer_t SubhaloTimer;
+  SubhaloTimer.Tick("Start");
+#endif
+
   /* We skip already existing orphans */
   if (!Particles.size())
   {
@@ -541,6 +552,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   bool CorrectionLoop = false;
   while (true)
   {
+#ifdef MEASURE_UNBINDING_TIME
+    NumberUnbindingIterations++;
+#endif
+
     /* Correct the binding energies of bound particles due to removing particles
      * from the bound set in the previous iteration. */
     if (CorrectionLoop)
@@ -629,6 +644,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     /* Subhalo has disrupted */
     if ((Nbound < HBTConfig.MinNumPartOfSub) || (Nbound_tracers < HBTConfig.MinNumTracerPartOfSub))
     {
+#ifdef MEASURE_UNBINDING_TIME
+      SubhaloTimer.Tick("Unbinding");
+#endif
+
       /* Store when it disrupted. */
       if (IsAlive())
         SnapshotOfDeath = epoch.GetSnapshotId();
@@ -668,6 +687,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     /* We have converged according to the user specified threshold. */
     if (Nbound >= Nlast * BoundMassPrecision)
     {
+#ifdef MEASURE_UNBINDING_TIME
+      SubhaloTimer.Tick("Unbinding");
+#endif
+
       /* Since we have a resolved subhalo, we reset the death and sink
        * information. */
       if (!IsAlive())
@@ -703,6 +726,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         // the subsampled energy estimate.
         RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
       }
+
+#ifdef MEASURE_UNBINDING_TIME
+      SubhaloTimer.Tick("CentreRefinement");
+#endif
 
       /* Replaces the original particle array with a copy where bound and unbound
        * particles are partitioned, and the bound particles are sorted in binding
@@ -741,6 +768,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   /* Get centre of mass position and velocity of the most bound particles, which
    * is later used to determine if this subhalo overlaps in phase-space with another. */
   GetCorePhaseSpaceProperties();
+
+#ifdef MEASURE_UNBINDING_TIME
+  SubhaloTimer.Tick("MeasuringProperties");
+#endif
 
   /* Store the binding energy information to save later */
   if (HBTConfig.SaveBoundParticleBindingEnergies)
