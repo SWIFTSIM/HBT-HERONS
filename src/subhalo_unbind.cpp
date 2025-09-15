@@ -464,16 +464,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
 
 #ifdef MEASURE_UNBINDING_TIME
-  /* We use default -1 for times because not all times will be valid, e.g.
-   * for orphans there is no CentreRefinement. */
-  NumberUnbindingIterations = 0;
-  StartSubhalo = -1;
-  StartUnbinding = -1;
-  StartCentreRefinement = -1;
-  StartPhaseSpace = -1;
-  EndSubhalo = -1;
-  Timer_t SubhaloTimer;
-  SubhaloTimer.Tick("Start");
+  Timer_t SubhaloTimer = StartUnbindingTimer();
 #endif
 
   /* We skip already existing orphans */
@@ -490,26 +481,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       ParticlePotentialEnergies.clear();
 
 #ifdef MEASURE_UNBINDING_TIME
-    SubhaloTimer.Tick("PhaseSpace");
-    for (int i = 1; i < SubhaloTimer.Size(); i++)
-    {
-      double time = std::chrono::duration<double>(SubhaloTimer.tickers[i].time_since_epoch()).count();
-      // SubhaloTimer.tickers[i].time_since_epoch()).count();
-      // double time = 0;
-      // chrono::duration_cast<chrono::duration<double>>(SubhaloTimer.tickers[i].time_since_epoch().count());
-
-      if (SubhaloTimer.names[i] == "Start")
-        StartSubhalo = time;
-      if (SubhaloTimer.names[i] == "Unbinding")
-        StartUnbinding = time;
-      if (SubhaloTimer.names[i] == "CentreRefinement")
-        StartCentreRefinement = time;
-      if (SubhaloTimer.names[i] == "PhaseSpace")
-        StartPhaseSpace = time;
-      if (SubhaloTimer.names[i] == "End")
-        EndSubhalo = time;
-    }
-#endif
+    LogUnbindingTimes(SubhaloTimer);
+#endif // MEASURE_UNBINDING_TIME
 
     return;
   }
@@ -775,6 +748,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     }
   }
 
+#ifdef MEASURE_UNBINDING_TIME
+  SubhaloTimer.Tick("PhaseSpace");
+#endif
+
   /* Computes the specific potential and kinetic energy of the bound subhalo, as
    * well as its specific angular momentum. */
   ESnap.AverageKinematics(SpecificSelfPotentialEnergy, SpecificSelfKineticEnergy, SpecificAngularMomentum, Nbound,
@@ -794,21 +771,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   GetCorePhaseSpaceProperties();
 
 #ifdef MEASURE_UNBINDING_TIME
-  SubhaloTimer.Tick("PhaseSpace");
-  for (int i = 1; i < SubhaloTimer.Size(); i++)
-  {
-    // double time = chrono::duration_cast<chrono::duration<double>>(SubhaloTimer.tickers[i]);
-    double time = std::chrono::duration<double>(SubhaloTimer.tickers[i].time_since_epoch()).count();
-
-    if (SubhaloTimer.names[i] == "Start")
-      StartSubhalo = time;
-    if (SubhaloTimer.names[i] == "Unbinding")
-      StartUnbinding = time;
-    if (SubhaloTimer.names[i] == "CentreRefinement")
-      StartCentreRefinement = time;
-    if (SubhaloTimer.names[i] == "PhaseSpace")
-      StartPhaseSpace = time;
-  }
+  LogUnbindingTimes(SubhaloTimer);
 #endif // MEASURE_UNBINDING_TIME
 
   /* Store the binding energy information to save later */
@@ -999,3 +962,42 @@ void SubhaloSnapshot_t::PrintSubhaloStatistics(MpiWorker_t &world)
     std::cout << "    Number of FOF groups without any self-bound subhaloes = " << TotalFakeSubhaloes << std::endl;
   }
 }
+
+#ifdef MEASURE_UNBINDING_TIME
+Timer_t Subhalo_t::StartUnbindingTimer()
+{
+  Timer_t SubhaloTimer;
+
+  /* We use default -1 for times because not all times will be valid, e.g.
+   * for orphans there is no CentreRefinement. */
+  NumberUnbindingIterations = 0;
+  StartSubhalo = -1;
+  StartUnbinding = -1;
+  StartCentreRefinement = -1;
+  StartPhaseSpace = -1;
+  EndSubhalo = -1;
+
+  SubhaloTimer.Tick("Start");
+  return SubhaloTimer;
+}
+
+void Subhalo_t::LogUnbindingTimes(Timer_t &Timer)
+{
+  Timer.Tick("End");
+
+  for (int i = 0; i < Timer.Size(); i++)
+  {
+    double time = std::chrono::duration_cast<std::chrono::nanoseconds>(Timer.tickers[i] - ReferenceTime()).count();
+    if (Timer.names[i] == "Start")
+      StartSubhalo = time;
+    if (Timer.names[i] == "Unbinding")
+      StartUnbinding = time;
+    if (Timer.names[i] == "CentreRefinement")
+      StartCentreRefinement = time;
+    if (Timer.names[i] == "PhaseSpace")
+      StartPhaseSpace = time;
+    if (Timer.names[i] == "End")
+      EndSubhalo = time;
+  }
+}
+#endif // MEASURE_UNBINDING_TIME

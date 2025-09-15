@@ -115,6 +115,9 @@ public:
   float CorePhysicalSigmaV;
 
 #ifdef MEASURE_UNBINDING_TIME
+  Timer_t StartUnbindingTimer();
+  void LogUnbindingTimes(Timer_t &Timer);
+
   int NumberUnbindingIterations;
   float StartSubhalo;
   float StartUnbinding;
