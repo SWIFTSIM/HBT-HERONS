@@ -118,6 +118,7 @@ public:
   Timer_t StartUnbindingTimer();
   void LogUnbindingTimes(Timer_t &Timer);
 
+  int MPIRank;
   int NumberUnbindingIterations;
   float StartSubhalo;
   float StartUnbinding;

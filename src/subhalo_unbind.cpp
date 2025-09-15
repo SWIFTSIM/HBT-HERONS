@@ -889,7 +889,12 @@ void SubhaloSnapshot_t::RefineParticles(MpiWorker_t &world)
     }
 #pragma omp for schedule(dynamic, 1)
     for (HBTInt i = 0; i < NumSub; i++)
+    {
       Subhalos[i].TruncateSource();
+#ifdef MEASURE_UNBINDING_TIME
+      Subhalos[i].MPIRank = world.rank();
+#endif
+    }
   }
 #endif // INCLUSIVE_MASS
 
