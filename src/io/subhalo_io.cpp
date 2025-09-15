@@ -86,6 +86,7 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(StartCentreRefinement, H5T_NATIVE_FLOAT);
   InsertMember(StartPhaseSpace, H5T_NATIVE_FLOAT);
   InsertMember(EndSubhalo, H5T_NATIVE_FLOAT);
+  InsertMember(NumberUnbindingIterations, H5T_NATIVE_INT);
 #endif // MEASURE_UNBINDING_TIME
 
 #undef InsertMember
