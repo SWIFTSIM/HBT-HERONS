@@ -116,9 +116,11 @@ public:
 
 #ifdef MEASURE_UNBINDING_TIME
   int NumberUnbindingIterations;
-  float UnbindingTime;
-  float CentreRefinementTime;
-  float PropertyCalculationTime;
+  float StartSubhalo;
+  float StartUnbinding;
+  float StartCentreRefinement;
+  float StartPhaseSpace;
+  float EndSubhalo;
 #endif // MEASURE_UNBINDING_TIME
 
   Subhalo_t()

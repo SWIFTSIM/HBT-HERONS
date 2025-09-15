@@ -467,9 +467,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   /* We use default -1 for times because not all times will be valid, e.g.
    * for orphans there is no CentreRefinement. */
   NumberUnbindingIterations = 0;
-  UnbindingTime = -1;
-  CentreRefinementTime = -1;
-  PropertyCalculationTime = -1;
+  StartSubhalo = -1;
+  StartUnbinding = -1;
+  StartCentreRefinement = -1;
+  StartPhaseSpace = -1;
+  EndSubhalo = -1;
   Timer_t SubhaloTimer;
   SubhaloTimer.Tick("Start");
 #endif
@@ -486,6 +488,28 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       ParticleBindingEnergies.clear();
     if (HBTConfig.SaveBoundParticlePotentialEnergies)
       ParticlePotentialEnergies.clear();
+
+#ifdef MEASURE_UNBINDING_TIME
+    SubhaloTimer.Tick("PhaseSpace");
+    for (int i = 1; i < SubhaloTimer.Size(); i++)
+    {
+      double time = std::chrono::duration<double>(SubhaloTimer.tickers[i].time_since_epoch()).count();
+      // SubhaloTimer.tickers[i].time_since_epoch()).count();
+      // double time = 0;
+      // chrono::duration_cast<chrono::duration<double>>(SubhaloTimer.tickers[i].time_since_epoch().count());
+
+      if (SubhaloTimer.names[i] == "Start")
+        StartSubhalo = time;
+      if (SubhaloTimer.names[i] == "Unbinding")
+        StartUnbinding = time;
+      if (SubhaloTimer.names[i] == "CentreRefinement")
+        StartCentreRefinement = time;
+      if (SubhaloTimer.names[i] == "PhaseSpace")
+        StartPhaseSpace = time;
+      if (SubhaloTimer.names[i] == "End")
+        EndSubhalo = time;
+    }
+#endif
 
     return;
   }
@@ -770,8 +794,22 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   GetCorePhaseSpaceProperties();
 
 #ifdef MEASURE_UNBINDING_TIME
-  SubhaloTimer.Tick("MeasuringProperties");
-#endif
+  SubhaloTimer.Tick("PhaseSpace");
+  for (int i = 1; i < SubhaloTimer.Size(); i++)
+  {
+    // double time = chrono::duration_cast<chrono::duration<double>>(SubhaloTimer.tickers[i]);
+    double time = std::chrono::duration<double>(SubhaloTimer.tickers[i].time_since_epoch()).count();
+
+    if (SubhaloTimer.names[i] == "Start")
+      StartSubhalo = time;
+    if (SubhaloTimer.names[i] == "Unbinding")
+      StartUnbinding = time;
+    if (SubhaloTimer.names[i] == "CentreRefinement")
+      StartCentreRefinement = time;
+    if (SubhaloTimer.names[i] == "PhaseSpace")
+      StartPhaseSpace = time;
+  }
+#endif // MEASURE_UNBINDING_TIME
 
   /* Store the binding energy information to save later */
   if (HBTConfig.SaveBoundParticleBindingEnergies)
