@@ -81,13 +81,17 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(NestedParentTrackId, H5T_HBTInt);
 
 #ifdef MEASURE_UNBINDING_TIME
-  InsertMember(StartSubhalo, H5T_NATIVE_FLOAT);
-  InsertMember(StartUnbinding, H5T_NATIVE_FLOAT);
-  InsertMember(StartCentreRefinement, H5T_NATIVE_FLOAT);
-  InsertMember(StartPhaseSpace, H5T_NATIVE_FLOAT);
-  InsertMember(EndSubhalo, H5T_NATIVE_FLOAT);
-  InsertMember(NumberUnbindingIterations, H5T_NATIVE_INT);
   InsertMember(MPIRank, H5T_NATIVE_INT);
+  InsertMember(NumberUnbindingIterations, H5T_NATIVE_INT);
+
+  InsertMember(StartSubhalo, H5T_NATIVE_FLOAT);
+  InsertMember(EndSubhalo, H5T_NATIVE_FLOAT);
+  InsertMember(StartUnbinding, H5T_NATIVE_FLOAT);
+  InsertMember(EndUnbinding, H5T_NATIVE_FLOAT);
+  InsertMember(StartCentreRefinement, H5T_NATIVE_FLOAT);
+  InsertMember(EndCentreRefinement, H5T_NATIVE_FLOAT);
+  InsertMember(StartPhaseSpace, H5T_NATIVE_FLOAT);
+  InsertMember(EndPhaseSpace, H5T_NATIVE_FLOAT);
 #endif // MEASURE_UNBINDING_TIME
 
 #undef InsertMember

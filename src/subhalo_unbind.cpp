@@ -547,12 +547,16 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   /* Iteratively unbind until we find that the subhalo bound particle number (or
    * mass) has either converged or the subhalo has disrupted. */
+#ifdef MEASURE_UNBINDING_TIME
+   LogTime("StartUnbinding");
+#endif // MEASURE_UNBINDING_TIME
+
   bool CorrectionLoop = false;
   while (true)
   {
 #ifdef MEASURE_UNBINDING_TIME
     NumberUnbindingIterations++;
-#endif
+#endif // MEASURE_UNBINDING_TIME
 
     /* Correct the binding energies of bound particles due to removing particles
      * from the bound set in the previous iteration. */
@@ -643,8 +647,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     if ((Nbound < HBTConfig.MinNumPartOfSub) || (Nbound_tracers < HBTConfig.MinNumTracerPartOfSub))
     {
 #ifdef MEASURE_UNBINDING_TIME
-      LogTime("Unbinding");
-#endif
+      LogTime("EndUnbinding");
+#endif // MEASURE_UNBINDING_TIME
 
       /* Store when it disrupted. */
       if (IsAlive())
@@ -686,8 +690,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     if (Nbound >= Nlast * BoundMassPrecision)
     {
 #ifdef MEASURE_UNBINDING_TIME
-      LogTime("Unbinding");
-#endif
+      LogTime("EndUnbinding");
+#endif // MEASURE_UNBINDING_TIME
 
       /* Since we have a resolved subhalo, we reset the death and sink
        * information. */
@@ -710,6 +714,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
        * may not be the true most bound particle. */
       if (RefineMostBoundParticle && Nbound > MaxSampleSize)
       {
+#ifdef MEASURE_UNBINDING_TIME
+        LogTime("StartCentreRefinement");
+#endif // MEASURE_UNBINDING_TIME
+
         /* If the number of bound particles is large, the number of particles used in this step scales with Nbound.
          * Using too few particles without this scaling would not result in a better centering. This is because it
          * would be limited to the (MaxSampleSize / Nbound) fraction of most bound particles, whose ranking can be
@@ -723,11 +731,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         // in the output, the values will be "out of order" since they reflect
         // the subsampled energy estimate.
         RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
-      }
 
 #ifdef MEASURE_UNBINDING_TIME
-      LogTime("CentreRefinement");
-#endif
+        LogTime("EndCentreRefinement");
+#endif // MEASURE_UNBINDING_TIME
+      }
 
       /* Replaces the original particle array with a copy where bound and unbound
        * particles are partitioned, and the bound particles are sorted in binding
@@ -750,8 +758,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   }
 
 #ifdef MEASURE_UNBINDING_TIME
-  LogTime("PhaseSpace");
-#endif
+  LogTime("StartPhaseSpace");
+#endif // MEASURE_UNBINDING_TIME
 
   /* Computes the specific potential and kinetic energy of the bound subhalo, as
    * well as its specific angular momentum. */
@@ -772,8 +780,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   GetCorePhaseSpaceProperties();
 
 #ifdef MEASURE_UNBINDING_TIME
-  LogTime("EndSubhalo");
-  FinishTimer();
+  LogTime("EndPhaseSpace");
 #endif // MEASURE_UNBINDING_TIME
 
   /* Store the binding energy information to save later */
@@ -793,6 +800,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     for (HBTInt i = 0; i < Nbound; i++)
       ParticlePotentialEnergies[i] = ESnap.GetPotentialEnergy(i, RefPos, RefVel);
   }
+
+#ifdef MEASURE_UNBINDING_TIME
+  LogTime("EndSubhalo");
+  FinishTimer();
+#endif // MEASURE_UNBINDING_TIME
 }
 
 void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
@@ -978,11 +990,10 @@ void Subhalo_t::StartTimer()
   /* We initialise all timing-related values to -1, as not all of them will be
    * valid, e.g. for orphans there is no CentreRefinement. */
   AnalysisTimer.Reset();
-  StartSubhalo = -1;
-  StartUnbinding = -1;
-  StartCentreRefinement = -1;
-  StartPhaseSpace = -1;
-  EndSubhalo = -1;
+  StartSubhalo = -1, EndSubhalo = -1 ;
+  StartUnbinding = -1, EndUnbinding = -1;
+  StartCentreRefinement = -1, EndCentreRefinement = -1;
+  StartPhaseSpace = -1, EndPhaseSpace = -1;
 }
 
 void Subhalo_t::FinishTimer()
@@ -990,16 +1001,23 @@ void Subhalo_t::FinishTimer()
   for (int i = 0; i < AnalysisTimer.Size(); i++)
   {
     double time = std::chrono::duration_cast<std::chrono::nanoseconds>(AnalysisTimer.tickers[i] - ReferenceTime()).count();
+
     if (AnalysisTimer.names[i] == "StartSubhalo")
       StartSubhalo = time;
-    if (AnalysisTimer.names[i] == "Unbinding")
-      StartUnbinding = time;
-    if (AnalysisTimer.names[i] == "CentreRefinement")
-      StartCentreRefinement = time;
-    if (AnalysisTimer.names[i] == "PhaseSpace")
-      StartPhaseSpace = time;
     if (AnalysisTimer.names[i] == "EndSubhalo")
       EndSubhalo = time;
+    if (AnalysisTimer.names[i] == "StartUnbinding")
+      StartUnbinding = time;
+    if (AnalysisTimer.names[i] == "EndUnbinding")
+      EndUnbinding = time;
+    if (AnalysisTimer.names[i] == "StartCentreRefinement")
+      StartCentreRefinement = time;
+    if (AnalysisTimer.names[i] == "EndCentreRefinement")
+      EndCentreRefinement = time;
+    if (AnalysisTimer.names[i] == "StartPhaseSpace")
+      StartPhaseSpace = time;
+    if (AnalysisTimer.names[i] == "EndPhaseSpace")
+      EndPhaseSpace = time;
   }
 }
 
