@@ -190,15 +190,6 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(DescendantTrackId, MPI_HBT_INT, 1);
   RegisterAttr(NestedParentTrackId, MPI_HBT_INT, 1);
 
-#ifdef MEASURE_UNBINDING_TIME
-  RegisterAttr(NumberUnbindingIterations, MPI_HBT_INT, 1);
-  RegisterAttr(StartSubhalo, MPI_FLOAT, 1);
-  RegisterAttr(StartUnbinding, MPI_FLOAT, 1);
-  RegisterAttr(StartCentreRefinement, MPI_FLOAT, 1);
-  RegisterAttr(StartPhaseSpace, MPI_FLOAT, 1);
-  RegisterAttr(EndSubhalo, MPI_FLOAT, 1);
-#endif // MEASURE_UNBINDING_TIME
-
 #undef RegisterAttr
   assert(NumAttr <= MaxNumAttr);
 
