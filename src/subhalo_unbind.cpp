@@ -464,7 +464,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
 
 #ifdef MEASURE_UNBINDING_TIME
-  Timer_t SubhaloTimer = StartUnbindingTimer();
+  StartTimer();
+  LogTime("StartSubhalo");
 #endif
 
   /* We skip already existing orphans */
@@ -481,8 +482,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       ParticlePotentialEnergies.clear();
 
 #ifdef MEASURE_UNBINDING_TIME
-    LogUnbindingTimes(SubhaloTimer);
-#endif // MEASURE_UNBINDING_TIME
+    LogTime("EndSubhalo");
+  #endif // MEASURE_UNBINDING_TIME
 
     return;
   }
@@ -642,7 +643,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     if ((Nbound < HBTConfig.MinNumPartOfSub) || (Nbound_tracers < HBTConfig.MinNumTracerPartOfSub))
     {
 #ifdef MEASURE_UNBINDING_TIME
-      SubhaloTimer.Tick("Unbinding");
+      LogTime("Unbinding");
 #endif
 
       /* Store when it disrupted. */
@@ -685,7 +686,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     if (Nbound >= Nlast * BoundMassPrecision)
     {
 #ifdef MEASURE_UNBINDING_TIME
-      SubhaloTimer.Tick("Unbinding");
+      LogTime("Unbinding");
 #endif
 
       /* Since we have a resolved subhalo, we reset the death and sink
@@ -725,7 +726,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       }
 
 #ifdef MEASURE_UNBINDING_TIME
-      SubhaloTimer.Tick("CentreRefinement");
+      LogTime("CentreRefinement");
 #endif
 
       /* Replaces the original particle array with a copy where bound and unbound
@@ -749,7 +750,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   }
 
 #ifdef MEASURE_UNBINDING_TIME
-  SubhaloTimer.Tick("PhaseSpace");
+  LogTime("PhaseSpace");
 #endif
 
   /* Computes the specific potential and kinetic energy of the bound subhalo, as
@@ -771,7 +772,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   GetCorePhaseSpaceProperties();
 
 #ifdef MEASURE_UNBINDING_TIME
-  LogUnbindingTimes(SubhaloTimer);
+  LogTime("EndSubhalo");
+  FinishTimer();
 #endif // MEASURE_UNBINDING_TIME
 
   /* Store the binding energy information to save later */
@@ -969,40 +971,40 @@ void SubhaloSnapshot_t::PrintSubhaloStatistics(MpiWorker_t &world)
 }
 
 #ifdef MEASURE_UNBINDING_TIME
-Timer_t Subhalo_t::StartUnbindingTimer()
+void Subhalo_t::StartTimer()
 {
-  Timer_t SubhaloTimer;
-
-  /* We use default -1 for times because not all times will be valid, e.g.
-   * for orphans there is no CentreRefinement. */
   NumberUnbindingIterations = 0;
+
+  /* We initialise all timing-related values to -1, as not all of them will be
+   * valid, e.g. for orphans there is no CentreRefinement. */
+  AnalysisTimer.Reset();
   StartSubhalo = -1;
   StartUnbinding = -1;
   StartCentreRefinement = -1;
   StartPhaseSpace = -1;
   EndSubhalo = -1;
-
-  SubhaloTimer.Tick("Start");
-  return SubhaloTimer;
 }
 
-void Subhalo_t::LogUnbindingTimes(Timer_t &Timer)
+void Subhalo_t::FinishTimer()
 {
-  Timer.Tick("End");
-
-  for (int i = 0; i < Timer.Size(); i++)
+  for (int i = 0; i < AnalysisTimer.Size(); i++)
   {
-    double time = std::chrono::duration_cast<std::chrono::nanoseconds>(Timer.tickers[i] - ReferenceTime()).count();
-    if (Timer.names[i] == "Start")
+    double time = std::chrono::duration_cast<std::chrono::nanoseconds>(AnalysisTimer.tickers[i] - ReferenceTime()).count();
+    if (AnalysisTimer.names[i] == "StartSubhalo")
       StartSubhalo = time;
-    if (Timer.names[i] == "Unbinding")
+    if (AnalysisTimer.names[i] == "Unbinding")
       StartUnbinding = time;
-    if (Timer.names[i] == "CentreRefinement")
+    if (AnalysisTimer.names[i] == "CentreRefinement")
       StartCentreRefinement = time;
-    if (Timer.names[i] == "PhaseSpace")
+    if (AnalysisTimer.names[i] == "PhaseSpace")
       StartPhaseSpace = time;
-    if (Timer.names[i] == "End")
+    if (AnalysisTimer.names[i] == "EndSubhalo")
       EndSubhalo = time;
   }
+}
+
+void Subhalo_t::LogTime(std::string name)
+{
+  AnalysisTimer.Tick(name);
 }
 #endif // MEASURE_UNBINDING_TIME

@@ -115,16 +115,20 @@ public:
   float CorePhysicalSigmaV;
 
 #ifdef MEASURE_UNBINDING_TIME
-  Timer_t StartUnbindingTimer();
-  void LogUnbindingTimes(Timer_t &Timer);
+  int MPIRank; // The rank which analysed this subhalo
+  int AnalysisOrder; // How many subhaloes of the same halo were analysed before
+  int NumberUnbindingIterations; // How many iterations were done in unbinding
 
-  int MPIRank;
-  int NumberUnbindingIterations;
-  float StartSubhalo;
-  float StartUnbinding;
-  float StartCentreRefinement;
-  float StartPhaseSpace;
-  float EndSubhalo;
+  /* Timing related methods and members */
+  Timer_t AnalysisTimer;
+  void StartTimer();
+  void FinishTimer();
+  void LogTime(std::string name);
+
+  float StartSubhalo, EndSubhalo;
+  float StartUnbinding, EndUnbinding;
+  float StartCentreRefinement, EndCentreRefinement;
+  float StartPhaseSpace, EndPhaseSpace;
 #endif // MEASURE_UNBINDING_TIME
 
   Subhalo_t()
@@ -329,14 +333,9 @@ public:
   void GetSubFileName(string &filename, int iFile, const string &ftype = "Sub");
   void Load(MpiWorker_t &world, int snapshot_index, const SubReaderDepth_t depth = SubReaderDepth_t::SubParticles);
   void Save(MpiWorker_t &world);
-  void Clear()
-  {
-    // TODO
-    cout << "Clean() not implemented yet\n";
-  }
+
   void UpdateParticles(MpiWorker_t &world, const ParticleSnapshot_t &snapshot);
   void UpdateSplitParticles(const ParticleSnapshot_t &snapshot);
-  //   void ParticleIndexToId();
   void UpdateMostBoundPosition(MpiWorker_t &world, const ParticleSnapshot_t &part_snap);
   void AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap);
   void ConstrainToSingleHost(const HaloSnapshot_t &halo_snap);
