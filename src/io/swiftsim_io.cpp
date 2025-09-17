@@ -609,6 +609,12 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile
             ParticlesToRead[offset + i].InternalEnergy = u[i] * pow(Header.ScaleFactor, aexp);
         }
       }
+      else
+      {
+        // Zero out internal energy for non-gas particles
+        for (hsize_t offset = 0; offset < read_count; offset += 1)
+          ParticlesToRead[offset].InternalEnergy = 0.0;
+      }
 #endif
       { // type
         ParticleType_t t = static_cast<ParticleType_t>(itype);
