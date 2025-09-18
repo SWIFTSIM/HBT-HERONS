@@ -67,7 +67,10 @@ int main(int argc, char **argv)
   /* Main loop, iterate over chosen data outputs */
   for (int isnap = snapshot_start; isnap <= snapshot_end; isnap++)
   {
+    /* We start the timer for the current output, and store the time to use as a
+     * reference if we want to compute fine-grained timings. */
     global_timer.Tick("start", world.Communicator);
+    ReferenceTime() = global_timer.tickers[0];
 
     /* Load particle information */
     ParticleSnapshot_t partsnap;
