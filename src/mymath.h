@@ -61,6 +61,13 @@ inline void RemoveFromVector(vector<T> &v, UnaryPredicate p)
   v.erase(remove_if(v.begin(), v.end(), p), v.end());
 }
 
+/* Will be used to measure internal timings against the time at which the current
+ * snapshot begun being analysed. */
+inline std::chrono::high_resolution_clock::time_point &ReferenceTime() {
+  static std::chrono::high_resolution_clock::time_point ReferenceTime;
+  return ReferenceTime;
+}
+
 class Timer_t
 {
 public:

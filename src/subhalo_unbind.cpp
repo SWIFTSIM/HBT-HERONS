@@ -463,6 +463,11 @@ HBTInt CountUnsampledParticles(const vector<ParticleEnergy_t> &Elist, const vect
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
 
+#ifdef MEASURE_UNBINDING_TIME
+  StartTimer();
+  LogTime("StartSubhalo");
+#endif
+
   /* We skip already existing orphans */
   if (!Particles.size())
   {
@@ -475,6 +480,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       ParticleBindingEnergies.clear();
     if (HBTConfig.SaveBoundParticlePotentialEnergies)
       ParticlePotentialEnergies.clear();
+
+#ifdef MEASURE_UNBINDING_TIME
+    LogTime("EndSubhalo");
+  #endif // MEASURE_UNBINDING_TIME
 
     return;
   }
@@ -538,9 +547,17 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   /* Iteratively unbind until we find that the subhalo bound particle number (or 
    * mass) has either converged or the subhalo has disrupted. */
+#ifdef MEASURE_UNBINDING_TIME
+   LogTime("StartUnbinding");
+#endif // MEASURE_UNBINDING_TIME
+
   bool CorrectionLoop = false;
   while (true)
   {
+#ifdef MEASURE_UNBINDING_TIME
+    NumberUnbindingIterations++;
+#endif // MEASURE_UNBINDING_TIME
+
     /* Correct the binding energies of bound particles due to removing particles
      * from the bound set in the previous iteration. */
     if (CorrectionLoop)
@@ -629,6 +646,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     /* Subhalo has disrupted */
     if ((Nbound < HBTConfig.MinNumPartOfSub) || (Nbound_tracers < HBTConfig.MinNumTracerPartOfSub))
     {
+#ifdef MEASURE_UNBINDING_TIME
+      LogTime("EndUnbinding");
+#endif // MEASURE_UNBINDING_TIME
+
       /* Store when it disrupted. */
       if (IsAlive())
         SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
@@ -668,7 +689,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     /* We have converged according to the user specified threshold. */
     if (Nbound >= Nlast * BoundMassPrecision)
     {
-      /* Since we have a resolved subhalo, we reset the death and sink 
+#ifdef MEASURE_UNBINDING_TIME
+      LogTime("EndUnbinding");
+#endif // MEASURE_UNBINDING_TIME
+
+      /* Since we have a resolved subhalo, we reset the death and sink
        * information. */
       if (!IsAlive())
       {
@@ -689,6 +714,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
        * may not be the true most bound particle. */
       if (RefineMostBoundParticle && Nbound > MaxSampleSize)
       {
+#ifdef MEASURE_UNBINDING_TIME
+        LogTime("StartCentreRefinement");
+#endif // MEASURE_UNBINDING_TIME
+
         /* If the number of bound particles is large, the number of particles used in this step scales with Nbound.
          * Using too few particles without this scaling would not result in a better centering. This is because it
          * would be limited to the (MaxSampleSize / Nbound) fraction of most bound particles, whose ranking can be
@@ -702,6 +731,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         // in the output, the values will be "out of order" since they reflect 
         // the subsampled energy estimate.
         RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
+
+#ifdef MEASURE_UNBINDING_TIME
+        LogTime("EndCentreRefinement");
+#endif // MEASURE_UNBINDING_TIME
       }
 
       /* Replaces the original particle array with a copy where bound and unbound
@@ -724,6 +757,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     }
   }
 
+#ifdef MEASURE_UNBINDING_TIME
+  LogTime("StartPhaseSpace");
+#endif // MEASURE_UNBINDING_TIME
+
   /* Computes the specific potential and kinetic energy of the bound subhalo, as
    * well as its specific angular momentum. */
   ESnap.AverageKinematics(SpecificSelfPotentialEnergy, SpecificSelfKineticEnergy, SpecificAngularMomentum, Nbound,
@@ -742,6 +779,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
    * is later used to determine if this subhalo overlaps in phase-space with another. */
   GetCorePhaseSpaceProperties();
 
+#ifdef MEASURE_UNBINDING_TIME
+  LogTime("EndPhaseSpace");
+#endif // MEASURE_UNBINDING_TIME
+
   /* Store the binding energy information to save later */
   if (HBTConfig.SaveBoundParticleBindingEnergies)
   {
@@ -759,6 +800,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     for (HBTInt i = 0; i < Nbound; i++)
       ParticlePotentialEnergies[i] = ESnap.GetPotentialEnergy(i, RefPos, RefVel);
   }
+
+#ifdef MEASURE_UNBINDING_TIME
+  LogTime("EndSubhalo");
+  FinishTimer();
+#endif // MEASURE_UNBINDING_TIME
 }
 
 void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
@@ -854,7 +900,126 @@ void SubhaloSnapshot_t::RefineParticles()
     }
 #pragma omp for schedule(dynamic, 1)
     for (HBTInt i = 0; i < NumSub; i++)
+    {
       Subhalos[i].TruncateSource();
-  }
+#ifdef MEASURE_UNBINDING_TIME
+      Subhalos[i].MPIRank = world.rank();
 #endif
+    }
+  }
+#endif // INCLUSIVE_MASS
+
+  ImbalanceTimer.Tick("end");
+
+  PrintTimeImbalanceStatistics(world, ImbalanceTimer);
+  PrintSubhaloStatistics(world);
 }
+
+/* Prints the maximum time taken by a rank, and its associated imbalance. */
+void SubhaloSnapshot_t::PrintTimeImbalanceStatistics(MpiWorker_t &world, Timer_t Timer)
+{
+  double LocalElapsedTime = Timer.GetSeconds();
+  std::vector<double> AllElapsedTime(world.size(), 0);
+  MPI_Allgather(&LocalElapsedTime, 1, MPI_DOUBLE, AllElapsedTime.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+
+  /* Compute average run time and maximum time across all ranks */
+  double AverageTime = 0, MaxTime=0;
+  for(auto &TimePerRank:AllElapsedTime)
+  {
+    AverageTime += TimePerRank;
+    MaxTime = std::max(TimePerRank, MaxTime);
+  }
+  AverageTime /= world.size();
+
+  if (world.rank() == 0)
+    std::cout << "Took " << MaxTime << " seconds. Maximum imbalance across ranks was " << MaxTime / AverageTime << "." << std::endl;
+}
+
+/* Print information about how many subhaloes have been sunk, disrupted, newly
+ * idenfied and failed subhaloes. */
+void SubhaloSnapshot_t::PrintSubhaloStatistics(MpiWorker_t &world)
+{
+   HBTInt LocalSunkSubhaloes = 0, LocalDisruptedSubhaloes = 0, LocalNewSubhaloes = 0, LocalFakeSubhaloes = 0;
+#pragma omp parallel for reduction(+ : LocalSunkSubhaloes, LocalDisruptedSubhaloes, LocalNewSubhaloes, LocalFakeSubhaloes) if (Subhalos.size() > 1000)
+   for(size_t subhalo_index = 0;  subhalo_index < Subhalos.size(); subhalo_index++)
+   {
+      Subhalo_t &sub = Subhalos[subhalo_index];
+
+      /* Sunk subhaloes */
+      LocalSunkSubhaloes += (sub.SnapshotOfDeath == GetSnapshotId()) \
+                          & (sub.SnapshotOfSink  == GetSnapshotId());
+
+      /* Disrupted subhaloes */
+      LocalDisruptedSubhaloes += (sub.SnapshotOfBirth < GetSnapshotId())  \
+                               & (sub.SnapshotOfDeath == GetSnapshotId()) \
+                               & (sub.SnapshotOfSink  == SpecialConst::NullSnapshotId);
+
+      /* A subhalo that was never self-bound. */
+      LocalFakeSubhaloes += (sub.SnapshotOfBirth == GetSnapshotId()) \
+                          & (sub.SnapshotOfDeath == GetSnapshotId());
+
+      /* A subhalo that was just identified as self-bound for the first time. */
+      LocalNewSubhaloes += (sub.SnapshotOfBirth == GetSnapshotId()) \
+                         & (sub.SnapshotOfDeath == SpecialConst::NullSnapshotId);
+   }
+
+  /* Gather across ranks */
+  HBTInt TotalSunkSubhaloes = 0, TotalDisruptedSubhaloes = 0, TotalNewSubhaloes = 0, TotalFakeSubhaloes = 0;
+  MPI_Allreduce(&LocalSunkSubhaloes     , &TotalSunkSubhaloes     , 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  MPI_Allreduce(&LocalDisruptedSubhaloes, &TotalDisruptedSubhaloes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  MPI_Allreduce(&LocalNewSubhaloes      , &TotalNewSubhaloes      , 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  MPI_Allreduce(&LocalFakeSubhaloes     , &TotalFakeSubhaloes     , 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+
+  if(world.rank() == 0)
+  {
+    std::cout << "    Number of merged subhaloes = " << TotalSunkSubhaloes << std::endl;
+    std::cout << "    Number of disrupted subhaloes = " << TotalDisruptedSubhaloes << std::endl;
+    std::cout << "    Number of newly identified subhaloes = " << TotalNewSubhaloes << std::endl;
+    std::cout << "    Number of FOF groups without any self-bound subhaloes = " << TotalFakeSubhaloes << std::endl;
+  }
+}
+
+#ifdef MEASURE_UNBINDING_TIME
+void Subhalo_t::StartTimer()
+{
+  NumberUnbindingIterations = 0;
+
+  /* We initialise all timing-related values to -1, as not all of them will be
+   * valid, e.g. for orphans there is no CentreRefinement. */
+  AnalysisTimer.Reset();
+  StartSubhalo = -1, EndSubhalo = -1 ;
+  StartUnbinding = -1, EndUnbinding = -1;
+  StartCentreRefinement = -1, EndCentreRefinement = -1;
+  StartPhaseSpace = -1, EndPhaseSpace = -1;
+}
+
+void Subhalo_t::FinishTimer()
+{
+  for (int i = 0; i < AnalysisTimer.Size(); i++)
+  {
+    double time = std::chrono::duration_cast<std::chrono::nanoseconds>(AnalysisTimer.tickers[i] - ReferenceTime()).count();
+
+    if (AnalysisTimer.names[i] == "StartSubhalo")
+      StartSubhalo = time;
+    if (AnalysisTimer.names[i] == "EndSubhalo")
+      EndSubhalo = time;
+    if (AnalysisTimer.names[i] == "StartUnbinding")
+      StartUnbinding = time;
+    if (AnalysisTimer.names[i] == "EndUnbinding")
+      EndUnbinding = time;
+    if (AnalysisTimer.names[i] == "StartCentreRefinement")
+      StartCentreRefinement = time;
+    if (AnalysisTimer.names[i] == "EndCentreRefinement")
+      EndCentreRefinement = time;
+    if (AnalysisTimer.names[i] == "StartPhaseSpace")
+      StartPhaseSpace = time;
+    if (AnalysisTimer.names[i] == "EndPhaseSpace")
+      EndPhaseSpace = time;
+  }
+}
+
+void Subhalo_t::LogTime(std::string name)
+{
+  AnalysisTimer.Tick(name);
+}
+#endif // MEASURE_UNBINDING_TIME
