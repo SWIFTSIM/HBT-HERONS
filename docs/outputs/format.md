@@ -1,6 +1,6 @@
 # Format
 
-The outputs of **HBT-HERONS** are saved using the HDF5 file format. Each output is saved in its own separate folder within the specified `SubhaloPath` directory. The folder for each output (indicated by its current `SnapshotIndex`) contains two types of files:
+The subhalo catalogues of **HBT-HERONS** are saved using the HDF5 file format. Each output is saved in its own separate folder within the specified `SubhaloPath` directory. The folder for each output (indicated by its current `SnapshotIndex`) contains two types of files:
 
 * `SubSnap`, which contains [subhalo information](#subhalo-information) concerning their overall properties and bound particles. It also contains [metadata](#metadata).
 * `SrcSnap`, which are used to continue an existing HBT-HERONS analysis.
