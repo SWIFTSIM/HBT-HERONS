@@ -73,8 +73,7 @@ int main(int argc, char **argv)
     ReferenceTime() = global_timer.tickers[0];
 
     /* Load particle information */
-    ParticleSnapshot_t partsnap;
-    partsnap.Load(world, isnap);
+    ParticleSnapshot_t partsnap(world, isnap);
     global_timer.Tick("read_snap", world.Communicator);
 
     subsnap.SetSnapshotIndex(isnap);
