@@ -770,8 +770,6 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   // Every rank should have executed the reading code exactly once
   assert(reads_done == 1);
 
-  global_timer.Tick("snap_io", world.Communicator);
-
   // #define SNAPSHOT_IO_TEST
 #ifdef SNAPSHOT_IO_TEST
   // For testing: dump the snapshot to a new set of files

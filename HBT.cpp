@@ -74,7 +74,6 @@ int main(int argc, char **argv)
 
     /* Load particle information */
     ParticleSnapshot_t partsnap(world, isnap);
-    global_timer.Tick("read_snap", world.Communicator);
 
     subsnap.SetSnapshotIndex(isnap);
 

@@ -52,6 +52,8 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
   else
     throw(runtime_error("unknown SnapshotFormat " + HBTConfig.SnapshotFormat));
 
+  global_timer.Tick("snap_io", world.Communicator);
+
   ExchangeParticles(world);
   global_timer.Tick("snap_exchange", world.Communicator);
 
