@@ -78,8 +78,7 @@ int main(int argc, char **argv)
     subsnap.SetSnapshotIndex(isnap);
 
     /* Load FOF group information */
-    HaloSnapshot_t halosnap;
-    halosnap.Load(world, isnap);
+    HaloSnapshot_t halosnap(world, isnap);
     global_timer.Tick("read_halo", world.Communicator);
 
     /* For SWIFT-based outputs we load some parameters directly from the snapshots,
