@@ -15,9 +15,6 @@ The following entries, which are measured in elapsed seconds for the slowest MPI
 `snap_hash`
 :   Time taken to create within each MPI rank a hash table between a particle index and its ID.
 
-`read_snap`
-:   Time taken to do all of the snapshot particle data loading and communication tasks.
-
 `halo_io`
 :   Time taken to load the Friends-of-Friends data.
 
