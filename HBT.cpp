@@ -166,33 +166,15 @@ int main(int argc, char **argv)
     subsnap.Save(world);
     global_timer.Tick("write_subhalos", world.Communicator);
 
+    /* Save timing information with root rank and reset timer for all ranks. */
     if (world.rank() == 0)
     {
-      /* Create or open the timing log file */
-      std::ofstream TimeLog;
-      TimeLog.open(HBTConfig.SubhaloPath + "/timing.log", std::fstream::out | std::fstream::app);
-      TimeLog << std::fixed << std::setprecision(3);
-
-      /* To report on how long the snapshot took to analyse in total. Only rank 0
-       * will print, so no need to synchronise. */
-      double TotalTime = 0;
-
-      /* Append line */
-      TimeLog << subsnap.GetSnapshotIndex() << " \t" << subsnap.GetSnapshotId();
-      for (int i = 1; i < global_timer.Size(); i++)
-      {
-        TimeLog << "\t" << global_timer.names[i] << "=" << global_timer.GetSeconds(i);
-        TotalTime += global_timer.GetSeconds(i);
-      }
-      TimeLog << std::endl;
-      /* Done. */
-      TimeLog.close();
+      double TotalTime = global_timer.SaveSnapshotTiming(HBTConfig.SubhaloPath, subsnap.GetSnapshotIndex(), subsnap.GetSnapshotId());
 
       std::cout << "Snapshot " << subsnap.GetSnapshotId() << " (SnapshotIndex = " << isnap << ")" << " done. It took " << TotalTime << " seconds." << std::endl;
       std::cout << std::endl;
     }
     global_timer.Reset();
-
   }
 
   MPI_Finalize();

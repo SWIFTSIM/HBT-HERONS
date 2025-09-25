@@ -3,7 +3,8 @@
 
 #include <iostream>
 #include <iterator>
-
+#include <fstream>
+#include <iomanip>
 #include <algorithm>
 #include <assert.h>
 #include <chrono>
@@ -125,6 +126,30 @@ public:
       swap(itick, itick0);
 
     return chrono::duration_cast<chrono::duration<double>>(tickers[itick] - tickers[itick0]).count();
+  }
+
+  double SaveSnapshotTiming(const std::string SubhaloPath, const int SnapshotIndex, const int SnapshotId)
+  {
+    /* Create or open the timing log file */
+    std::ofstream TimeLog;
+    TimeLog.open(SubhaloPath + "/timing.log", std::fstream::out | std::fstream::app);
+    TimeLog << std::fixed << std::setprecision(3);
+
+    /* To report on how long the snapshot took to analyse in total. Only rank 0
+     * will print, so no need to synchronise. */
+    double TotalTime = 0;
+
+    /* Append line */
+    TimeLog << SnapshotIndex << " \t" << SnapshotId;
+    for (int i = 1; i < Size(); i++)
+    {
+      TimeLog << "\t" << names[i] << "=" << GetSeconds(i);
+      TotalTime += GetSeconds(i);
+    }
+    TimeLog << std::endl;
+    TimeLog.close();
+
+    return TotalTime;
   }
 };
 
