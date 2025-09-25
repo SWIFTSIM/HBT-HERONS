@@ -17,7 +17,7 @@ using namespace std;
 #include "gadget_io.h"
 #include "swiftsim_io.h"
 
-void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_particle_hash)
+void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
 {
   Clear();
   SetSnapshotIndex(snapshot_index);
@@ -53,12 +53,9 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_
     throw(runtime_error("unknown SnapshotFormat " + HBTConfig.SnapshotFormat));
 
   ExchangeParticles(world);
-
   global_timer.Tick("snap_exchange", world.Communicator);
 
-  if (fill_particle_hash)
-    FillParticleHash();
-
+  FillParticleHash();
   global_timer.Tick("snap_hash", world.Communicator);
 
   if (world.rank() == 0)

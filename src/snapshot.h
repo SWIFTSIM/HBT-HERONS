@@ -208,10 +208,12 @@ public:
     else
       ParticleHash = &FlatHash;
   }
-  ParticleSnapshot_t(MpiWorker_t &world, int snapshot_index, bool fill_particle_hash = true) : ParticleSnapshot_t()
+
+  ParticleSnapshot_t(MpiWorker_t &world, int snapshot_index) : ParticleSnapshot_t()
   {
-    Load(world, snapshot_index, fill_particle_hash);
+    Load(world, snapshot_index);
   }
+
   ~ParticleSnapshot_t()
   {
     Clear(); // not necessary
@@ -232,7 +234,7 @@ public:
   HBTReal GetInternalEnergy(HBTInt index) const;
   ParticleType_t GetParticleType(HBTInt index) const;
 
-  void Load(MpiWorker_t &world, int snapshot_index, bool fill_particle_hash = true);
+  void Load(MpiWorker_t &world, int snapshot_index);
   void Clear();
 
   /* For use when including particles that split. */
