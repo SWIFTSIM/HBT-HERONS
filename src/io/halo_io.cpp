@@ -13,9 +13,9 @@
 
 #include "../halo.h"
 #include "../mymath.h"
-#include "apostle_io.h"
-#include "gadget_group_io.h"
-#include "swiftsim_io.h"
+#include "./apostle_io/apostle_io.h"
+#include "./gadget_io/gadget_group_io.h"
+#include "./swiftsim_io/swiftsim_io.h"
 
 void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
 {
@@ -30,11 +30,10 @@ void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
   else if (IsSwiftSimGroup(GroupFileFormat))
     SwiftSimReader_t().LoadGroups(world, SnapshotId, Halos);
   else if (GroupFileFormat == "my_group_format")
-  { /*extend your own group reader here, input SnapshotId and output filled Halo list, e.g.:
-
-     MyGroupReader(world, SnapshotId, Halos)
-
-     */
+  {
+    /* Insert your halo reader here. Input SnapshotId and create a filled halo
+     * list.
+     * MyGroupReader(world, SnapshotId, Halos) */
   }
   else
     throw(runtime_error("unknown GroupFileFormat " + GroupFileFormat));

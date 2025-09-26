@@ -1,6 +1,6 @@
 #ifndef GADGET_IO_INCLUDED
 #define GADGET_IO_INCLUDED
-#include "../mpi_wrapper.h"
+#include "../../mpi_wrapper.h"
 
 #define SNAPSHOT_HEADER_SIZE 256
 

@@ -12,9 +12,9 @@
 
 #ifndef SWIFTSIM_IO_INCLUDED
 #define SWIFTSIM_IO_INCLUDED
-#include "../halo.h"
-#include "../hdf_wrapper.h"
-#include "../mpi_wrapper.h"
+#include "../../halo.h"
+#include "../../hdf_wrapper.h"
+#include "../../mpi_wrapper.h"
 
 struct SwiftSimHeader_t
 {

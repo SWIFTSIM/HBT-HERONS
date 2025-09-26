@@ -1,8 +1,6 @@
 # Diagnostics
 
-HBT-HERONS prints information used to keep track of its [version](#version) and
-[basic progress](#general-output-information) per analysed output. Fine-grained [timing information](#timing-file)
-is also provided in the form of a separate text file.
+HBT-HERONS prints information used to keep track of its [version](#version) and [basic progress](#logged-information) per analysed output. More fine-grained [timing information](../outputs/timing.md) is provided in the form of a separate text file, and optionally, as a timestamp for each individual subhalo within the subhalo catalogues.
 
 ## Version
 
@@ -142,9 +140,3 @@ Each term is intended to provide an idea of how the run is performing, where the
 
 `NumberSubhalosWithoutDescendants`
 :   The number subhaloes that disrupted or merged in the current simulation output which do not have an assigned descendant, i.e. the most bound tracer particles from the previous output are not bound to any subhalo in the current output.
-
-## Timing file
-
-For a more fine-grained look at how HBT-HERONS spends time within the analysis of each simulation output, a file is saved in `<SubhaloPath>/timing.log`. Each line corresponds to the timing information for a given `SnapshotIndex`. Usually, most of the time is spent on either loading simulation output data or unbinding subhaloes.
-
-The lines are appended to the end of the file, meaning that restarting an analysis will add this information to a pre-existing timing file.

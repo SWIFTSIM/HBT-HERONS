@@ -60,6 +60,7 @@ nav:
     - ./running/diagnostics.md
   - Outputs:
       - ./outputs/format.md
+      - ./outputs/timing.md
       - ./outputs/subhalo_properties.md
       - ./outputs/merger_trees.md
 

@@ -1,4 +1,4 @@
-# Subhaloes
+# Subhalo properties
 
 There are three types of information datasets that are saved in every HBT-HERONS
 output:
@@ -71,8 +71,6 @@ Different ways to measure the shape of the subhalo.
 | :-------------------------------------- | :------------------------------------------------ |
 | `InertialTensor`                        | Flattened representation of the inertia tensor of the subhalo.                                         |
 | `InertialTensorWeighted`                | Flattened representation of the inertia tensor of the subhalo, weighted by particle mass and 3D distance to `ComovingMostBoundPosition`. |
-| `InertialEigenVector`                   | Eigenvectors of `InertialTensor`. Only computed if GSL was enabled at compile time. |
-| `InertialEigenVectorWeighted`           | Eigenvectors of `InertialTensorWeighted`. Only computed if GSL was enabled at compile time. |
 
 #### Dynamical metrics
 
@@ -125,3 +123,27 @@ The last type of property is used to connect subhaloes between each other at a f
 |              `HostHaloId`               | The Friends of Friends group that this subhalo is a part of. |
 |                 `Rank`                  | The mass ranking of the subhalo compared to all of the subhaloes that have the same `HostHaloId`. |
 |                 `Depth`                 | The number of hierarchical connections that the subhalo is away from the central, e.g. 0 for centrals, 1 for satellites, 2 for satellites of satellites.                 |
+
+### Analysis cost statistics
+
+Information used to reconstruct the cost to analyse individual subhaloes and how well parallelised their analysis is. Only saved if `HBT_MEASURE_UNBINDING_TIME` is enabled.
+
+| <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
+| :-------------------------------------- | :----------------------------------------------- |
+| `MPIRank`                           | MPI rank which analysed the subhalo. |
+| `NumberUnbindingIterations`                           | How many unbinding iterations were done before the subhalo disrupted or satisfied the convergence threshold. |
+
+<h5>Timestamps</h5>
+
+All timestamps are provided in nanoseconds since the beginning of the analysis time of the current output. All time measurements occur within [`Subhalo_t::Unbind`](https://github.com/SWIFTSIM/HBT-HERONS/blob/7fbc6515c2e0d4fba7c7f8e427b396f3d5a6f1d5/src/subhalo_unbind.cpp#L463).
+
+| <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
+| :-------------------------------------- | :----------------------------------------------- |
+| `StartSubhalo`                           | Time when `Subhalo_t::Unbind` was entered. |
+| `EndSubhalo`                           | Time when `Subhalo_t::Unbind` was exited. |
+| `StartUnbinding`                           | Time when the first unbinding iteration started. It equals `-1` if no unbinding iterations were done, e.g. for pre-existing orphans. |
+| `EndUnbinding`                           | Time when the last unbinding iteration finished. It equals `-1` if no unbinding iterations were done, e.g. for pre-existing orphans. |
+| `StartCentreRefinement`                           | Time when the subhalo centre refinement started. It equals `-1` if no refinement is done, e.g. for any subhaloes with $N_{\rm bound} \leq N_{\rm subsample}$ or for runs with no subsampling (`MaxSampleSizeOfPotentialEstimate = -1`). |
+| `EndCentreRefinement`                           |  Time when the subhalo centre refinement finished. It equals `-1` if no refinement is done, e.g. for any subhaloes with $N_{\rm bound} \leq N_{\rm subsample}$ or for runs with no subsampling (`MaxSampleSizeOfPotentialEstimate = -1`). |
+| `StartPhaseSpace`                   | Time when the calculation of the phase-space location of the subhalo started. It equals `-1` if no phase-space calculations are done, e.g. for any orphan subhaloes. |
+| `EndPhaseSpace`                   | Time when the calculation of the phase-space location of the subhalo fnished. It equals `-1` if no phase-space calculations are done, e.g. for any orphan subhaloes. |

@@ -2,7 +2,6 @@ using namespace std;
 #include <iostream>
 #include <numeric>
 #include <cassert>
-// #include <iomanip>
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -12,12 +11,12 @@ using namespace std;
 #include <string>
 #include <typeinfo>
 #include <stdexcept>
-#include "../config_parser.h"
-#include "../hdf_wrapper.h"
-#include "../mymath.h"
-#include "../snapshot.h"
+#include "../../config_parser.h"
+#include "../../hdf_wrapper.h"
+#include "../../mymath.h"
+#include "../../snapshot.h"
 #include "swiftsim_io.h"
-#include "exchange_and_merge.h"
+#include "../comms/exchange_and_merge.h"
 
 void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
 {
@@ -770,8 +769,6 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   // Every rank should have executed the reading code exactly once
   assert(reads_done == 1);
 
-  global_timer.Tick("snap_io", world.Communicator);
-
   // #define SNAPSHOT_IO_TEST
 #ifdef SNAPSHOT_IO_TEST
   // For testing: dump the snapshot to a new set of files
@@ -920,7 +917,6 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
 
   global_timer.Tick("halo_io", world.Communicator);
 
-  // #define HALO_IO_TEST
 #ifdef HALO_IO_TEST
   //
   // For testing: dump the snapshot to a new set of files
@@ -1026,9 +1022,7 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
   }
 
   VectorFree(ParticleHosts);
-
   ExchangeAndMerge(world, Halos);
-
   global_timer.Tick("halo_comms", world.Communicator);
 
   HBTConfig.GroupLoadedFullParticle = true;

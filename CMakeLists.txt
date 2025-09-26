@@ -74,21 +74,6 @@ find_package(HDF5 COMPONENTS C HL REQUIRED)
 include_directories(${HDF5_C_INCLUDE_DIRS})
 
 #
-# Find GSL library (optional)
-#
-option(HBT_USE_GSL "Enable to use GSL for eigenvalue decomposition of inertial tensors" OFF)
-if(HBT_USE_GSL)
-  find_package(GSL)
-  if(GSL_FOUND)
-    include_directories(${GSL_INCLUDE_DIRS})
-    link_directories(${GSL_LIBRARY_DIRS})
-    add_definitions(-DHAS_GSL)
-  else(GSL_FOUND)
-    error("Unable to find GSL library")
-  endif(GSL_FOUND)
-endif(HBT_USE_GSL)
-
-#
 # List of HBT source files.
 # Headers are found automatically by cmake.
 #
@@ -112,14 +97,14 @@ set(HBT_SRC
   src/subhalo_tracking.cpp
   src/subhalo_unbind.cpp
   src/subhalo_update_mostbound.cpp
-  src/io/apostle_io.cpp
-  src/io/gadget_group_io.cpp
-  src/io/gadget_io.cpp
-  src/io/swiftsim_io.cpp
+  src/io/apostle_io/apostle_io.cpp
+  src/io/gadget_io/gadget_group_io.cpp
+  src/io/gadget_io/gadget_io.cpp
+  src/io/swiftsim_io/swiftsim_io.cpp
   src/io/halo_io.cpp
   src/io/snapshot_io.cpp
   src/io/subhalo_io.cpp
-  src/io/exchange_and_merge.cpp
+  src/io/comms/exchange_and_merge.cpp
   )
 
 #
@@ -193,7 +178,7 @@ add_library(hbtfuncs OBJECT ${HBT_SRC} ${GIT_VERSION_INFO_FILE})
 # HBT executable
 #
 add_executable(HBT HBT.cpp $<TARGET_OBJECTS:hbtfuncs>)
-target_link_libraries(HBT ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES})
+target_link_libraries(HBT ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
 
 #
 # Hide some variables we usually don't need from the default view in the cmake GUI

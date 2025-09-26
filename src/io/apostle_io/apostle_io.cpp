@@ -1,7 +1,6 @@
 using namespace std;
 #include <iostream>
 #include <numeric>
-// #include <iomanip>
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -11,11 +10,11 @@ using namespace std;
 #include <string>
 #include <typeinfo>
 
-#include "../hdf_wrapper.h"
-#include "../mymath.h"
-#include "../snapshot.h"
+#include "../../hdf_wrapper.h"
+#include "../../mymath.h"
+#include "../../snapshot.h"
 #include "apostle_io.h"
-#include "exchange_and_merge.h"
+#include "../comms/exchange_and_merge.h"
 
 void create_ApostleHeader_MPI_type(MPI_Datatype &dtype)
 {
@@ -455,6 +454,8 @@ void ApostleReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo
     }
   }
 
+  global_timer.Tick("halo_io", world.Communicator);
+
   sort(ParticleHosts.begin(), ParticleHosts.end(), CompParticleHost);
   if (!ParticleHosts.empty())
   {
@@ -503,19 +504,8 @@ void ApostleReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo
   }
 
   VectorFree(ParticleHosts);
-
   ExchangeAndMerge(world, Halos);
-
-  //   cout<<Halos.size()<<" groups loaded";
-  //   if(Halos.size()) cout<<" : "<<Halos[0].Particles.size();
-  //   if(Halos.size()>1) cout<<","<<Halos[1].Particles.size()<<"...";
-  //   cout<<endl;
-
-  //   HBTInt np=0;
-  //   for(auto &&h: Halos)
-  //     np+=h.Particles.size();
-  //   MPI_Allreduce(MPI_IN_PLACE, &np, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
-  //   return np;
+  global_timer.Tick("halo_comms", world.Communicator);
 }
 
 bool IsApostleGroup(const string &GroupFileFormat)

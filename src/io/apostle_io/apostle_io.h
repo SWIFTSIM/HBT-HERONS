@@ -12,9 +12,9 @@
 
 #ifndef APOSTLE_IO_INCLUDED
 #define APOSTLE_IO_INCLUDED
-#include "../halo.h"
-#include "../hdf_wrapper.h"
-#include "../mpi_wrapper.h"
+#include "../../halo.h"
+#include "../../hdf_wrapper.h"
+#include "../../mpi_wrapper.h"
 
 struct ApostleHeader_t
 {

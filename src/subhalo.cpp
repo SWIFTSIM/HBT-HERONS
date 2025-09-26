@@ -172,10 +172,6 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(SpecificSelfPotentialEnergy, MPI_FLOAT, 1);
   RegisterAttr(SpecificSelfKineticEnergy, MPI_FLOAT, 1);
   RegisterAttr(SpecificAngularMomentum[0], MPI_FLOAT, 3);
-#ifdef HAS_GSL
-  RegisterAttr(InertialEigenVector[0], MPI_FLOAT, 9);
-  RegisterAttr(InertialEigenVectorWeighted[0], MPI_FLOAT, 9);
-#endif
   RegisterAttr(InertialTensor[0], MPI_FLOAT, 6);
   RegisterAttr(InertialTensorWeighted[0], MPI_FLOAT, 6);
   RegisterAttr(ComovingAveragePosition[0], MPI_HBT_REAL, 3);
@@ -338,14 +334,6 @@ void Subhalo_t::CalculateShape()
 {
   if (Nbound <= 1)
   {
-#ifdef HAS_GSL
-    for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 3; j++)
-      {
-        InertialEigenVector[i][j] = 0.;
-        InertialEigenVectorWeighted[i][j] = 0.;
-      }
-#endif
     for (auto &&I : InertialTensor)
       I = 0.;
     for (auto &&I : InertialTensorWeighted)
@@ -406,10 +394,6 @@ void Subhalo_t::CalculateShape()
     I /= Mbound;
   for (auto &&I : InertialTensorWeighted)
     I /= Mbound;
-#ifdef HAS_GSL
-  EigenAxis(Ixx, Ixy, Ixz, Iyy, Iyz, Izz, InertialEigenVector);
-  EigenAxis(Ixxw, Ixyw, Ixzw, Iyyw, Iyzw, Izzw, InertialEigenVectorWeighted);
-#endif
 }
 
 void Subhalo_t::CountParticleTypes()

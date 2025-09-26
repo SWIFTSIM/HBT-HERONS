@@ -77,7 +77,6 @@ inertia tensors of each subhalo. Recommended to leave as is.
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :-----------------------------------------------  | :----------------------------------------------- |
 | `HBT_USE_OPENMP`                     | `On`| Whether to enable OMP parallelism within the main code. |
-| `HBT_USE_GSL`                     | `OFF`| Whether to include the GSL library, which is required to calculate the inertia tensor eigenvalues of each self-bound subhalo. |
 
 ### Debugging and testing
 
@@ -88,3 +87,4 @@ Options specifiying parallelism within the unit tests, as well as sanity checks 
 | `HBT_TEST_MPI_NPROCS`                     | `4`| How many MPI ranks to use within the unit tests. |
 | `HBT_TEST_OMP_NUM_THREADS`                    | `4`| How many OMP threads to use within the unit tests. |
 | `HBT_CHECK_TRACER_INDEX`                    | `Off`| Explictly do a sanity check to see if the Subhalo.TracerIndex points to the correct particle, which is checked by comparing the number of particles. Important to enable when testing changes that modify the vector of subhalo particles at some point, since the ordering of particles can change and hence TracerIndex be incorrect. |
+| `HBT_MEASURE_UNBINDING_TIME`                    | `Off`| Measure and save for each subhalo the timestamps when key steps in the unbinding started and ended. It also saves how many unbinding iterations had to be done, and which MPI rank analysed it. Saved as [subhalo properties](./outputs/subhalo_properties.md#analysis-cost-statistics) within the catalogues. |

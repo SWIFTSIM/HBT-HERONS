@@ -10,8 +10,9 @@ using namespace std;
 #include <string>
 #include <typeinfo>
 
-#include "../halo.h"
-#include "../mymath.h"
+#include "../../halo.h"
+#include "../../mymath.h"
+#include "../../halo_particle_iterator.h"
 
 struct HaloInfo_t
 {
@@ -219,7 +220,6 @@ static void MergeHalos(vector<Halo_t> &Halos)
     h.AverageCoordinates();
 }
 
-#include "../halo_particle_iterator.h"
 static void ExchangeHalos(MpiWorker_t &world, vector<Halo_t> &InHalos, vector<Halo_t> &OutHalos,
                           MPI_Datatype MPI_Halo_Shell_Type)
 {

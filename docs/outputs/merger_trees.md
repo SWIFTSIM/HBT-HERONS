@@ -1,4 +1,4 @@
-# Time evolution
+# Subhalo time evolution
 
 The history-based approach of HBT-HERONS means that the evolution of subhaloes is tracked
 simultaneously with their identification in each simulation output. No additional algorithm is therefore required to link subhaloes forward in time, so the information required to build merger trees is already contained within the catalogues.

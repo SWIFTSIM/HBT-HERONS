@@ -11,8 +11,8 @@
 #include <string>
 #include <typeinfo>
 
-#include "../halo.h"
-#include "../mymath.h"
+#include "../../halo.h"
+#include "../../mymath.h"
 #include "gadget_group_io.h"
 
 #define myfread(buf, size, count, fp) fread_swap(buf, size, count, fp, NeedByteSwap)
@@ -372,7 +372,7 @@ void Load(MpiWorker_t &world, int SnapshotId, vector<Halo_t> &Halos)
   int FileCounts = Reader.FileCounts;
   CountBuffer_t HaloLenBuffer;
 
-  /*distribute tasks*/
+  /* Determine which tasks will read which haloes. */
   vector<FileAssignment_t> alltasks;
   FileAssignment_t thistask;
   if (world.rank() == 0)
@@ -387,6 +387,7 @@ void Load(MpiWorker_t &world, int SnapshotId, vector<Halo_t> &Halos)
       Ngroups += Reader.NumberOfGroups;
       Nparticles += Reader.NumberOfParticles;
     }
+
     HaloLenBuffer.reserve(Ngroups);
     HaloOffsetBuffer.reserve(Ngroups + 1);
     for (int iFile = 0; iFile < FileCounts; iFile++)
@@ -395,6 +396,7 @@ void Load(MpiWorker_t &world, int SnapshotId, vector<Halo_t> &Halos)
       HaloLenBuffer.insert(HaloLenBuffer.end(), Reader.Len.begin(), Reader.Len.end());
       HaloOffsetBuffer.insert(HaloOffsetBuffer.end(), Reader.Offset.begin(), Reader.Offset.end());
     }
+
     assert(CompileOffsets(HaloLenBuffer, HaloOffsetBuffer) ==
            Nparticles);                     // the offsets in the group file may not always be correct. recompile.
     HaloOffsetBuffer.push_back(Nparticles); // end offset
@@ -404,6 +406,8 @@ void Load(MpiWorker_t &world, int SnapshotId, vector<Halo_t> &Halos)
     for (int rank = 0; rank < world.size(); rank++)
       AssignHaloTasks(nworkers--, Nparticles, HaloOffsetBuffer, FileOffset, npart_begin, alltasks[rank]);
   }
+
+  /* Tell every rank which haloes they should read. */
   MPI_Datatype MPI_FileAssignment_t;
   FileAssignment_t().create_MPI_type(MPI_FileAssignment_t);
   MPI_Scatter(alltasks.data(), 1, MPI_FileAssignment_t, &thistask, 1, MPI_FileAssignment_t, 0, world.Communicator);
@@ -421,7 +425,7 @@ void Load(MpiWorker_t &world, int SnapshotId, vector<Halo_t> &Halos)
     MPI_Recv(HaloLenBuffer.data(), HaloLenBuffer.size(), MPI_HBT_INT, 0, 0, world.Communicator, MPI_STATUS_IGNORE);
   }
 
-  /* read particles*/
+  /* Read required particles. */
   ParticleIdBuffer_t ParticleBuffer;
   ParticleBuffer.reserve(thistask.npart);
   for (int i = 0, ireader = 0; i < world.size(); i++, ireader++)
@@ -446,7 +450,7 @@ void Load(MpiWorker_t &world, int SnapshotId, vector<Halo_t> &Halos)
     }
   }
 
-  /* populate haloes*/
+  /* Put particles in the haloes */
   Halos.resize(thistask.nhalo);
   auto p = ParticleBuffer.data();
   for (HBTInt i = 0; i < Halos.size(); i++)
@@ -457,19 +461,11 @@ void Load(MpiWorker_t &world, int SnapshotId, vector<Halo_t> &Halos)
       Halos[i].Particles[j].Id = *(p++);
   }
 
-  //   HBTInt np_node=0;
-  //   for(auto &&np: HaloLenBuffer)
-  // 	np_node+=np;//local
-  //   assert(np_node==thistask.npart);
-
-  /*clear up buffers*/
+  /* Clear buffers */
   ParticleIdBuffer_t().swap(ParticleBuffer);
   CountBuffer_t().swap(HaloLenBuffer);
 
-  //   cout<<"Finished reading "<<Halos.size()<<" groups ("<<thistask.npart<<" particles) from file
-  //   "<<thistask.ifile_begin<<" to "<<thistask.ifile_end-1<<" (total "<<FileCounts<<" files) on thread
-  //   "<<world.rank()<<endl; if(Halos.size())
-  // 	cout<<"Halos loaded: "<<Halos.front().HaloId<<"-"<<Halos.back().HaloId<<endl;
+  global_timer.Tick("halo_io", world.Communicator);
 }
 
 bool IsGadgetGroup(const string &GroupFileFormat)

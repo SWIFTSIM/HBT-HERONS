@@ -10,6 +10,6 @@ using namespace std;
 #include <string>
 #include <typeinfo>
 
-#include "../mymath.h"
+#include "../../mymath.h"
 
 void ExchangeAndMerge(MpiWorker_t &world, vector<Halo_t> &Halos);
