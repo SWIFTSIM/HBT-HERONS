@@ -77,7 +77,6 @@ inertia tensors of each subhalo. Recommended to leave as is.
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :-----------------------------------------------  | :----------------------------------------------- |
 | `HBT_USE_OPENMP`                     | `On`| Whether to enable OMP parallelism within the main code. |
-| `HBT_USE_GSL`                     | `OFF`| Whether to include the GSL library, which is required to calculate the inertia tensor eigenvalues of each self-bound subhalo. |
 
 ### Debugging and testing
 

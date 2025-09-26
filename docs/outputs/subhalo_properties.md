@@ -71,8 +71,6 @@ Different ways to measure the shape of the subhalo.
 | :-------------------------------------- | :------------------------------------------------ |
 | `InertialTensor`                        | Flattened representation of the inertia tensor of the subhalo.                                         |
 | `InertialTensorWeighted`                | Flattened representation of the inertia tensor of the subhalo, weighted by particle mass and 3D distance to `ComovingMostBoundPosition`. |
-| `InertialEigenVector`                   | Eigenvectors of `InertialTensor`. Only computed if GSL was enabled at compile time. |
-| `InertialEigenVectorWeighted`           | Eigenvectors of `InertialTensorWeighted`. Only computed if GSL was enabled at compile time. |
 
 #### Dynamical metrics
 

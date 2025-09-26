@@ -59,15 +59,6 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(SpecificSelfKineticEnergy, H5T_NATIVE_FLOAT);
   InsertMember(SpecificAngularMomentum, H5T_FloatVec3);
 
-#ifdef HAS_GSL
-  dims[0] = 3;
-  dims[1] = 3;
-  hid_t H5T_FloatVec33 = H5Tarray_create2(H5T_NATIVE_FLOAT, 2, dims);
-  InsertMember(InertialEigenVector, H5T_FloatVec33);
-  InsertMember(InertialEigenVectorWeighted, H5T_FloatVec33);
-  H5Tclose(H5T_FloatVec33);
-#endif // HAS_GSL
-
   dims[0] = 6;
   hid_t H5T_FloatVec6 = H5Tarray_create2(H5T_NATIVE_FLOAT, 1, dims);
   InsertMember(InertialTensor, H5T_FloatVec6);
