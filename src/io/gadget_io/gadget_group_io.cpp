@@ -11,8 +11,8 @@
 #include <string>
 #include <typeinfo>
 
-#include "../halo.h"
-#include "../mymath.h"
+#include "../../halo.h"
+#include "../../mymath.h"
 #include "gadget_group_io.h"
 
 #define myfread(buf, size, count, fp) fread_swap(buf, size, count, fp, NeedByteSwap)

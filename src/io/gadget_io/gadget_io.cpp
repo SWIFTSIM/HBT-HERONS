@@ -1,7 +1,6 @@
 using namespace std;
 #include <iostream>
 #include <numeric>
-// #include <iomanip>
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -10,8 +9,8 @@ using namespace std;
 #include <string>
 #include <typeinfo>
 
-#include "../mymath.h"
-#include "../snapshot.h"
+#include "../../mymath.h"
+#include "../../snapshot.h"
 #include "gadget_io.h"
 
 void GadgetHeader_t::create_MPI_type(MPI_Datatype &dtype)

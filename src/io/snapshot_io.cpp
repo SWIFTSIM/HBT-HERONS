@@ -13,9 +13,9 @@ using namespace std;
 #include "../mpi_wrapper.h"
 #include "../mymath.h"
 #include "../snapshot.h"
-#include "apostle_io.h"
-#include "gadget_io.h"
-#include "swiftsim_io.h"
+#include "./apostle_io/apostle_io.h"
+#include "./gadget_io/gadget_io.h"
+#include "./swiftsim_io/swiftsim_io.h"
 
 void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
 {

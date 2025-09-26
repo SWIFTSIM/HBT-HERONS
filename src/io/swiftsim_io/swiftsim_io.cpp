@@ -2,7 +2,6 @@ using namespace std;
 #include <iostream>
 #include <numeric>
 #include <cassert>
-// #include <iomanip>
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -12,12 +11,12 @@ using namespace std;
 #include <string>
 #include <typeinfo>
 #include <stdexcept>
-#include "../config_parser.h"
-#include "../hdf_wrapper.h"
-#include "../mymath.h"
-#include "../snapshot.h"
+#include "../../config_parser.h"
+#include "../../hdf_wrapper.h"
+#include "../../mymath.h"
+#include "../../snapshot.h"
 #include "swiftsim_io.h"
-#include "exchange_and_merge.h"
+#include "../comms/exchange_and_merge.h"
 
 void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
 {

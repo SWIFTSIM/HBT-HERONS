@@ -1,8 +1,8 @@
 #ifndef GADGET_GROUP_IO_INCLUDED
 #define GADGET_GROUP_IO_INCLUDED
 
-#include "../halo.h"
-#include "../mpi_wrapper.h"
+#include "../../halo.h"
+#include "../../mpi_wrapper.h"
 
 namespace GadgetGroup
 {

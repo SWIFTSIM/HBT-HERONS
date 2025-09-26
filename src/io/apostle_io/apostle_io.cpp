@@ -1,7 +1,6 @@
 using namespace std;
 #include <iostream>
 #include <numeric>
-// #include <iomanip>
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -11,11 +10,11 @@ using namespace std;
 #include <string>
 #include <typeinfo>
 
-#include "../hdf_wrapper.h"
-#include "../mymath.h"
-#include "../snapshot.h"
+#include "../../hdf_wrapper.h"
+#include "../../mymath.h"
+#include "../../snapshot.h"
 #include "apostle_io.h"
-#include "exchange_and_merge.h"
+#include "../comms/exchange_and_merge.h"
 
 void create_ApostleHeader_MPI_type(MPI_Datatype &dtype)
 {
