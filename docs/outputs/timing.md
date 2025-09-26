@@ -19,10 +19,7 @@ The following entries, which are measured in elapsed seconds for the slowest MPI
 :   Time taken to load the Friends-of-Friends data.
 
 `halo_comms`
-:   Time taken to communicate Friends-of-Friends data to their assigned MPI rank.
-
-`read_halo`
-:   Time taken to do all of the Friends-of-Friends data loading and communication tasks.
+:   Time taken to communicate Friends-of-Friends data to their assigned MPI rank, if required.
 
 `update_halo`
 :   If the particles are not loaded together with the Friends-of-Friends catalogue, time taken to update the properties of particles associated to each FoF group.
@@ -75,7 +72,7 @@ from the FLAMINGO suite of simulations ([Schaye et al 2023](https://ui.adsabs.ha
     ![image_title](../images/subhalo_timing/time_to_analyse.png){ width="600" }
     </figure>
 
-    Subhalo analysis becomes more expensive as the number of associated particles increases. There is a jump in time when $N_{\rm bound} = N_{\rm subsample} = 10^{3}$, which reflects the overhead associated to the refining the centre of subhaloes. Nonetheless, the dependence between the time to analyse and the number of particles becomes flatter above this threshold compared to $N_{\rm bound} < N_{\rm subsample}$.
+    **Description**: Subhalo analysis becomes more expensive as the number of associated particles increases. There is a jump in time when $N_{\rm bound} = N_{\rm subsample} = 10^{3}$, which reflects the overhead associated to the refining the centre of subhaloes. Nonetheless, the dependence between the time to analyse and the number of particles becomes flatter above this threshold compared to $N_{\rm bound} < N_{\rm subsample}$.
 
 === "Unbinding"
 
@@ -83,7 +80,7 @@ from the FLAMINGO suite of simulations ([Schaye et al 2023](https://ui.adsabs.ha
     ![image_title](../images/subhalo_timing/time_to_unbind.png){ width="600" }
     </figure>
 
-    Subhalo unbinding becomes more expensive as the number of associated particles increases. A broken power law is well suited for describing the *median* time dependence as a function of $N_{\rm bound}$. Each line indicates the best-fit power law to the median time dependence above and below $N_{\rm subsample} = 10^{3}$, with the dashed range indicating an extrapolation. Below the subsampling threshold, $t_{\rm unbind} \propto N^{1.6}_{\rm bound}$. Once subsampling kicks in, $t_{\rm unbind} \propto N^{1.0}_{\rm bound}$.
+    **Description**: Subhalo unbinding becomes more expensive as the number of associated particles increases. A broken power law is well suited for describing the *median* time dependence as a function of $N_{\rm bound}$. Each line indicates the best-fit power law to the median time dependence above and below $N_{\rm subsample} = 10^{3}$, with the dashed range indicating an extrapolation. Below the subsampling threshold, $t_{\rm unbind} \propto N^{1.6}_{\rm bound}$. Once subsampling kicks in, $t_{\rm unbind} \propto N^{1.0}_{\rm bound}$.
 
 === "Center refinement"
 
@@ -91,4 +88,4 @@ from the FLAMINGO suite of simulations ([Schaye et al 2023](https://ui.adsabs.ha
     ![image_title](../images/subhalo_timing/time_to_refine_centre.png){ width="600" }
     </figure>
 
-    Centre refinement is only triggered for subhaloes that have been subsampled, which is why there are no data below $N_{\rm bound} = 10^{3}$. The number of particles that HBT-HERONS uses for centre refinement, $N_{\rm subsample}$, is chosen according to $\max(10^{3}, f_{\rm subsample}N_{\rm bound})$   $= \max(10^{3}, 0.1 \times N_{\rm bound})$. Hence, the time cost is constant up until $N_{\rm bound} = 10^{4}$ particles, and  scales linearly with $N_{\rm bound}$ above this threshold.
+    **Description**: Centre refinement is only triggered for subhaloes that have been subsampled, which is why there are no data below $N_{\rm bound} = 10^{3}$. The number of particles that HBT-HERONS uses for centre refinement, $N_{\rm subsample}$, is chosen according to $\max(10^{3}, f_{\rm subsample}N_{\rm bound})$   $= \max(10^{3}, 0.1 \times N_{\rm bound})$. Hence, the time cost is constant up until $N_{\rm bound} = 10^{4}$ particles, and  scales linearly with $N_{\rm bound}$ above this threshold.
