@@ -239,9 +239,6 @@ void GadgetReader_t::Load(MpiWorker_t &world)
   world.SyncContainer(OffsetOfParticleInFiles, MPI_HBT_INT, root);
 
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
-#ifdef DM_ONLY
-//   Cosmology.ParticleMass=Header.mass[TypeDM];
-#endif
 
   HBTInt nfiles_skip, nfiles_end;
   AssignTasks(world.rank(), world.size(), Header.num_files, nfiles_skip, nfiles_end);

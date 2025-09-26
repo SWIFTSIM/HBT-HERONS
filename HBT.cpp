@@ -75,20 +75,18 @@ int main(int argc, char **argv)
     /* Load particle information */
     ParticleSnapshot_t partsnap(world, isnap);
 
-    subsnap.SetSnapshotIndex(isnap);
-
     /* Load FOF group information */
     HaloSnapshot_t halosnap(world, isnap);
-    global_timer.Tick("read_halo", world.Communicator);
 
-    /* For SWIFT-based outputs we load some parameters directly from the snapshots,
-       so we delay writing Parameters.log until the values are known. */
+    /* For some input formats we load parameters directly from the snapshots,
+     * so we delay writing Parameters.log until the values are known. */
     if ((isnap == snapshot_start) && (world.rank() == 0))
       HBTConfig.DumpParameters();
 
     halosnap.UpdateParticles(world, partsnap);
     global_timer.Tick("update_halo", world.Communicator);
 
+    subsnap.SetSnapshotIndex(isnap);
     subsnap.UpdateParticles(world, partsnap);
     subsnap.UpdateMostBoundPosition(world, partsnap);
     global_timer.Tick("update_subhalo", world.Communicator);

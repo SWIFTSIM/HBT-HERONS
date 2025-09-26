@@ -46,8 +46,7 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
   {
     /* Insert your snapshot reader here, and include relevant information in the header
      * if necessary. Essential things are to set cosmology and fill up Particle vector.
-     * LoadMySnapshot(SnapshotId, Particles, Cosmology);
-     */
+     * LoadMySnapshot(SnapshotId, Particles, Cosmology); */
   }
   else
     throw(runtime_error("unknown SnapshotFormat " + HBTConfig.SnapshotFormat));
