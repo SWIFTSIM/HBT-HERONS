@@ -1,6 +1,6 @@
 # Input halo catalogue
 
-The history-based approach of HBT-HERONS works by identifying subhaloes as they form in isolation, i.e. when they are a so-called field haloes. Therefore, an essential input required by HBT-HERONS are which particles in each output belong to field haloes. Although the definitions of what a field halo is differ across algorithms, a very commonly used method to identify them is through the [Friends-of-Friends](#friends-of-friends) (FoF) algorithm.
+The history-based approach of HBT-HERONS works by identifying subhaloes as they form in isolation, i.e. when they are field haloes. Therefore, an essential input required by HBT-HERONS are which particles in each output belong to field haloes. Although the definitions of what a field halo is differ across algorithms, a very commonly used method to identify them is through the [Friends-of-Friends](#friends-of-friends) (FoF) algorithm.
 
 HBT-HERONS uses the FoF group catalogue in each output to
 
