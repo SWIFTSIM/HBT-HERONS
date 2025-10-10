@@ -23,6 +23,9 @@ theme:
         icon: material/brightness-4
         name: Switch to light mode
 
+plugins:
+    - mkdocs-video
+
 markdown_extensions:
   - admonition
   - pymdownx.details
@@ -52,6 +55,7 @@ nav:
   - Welcome: index.md
   - Algorithm:
       - ./algorithm/overview.md
+      - ./algorithm/friends_of_friends.md
       - ./algorithm/parameter_choices.md
   - ./installation.md
   - Running:
