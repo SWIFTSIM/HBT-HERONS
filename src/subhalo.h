@@ -269,7 +269,11 @@ private:
   hid_t H5T_SubhaloInMem, H5T_SubhaloInDisk;
   MPI_Datatype MPI_HBT_SubhaloShell_t; // MPI datatype ignoring the particle list
 
+  /* Handle creation of new subhaloes. */
+  void RemoveFakeTracks();
+  void AssignNewTrackIds(MpiWorker_t &world);
   void RegisterNewTracks(MpiWorker_t &world);
+
   void DecideCentrals(const HaloSnapshot_t &halo_snap);
   void FeedCentrals(HaloSnapshot_t &halo_snap);
   void BuildHDFDataType();
