@@ -940,11 +940,11 @@ void SubhaloSnapshot_t::AssignNewTrackIds(MpiWorker_t &world, const HaloSnapshot
   std::vector<HBTInt> GlobalNewTrackIDs;
   if (world.rank() == 0)
   {
-    GlobalNewTrackIDs = argsort<HBTInt>(GlobalHostHaloIds);
+    std::vector<HBTInt> SorterVector = argsort<HBTInt>(GlobalHostHaloIds);
 
-    /* Add offset to account for previously existing subhaloes */
+    GlobalNewTrackIDs.resize(TotalNBirth);
     for(size_t i = 0; i < GlobalNewTrackIDs.size(); i++)
-      GlobalNewTrackIDs[i] += GlobalNumberOfSubs;
+      GlobalNewTrackIDs[SorterVector[i]] = i + GlobalNumberOfSubs;
   }
 
   /* Tell other ranks what the assigned TrackId of their new subhaloes is */
