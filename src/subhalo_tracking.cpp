@@ -891,7 +891,7 @@ void SubhaloSnapshot_t::RemoveFakeTracks()
 }
 
 /* Assigns a unique TrackId to newly identified subhaloes. */
-void SubhaloSnapshot_t::AssignNewTrackIds(MpiWorker_t &world)
+void SubhaloSnapshot_t::AssignNewTrackIds(MpiWorker_t &world, const HaloSnapshot_t &halo_snap)
 {
   /* Number of pre-existing subhaloes. */
   HBTInt NumSubOld = Subhalos.size() - MemberTable.NBirth, GlobalNumberOfSubs;
@@ -904,7 +904,8 @@ void SubhaloSnapshot_t::AssignNewTrackIds(MpiWorker_t &world)
   /* Vector to hold HostHaloId */
   std::vector<HBTInt> LocalHostHaloIds(MemberTable.NBirth, -2);
   for (HBTInt i = 0; i < MemberTable.NBirth; i++)
-    LocalHostHaloIds[i] = Subhalos[NumSubOld + i].HostHaloId;
+    LocalHostHaloIds[i] = halo_snap.Halos[Subhalos[NumSubOld + i].HostHaloId].HaloId;
+
   /* Create a list of offsets for receiving data in the root rank */
   HBTInt TotalNBirth = GlobalNBirthPerRank[0];
   std::vector<int> vector_offset(world.size(), 0);
@@ -958,10 +959,10 @@ void SubhaloSnapshot_t::AssignNewTrackIds(MpiWorker_t &world)
 
 /* Assign a unique trackId to newly identified subhaloes, and remove new
  * subhalo candidates which were not self-bound. */
-void SubhaloSnapshot_t::RegisterNewTracks(MpiWorker_t &world)
+void SubhaloSnapshot_t::RegisterNewTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap)
 {
   RemoveFakeTracks();
-  AssignNewTrackIds(world);
+  AssignNewTrackIds(world, halo_snap);
 }
 
 void SubhaloSnapshot_t::PurgeMostBoundParticles()
@@ -1475,8 +1476,8 @@ void SubhaloSnapshot_t::CleanTracks()
 
 void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap)
 {
-  /*renew ranks after unbinding*/
-  RegisterNewTracks(world); // performance bottleneck here. no. just poor synchronization.
+  /* Decide a new TrackId for new subhaloes. */
+  RegisterNewTracks(world, halo_snap); // performance bottleneck here. no. just poor synchronization.
 
   // Update vmax for use in assigning rank within the host
 #pragma omp parallel for if (ParallelizeHaloes)

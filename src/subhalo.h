@@ -271,8 +271,8 @@ private:
 
   /* Handle creation of new subhaloes. */
   void RemoveFakeTracks();
-  void AssignNewTrackIds(MpiWorker_t &world);
-  void RegisterNewTracks(MpiWorker_t &world);
+  void AssignNewTrackIds(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
+  void RegisterNewTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
 
   void DecideCentrals(const HaloSnapshot_t &halo_snap);
   void FeedCentrals(HaloSnapshot_t &halo_snap);
