@@ -29,6 +29,7 @@ void Subhalo_t::UpdateTrack(const Snapshot_t &epoch)
     LastMaxMass = Mbound;
   }
 }
+
 HBTReal Subhalo_t::KineticDistance(const Halo_t &halo, const Snapshot_t &epoch)
 {
   HBTxyz dv;
@@ -36,6 +37,7 @@ HBTReal Subhalo_t::KineticDistance(const Halo_t &halo, const Snapshot_t &epoch)
                          halo.PhysicalAverageVelocity, dv);
   return VecNorm(dv);
 }
+
 void MemberShipTable_t::ResizeAllMembers(size_t n)
 {
   auto olddata = AllMembers.data();
@@ -47,6 +49,7 @@ void MemberShipTable_t::ResizeAllMembers(size_t n)
       Mem_SubGroups[i].Bind(Mem_SubGroups[i].data() + offset);
   }
 }
+
 void MemberShipTable_t::Init(const HBTInt nhalos, const HBTInt nsubhalos, const float alloc_factor)
 {
   Mem_SubGroups.clear();
@@ -57,6 +60,7 @@ void MemberShipTable_t::Init(const HBTInt nhalos, const HBTInt nsubhalos, const 
   AllMembers.reserve(nsubhalos * alloc_factor); // allocate more for seed haloes.
   AllMembers.resize(nsubhalos);
 }
+
 void MemberShipTable_t::BindMemberLists()
 {
   HBTInt offset = 0;
@@ -67,6 +71,7 @@ void MemberShipTable_t::BindMemberLists()
     Mem_SubGroups[i].ReBind(0);
   }
 }
+
 void MemberShipTable_t::CountMembers(const SubhaloList_t &Subhalos, bool include_orphans)
 { // todo: parallelize this..
   if (include_orphans)
@@ -81,6 +86,7 @@ void MemberShipTable_t::CountMembers(const SubhaloList_t &Subhalos, bool include
         SubGroups[Subhalos[subid].HostHaloId].IncrementBind();
   }
 }
+
 void MemberShipTable_t::FillMemberLists(const SubhaloList_t &Subhalos, bool include_orphans)
 { // fill with local subhaloid
   if (include_orphans)
@@ -102,6 +108,7 @@ void MemberShipTable_t::FillMemberLists(const SubhaloList_t &Subhalos, bool incl
         SubGroups[Subhalos[subid].HostHaloId].PushBack(subid);
   }
 }
+
 struct CompareMass_t
 {
   const SubhaloList_t *Subhalos;
@@ -130,6 +137,7 @@ struct CompareMass_t
     return sub1.TrackId > sub2.TrackId;
   }
 };
+
 void MemberShipTable_t::SortMemberLists(const SubhaloList_t &Subhalos)
 {
   CompareMass_t compare_mass(Subhalos);
@@ -137,6 +145,7 @@ void MemberShipTable_t::SortMemberLists(const SubhaloList_t &Subhalos)
   for (HBTInt i = -1; i < SubGroups.size(); i++)
     std::sort(SubGroups[i].begin(), SubGroups[i].end(), compare_mass);
 }
+
 void MemberShipTable_t::SortSatellites(const SubhaloList_t &Subhalos)
 /*central subhalo not changed*/
 {
@@ -144,6 +153,7 @@ void MemberShipTable_t::SortSatellites(const SubhaloList_t &Subhalos)
   for (HBTInt i = 0; i < SubGroups.size(); i++)
     std::sort(SubGroups[i].begin() + 1, SubGroups[i].end(), compare_mass);
 }
+
 void MemberShipTable_t::AssignRanks(SubhaloList_t &Subhalos)
 {
   // field subhaloes
@@ -161,6 +171,7 @@ void MemberShipTable_t::AssignRanks(SubhaloList_t &Subhalos)
       Subhalos[SubGroup[i]].Rank = i;
   }
 }
+
 void MemberShipTable_t::CountEmptyGroups()
 {
   static HBTInt nbirth;
@@ -173,6 +184,7 @@ void MemberShipTable_t::CountEmptyGroups()
 #pragma omp single
   NBirth = nbirth;
 }
+
 /*
 inline bool SubhaloSnapshot_t::CompareHostAndMass(const HBTInt& subid_a, const HBTInt& subid_b)
 {//ascending in host id, descending in mass inside each host, and put NullHaloId to the beginning.
@@ -182,6 +194,7 @@ inline bool SubhaloSnapshot_t::CompareHostAndMass(const HBTInt& subid_a, const H
 
   return (a.HostHaloId<b.HostHaloId); //(a.HostHaloId!=SpecialConst::NullHaloId)&&
 }*/
+
 void MemberShipTable_t::Build(const HBTInt nhalos, const SubhaloList_t &Subhalos, bool include_orphans)
 {
 #pragma omp single
@@ -593,6 +606,7 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   MPI_Scatterv(TmpHalos.data(), Counts.data(), Disps.data(), MPI_Subhalo_Shell_Type, &NewSubhalos[0], NumNewSubs,
                MPI_Subhalo_Shell_Type, root, world.Communicator);
 }
+
 void FindOtherHostsSafely(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_snap,
                           const ParticleSnapshot_t &part_snap, vector<Subhalo_t> &Subhalos,
                           vector<Subhalo_t> &LocalSubhalos, MPI_Datatype MPI_Subhalo_Shell_Type)
@@ -803,7 +817,7 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
   {
     MemberShipTable_t::MemberList_t &Members = MemberTable.SubGroups[hostid];
     auto &Host = halo_snap.Halos[hostid];
-    if (0 == Members.size()) // create a new sub
+    if (Members.size() == 0) // FoF group has no pre-existing subhaloes, create a new sub
     {
       HBTInt subid;
 #pragma omp critical(AddNewSub) // maybe consider ordered for here..
@@ -833,9 +847,8 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
       central.Nbound = central.Particles.size();
     }
   }
-  //   #pragma omp single
-  //   halo_snap.Clear();//to avoid misuse
 }
+
 void SubhaloSnapshot_t::PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap)
 {
 #pragma omp parallel
@@ -1072,6 +1085,7 @@ void SubhaloSnapshot_t::LocalizeNestedIds(MpiWorker_t &world)
     }
   }
 }
+
 void SubhaloSnapshot_t::GlobalizeTrackReferences()
 /*translate subhalo references from index to trackIds*/
 {
