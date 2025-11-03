@@ -13,6 +13,7 @@ using namespace std;
 #include "../../halo.h"
 #include "../../mymath.h"
 #include "../../halo_particle_iterator.h"
+#include "../../particle_exchanger.h"
 
 struct HaloInfo_t
 {
@@ -60,14 +61,17 @@ inline bool CompHaloInfo_Id(const HaloInfo_t &a, const HaloInfo_t &b)
 {
   return a.id < b.id;
 }
+
 inline bool CompHaloInfo_Order(const HaloInfo_t &a, const HaloInfo_t &b)
 {
   return a.order < b.order;
 }
+
 inline bool CompHaloId(const Halo_t &a, const Halo_t &b)
 {
   return a.HaloId < b.HaloId;
 }
+
 static double ReduceHaloPosition(vector<HaloInfo_t>::iterator it_begin, vector<HaloInfo_t>::iterator it_end, HBTxyz &x)
 {
   HBTInt i, j;
@@ -111,6 +115,7 @@ static double ReduceHaloPosition(vector<HaloInfo_t>::iterator it_begin, vector<H
   }
   return msum;
 }
+
 static void ReduceHaloRank(vector<HaloInfo_t>::iterator it_begin, vector<HaloInfo_t>::iterator it_end, HBTxyz &step,
                            vector<int> &dims)
 {
@@ -120,6 +125,7 @@ static void ReduceHaloRank(vector<HaloInfo_t>::iterator it_begin, vector<HaloInf
   for (auto it = it_begin; it != it_end; ++it)
     it->id = rank; // store destination rank in id.
 }
+
 static void DecideTargetProcessor(MpiWorker_t &world, vector<Halo_t> &Halos, vector<IdRank_t> &TargetRank)
 {
   int this_rank = world.rank();
@@ -196,19 +202,23 @@ static void DecideTargetProcessor(MpiWorker_t &world, vector<Halo_t> &Halos, vec
   }
 }
 
+/* After communicating disjoint pieces of FoF groups from different MPI ranks,
+ * merge them into a single FoF group. */
 static void MergeHalos(vector<Halo_t> &Halos)
 {
   if (Halos.empty())
     return;
-  sort(Halos.begin(), Halos.end(), CompHaloId);
+
+  std::sort(Halos.begin(), Halos.end(), CompHaloId);
+
   auto it1 = Halos.begin();
   for (auto it2 = it1 + 1; it2 != Halos.end(); ++it2)
   {
-    if (it2->HaloId == it1->HaloId)
+    if (it2->HaloId == it1->HaloId) // Piece of the same FoF, we can merge them.
     {
       it1->Particles.insert(it1->Particles.end(), it2->Particles.begin(), it2->Particles.end());
     }
-    else
+    else // This piece is the start of a different FoF .
     {
       ++it1;
       if (it2 != it1)
@@ -216,8 +226,17 @@ static void MergeHalos(vector<Halo_t> &Halos)
     }
   }
   Halos.resize(it1 - Halos.begin() + 1);
-  for (auto &&h : Halos)
+
+  for (auto &h : Halos)
+  {
     h.AverageCoordinates();
+
+    /* Sort particles by ID to get reproducible Particle vectors regardless of
+     * the number of MPI ranks that we use. Important because Halos.Particles is
+     * swapped with the Subhalo_t.Particles vector, which will lead to unbinding
+     * differences if we do subsampling and change number of MPI ranks. */
+     std::sort(h.Particles.begin(), h.Particles.end(), ParticleExchangeComp::CompParticleId);
+  }
 }
 
 static void ExchangeHalos(MpiWorker_t &world, vector<Halo_t> &InHalos, vector<Halo_t> &OutHalos,
