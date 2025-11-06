@@ -1,7 +1,6 @@
 #include <new>
 #include <omp.h>
 #include <chrono>
-#include <random>
 #include <iostream>
 #include <algorithm>
 
@@ -428,7 +427,7 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
 /* Randomly shuffles the particles whose type are eligible to be subsampled
  * during unbinding. Particles types that are not eligible will be placed at the
  * start of the vector. */
-HBTInt PrepareParticlesForSubsampling(vector<Particle_t> &Particles, HBTInt RandomSeed)
+HBTInt PrepareParticlesForSubsampling(vector<Particle_t> &Particles)
 {
   /* We first partition the particle vector into those which we will
    * subsample and those which we will not. */
@@ -438,8 +437,7 @@ HBTInt PrepareParticlesForSubsampling(vector<Particle_t> &Particles, HBTInt Rand
   HBTInt Nunsample = iter - Particles.begin();
 
   /* Shuffle the particles that can be subsampled. */
-  std::mt19937 rng(RandomSeed);
-  std::shuffle(Particles.begin() + Nunsample, Particles.end(), rng);
+  std::random_shuffle(Particles.begin() + Nunsample, Particles.end());
 
   return Nunsample;
 }
@@ -523,10 +521,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
    * subsamples. */
   HBTInt Nunsample = 0;
   if (MaxSampleSize > 0 && Nbound > MaxSampleSize)
-  {
-    HBTInt RandomSeed = TrackId;
-    Nunsample = PrepareParticlesForSubsampling(Particles, RandomSeed);
-  }
+    Nunsample = PrepareParticlesForSubsampling(Particles);
 
   /* This vector stores the original ordering of particles, and will later store
    * their binding energies. */
