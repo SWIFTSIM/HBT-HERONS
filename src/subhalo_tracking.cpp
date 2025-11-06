@@ -8,6 +8,7 @@
 #include "datatypes.h"
 #include "snapshot_number.h"
 #include "subhalo.h"
+#include "argsort.h"
 
 void Subhalo_t::UpdateTrack(const Snapshot_t &epoch)
 {
@@ -28,6 +29,7 @@ void Subhalo_t::UpdateTrack(const Snapshot_t &epoch)
     LastMaxMass = Mbound;
   }
 }
+
 HBTReal Subhalo_t::KineticDistance(const Halo_t &halo, const Snapshot_t &epoch)
 {
   HBTxyz dv;
@@ -35,6 +37,7 @@ HBTReal Subhalo_t::KineticDistance(const Halo_t &halo, const Snapshot_t &epoch)
                          halo.PhysicalAverageVelocity, dv);
   return VecNorm(dv);
 }
+
 void MemberShipTable_t::ResizeAllMembers(size_t n)
 {
   auto olddata = AllMembers.data();
@@ -46,6 +49,7 @@ void MemberShipTable_t::ResizeAllMembers(size_t n)
       Mem_SubGroups[i].Bind(Mem_SubGroups[i].data() + offset);
   }
 }
+
 void MemberShipTable_t::Init(const HBTInt nhalos, const HBTInt nsubhalos, const float alloc_factor)
 {
   Mem_SubGroups.clear();
@@ -56,6 +60,7 @@ void MemberShipTable_t::Init(const HBTInt nhalos, const HBTInt nsubhalos, const 
   AllMembers.reserve(nsubhalos * alloc_factor); // allocate more for seed haloes.
   AllMembers.resize(nsubhalos);
 }
+
 void MemberShipTable_t::BindMemberLists()
 {
   HBTInt offset = 0;
@@ -66,6 +71,7 @@ void MemberShipTable_t::BindMemberLists()
     Mem_SubGroups[i].ReBind(0);
   }
 }
+
 void MemberShipTable_t::CountMembers(const SubhaloList_t &Subhalos, bool include_orphans)
 { // todo: parallelize this..
   if (include_orphans)
@@ -80,6 +86,7 @@ void MemberShipTable_t::CountMembers(const SubhaloList_t &Subhalos, bool include
         SubGroups[Subhalos[subid].HostHaloId].IncrementBind();
   }
 }
+
 void MemberShipTable_t::FillMemberLists(const SubhaloList_t &Subhalos, bool include_orphans)
 { // fill with local subhaloid
   if (include_orphans)
@@ -101,6 +108,7 @@ void MemberShipTable_t::FillMemberLists(const SubhaloList_t &Subhalos, bool incl
         SubGroups[Subhalos[subid].HostHaloId].PushBack(subid);
   }
 }
+
 struct CompareMass_t
 {
   const SubhaloList_t *Subhalos;
@@ -129,6 +137,7 @@ struct CompareMass_t
     return sub1.TrackId > sub2.TrackId;
   }
 };
+
 void MemberShipTable_t::SortMemberLists(const SubhaloList_t &Subhalos)
 {
   CompareMass_t compare_mass(Subhalos);
@@ -136,6 +145,7 @@ void MemberShipTable_t::SortMemberLists(const SubhaloList_t &Subhalos)
   for (HBTInt i = -1; i < SubGroups.size(); i++)
     std::sort(SubGroups[i].begin(), SubGroups[i].end(), compare_mass);
 }
+
 void MemberShipTable_t::SortSatellites(const SubhaloList_t &Subhalos)
 /*central subhalo not changed*/
 {
@@ -143,6 +153,7 @@ void MemberShipTable_t::SortSatellites(const SubhaloList_t &Subhalos)
   for (HBTInt i = 0; i < SubGroups.size(); i++)
     std::sort(SubGroups[i].begin() + 1, SubGroups[i].end(), compare_mass);
 }
+
 void MemberShipTable_t::AssignRanks(SubhaloList_t &Subhalos)
 {
   // field subhaloes
@@ -160,6 +171,7 @@ void MemberShipTable_t::AssignRanks(SubhaloList_t &Subhalos)
       Subhalos[SubGroup[i]].Rank = i;
   }
 }
+
 void MemberShipTable_t::CountEmptyGroups()
 {
   static HBTInt nbirth;
@@ -172,6 +184,7 @@ void MemberShipTable_t::CountEmptyGroups()
 #pragma omp single
   NBirth = nbirth;
 }
+
 /*
 inline bool SubhaloSnapshot_t::CompareHostAndMass(const HBTInt& subid_a, const HBTInt& subid_b)
 {//ascending in host id, descending in mass inside each host, and put NullHaloId to the beginning.
@@ -181,6 +194,7 @@ inline bool SubhaloSnapshot_t::CompareHostAndMass(const HBTInt& subid_a, const H
 
   return (a.HostHaloId<b.HostHaloId); //(a.HostHaloId!=SpecialConst::NullHaloId)&&
 }*/
+
 void MemberShipTable_t::Build(const HBTInt nhalos, const SubhaloList_t &Subhalos, bool include_orphans)
 {
 #pragma omp single
@@ -592,6 +606,7 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   MPI_Scatterv(TmpHalos.data(), Counts.data(), Disps.data(), MPI_Subhalo_Shell_Type, &NewSubhalos[0], NumNewSubs,
                MPI_Subhalo_Shell_Type, root, world.Communicator);
 }
+
 void FindOtherHostsSafely(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_snap,
                           const ParticleSnapshot_t &part_snap, vector<Subhalo_t> &Subhalos,
                           vector<Subhalo_t> &LocalSubhalos, MPI_Datatype MPI_Subhalo_Shell_Type)
@@ -802,7 +817,7 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
   {
     MemberShipTable_t::MemberList_t &Members = MemberTable.SubGroups[hostid];
     auto &Host = halo_snap.Halos[hostid];
-    if (0 == Members.size()) // create a new sub
+    if (Members.size() == 0) // FoF group has no pre-existing subhaloes, create a new sub
     {
       HBTInt subid;
 #pragma omp critical(AddNewSub) // maybe consider ordered for here..
@@ -832,9 +847,8 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
       central.Nbound = central.Particles.size();
     }
   }
-  //   #pragma omp single
-  //   halo_snap.Clear();//to avoid misuse
 }
+
 void SubhaloSnapshot_t::PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap)
 {
 #pragma omp parallel
@@ -848,34 +862,109 @@ void SubhaloSnapshot_t::PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo
 #endif
 }
 
-void SubhaloSnapshot_t::RegisterNewTracks(MpiWorker_t &world)
-/*assign trackId to new bound ones, remove unbound ones, and rebuild membership*/
+/* Deletes new subhalo candidates which were not self-bound. */
+void SubhaloSnapshot_t::RemoveFakeTracks()
 {
   HBTInt NumSubMax = Subhalos.size(), NumSubOld = NumSubMax - MemberTable.NBirth;
   HBTInt NumSubNew = NumSubOld;
+
+  /* Move resolved subhaloes at the end of vector containing previously-identified
+   * subhaloes */
   for (HBTInt i = NumSubNew; i < NumSubMax; i++)
   {
     if (Subhalos[i].Nbound > 1)
     {
       if (i != NumSubNew)
-        Subhalos[NumSubNew] = move(Subhalos[i]);
+        Subhalos[NumSubNew] = std::move(Subhalos[i]);
       NumSubNew++;
     }
   }
+
+  /* Remove new subhalo candidates that were unresolved. */
   Subhalos.resize(NumSubNew);
-  MemberTable.Build(MemberTable.SubGroups.size(), Subhalos,
-                    true); // rebuild membership with new subs and also include orphans this time.
+
+  /* Update membership table. */
+  MemberTable.Build(MemberTable.SubGroups.size(), Subhalos, true); // rebuild membership with new subs and also include orphans this time.
+
   MemberTable.NFake = NumSubMax - NumSubNew;
   MemberTable.NBirth = NumSubNew - NumSubOld;
-
-  // now assign a global TrackId
-  HBTInt TrackIdOffset, NBirth = MemberTable.NBirth, GlobalNumberOfSubs;
-  MPI_Allreduce(&NumSubOld, &GlobalNumberOfSubs, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
-  MPI_Scan(&NBirth, &TrackIdOffset, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
-  TrackIdOffset = TrackIdOffset + GlobalNumberOfSubs - NBirth;
-  for (HBTInt i = NumSubOld; i < NumSubNew; i++)
-    Subhalos[i].TrackId = TrackIdOffset++;
 }
+
+/* Assigns a unique TrackId to newly identified subhaloes. */
+void SubhaloSnapshot_t::AssignNewTrackIds(MpiWorker_t &world, const HaloSnapshot_t &halo_snap)
+{
+  /* Number of pre-existing subhaloes. */
+  HBTInt NumSubOld = Subhalos.size() - MemberTable.NBirth, GlobalNumberOfSubs;
+  MPI_Allreduce(&NumSubOld, &GlobalNumberOfSubs, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+
+  /* Number of new subhaloes per rank. */
+  std::vector<HBTInt> GlobalNBirthPerRank(world.size(), 0);
+  MPI_Allgather(&MemberTable.NBirth, 1, MPI_HBT_INT, GlobalNBirthPerRank.data(), 1, MPI_HBT_INT, world.Communicator);
+
+  /* Vector to hold HostHaloId */
+  std::vector<HBTInt> LocalHostHaloIds(MemberTable.NBirth, -2);
+  for (HBTInt i = 0; i < MemberTable.NBirth; i++)
+    LocalHostHaloIds[i] = halo_snap.Halos[Subhalos[NumSubOld + i].HostHaloId].HaloId;
+
+  /* Create a list of offsets for receiving data in the root rank */
+  HBTInt TotalNBirth = GlobalNBirthPerRank[0];
+  std::vector<int> vector_offset(world.size(), 0);
+  for(int i = 1; i < world.size(); i++)
+  {
+    vector_offset[i] = vector_offset[i-1] + GlobalNBirthPerRank[i-1];
+    TotalNBirth += GlobalNBirthPerRank[i];
+  }
+
+  /* Add warnings because we can only pass INT as count and offset dtype to
+   * MPI_Gatherv. If we have more new subhaloes than INT_MAX per rank or across
+   * all ranks, an overflow will happen. */
+  if (MemberTable.NBirth > INT_MAX)
+    throw runtime_error("Error: in AssignNewTrackIds(). The number of new subhaloes in a single rank is larger than INT_MAX. "
+                        "It will cause required MPI communications to overflow. Please try more MPI threads. Aborting.\n");
+  if (TotalNBirth > INT_MAX)
+    throw runtime_error("Error: in AssignNewTrackIds(). The number of new subhaloes across all ranks is larger than INT_MAX. "
+                        "It will cause required MPI communications to overflow. Please try more MPI threads. Aborting.\n");
+  // NOTE: I suspect this will never trigger, since forming INT_MAX new subhaloes
+  // in a single snapshot is extremely unlikely. IF it does happen, we can split
+  // MPI communication into chunks to handle this.
+
+  /* Convert count and displacement vectors into int. */
+  std::vector<int> recv_counts(GlobalNBirthPerRank.begin(), GlobalNBirthPerRank.end());
+  std::vector<int> recv_disps(vector_offset.begin(), vector_offset.end());
+
+  /* We gather all elements in the root rank */
+  std::vector<HBTInt> GlobalHostHaloIds(TotalNBirth, -2);
+  MPI_Gatherv(LocalHostHaloIds.data(), MemberTable.NBirth, MPI_HBT_INT, GlobalHostHaloIds.data(),
+              recv_counts.data(), recv_disps.data(), MPI_HBT_INT, 0, world.Communicator);
+
+  std::vector<HBTInt> GlobalNewTrackIDs;
+  if (world.rank() == 0)
+  {
+    std::vector<HBTInt> SorterVector = argsort<HBTInt>(GlobalHostHaloIds);
+
+    GlobalNewTrackIDs.resize(TotalNBirth);
+    for(size_t i = 0; i < GlobalNewTrackIDs.size(); i++)
+      GlobalNewTrackIDs[SorterVector[i]] = i + GlobalNumberOfSubs;
+  }
+
+  /* Tell other ranks what the assigned TrackId of their new subhaloes is */
+  std::vector<HBTInt> LocalNewTrackIDs(MemberTable.NBirth, -1);
+  MPI_Scatterv(GlobalNewTrackIDs.data(), recv_counts.data(), recv_disps.data(), MPI_HBT_INT,
+              LocalNewTrackIDs.data(),MemberTable.NBirth, MPI_HBT_INT, 0, world.Communicator);
+
+  /* Done. */
+  for (HBTInt i = 0; i < MemberTable.NBirth; i++)
+    Subhalos[NumSubOld + i].TrackId = LocalNewTrackIDs[i];
+}
+
+/* Assign a unique trackId to newly identified subhaloes, and remove new
+ * subhalo candidates which were not self-bound. */
+void SubhaloSnapshot_t::RegisterNewTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap)
+{
+  RemoveFakeTracks();
+  AssignNewTrackIds(world, halo_snap);
+}
+
 void SubhaloSnapshot_t::PurgeMostBoundParticles()
 /* fix the possible issue that the most-bound particle of a subhalo might belong to a sub-sub.
  * this is achieved by masking particles from smaller subs and promote the remaining most-bound particle in each
@@ -997,6 +1086,7 @@ void SubhaloSnapshot_t::LocalizeNestedIds(MpiWorker_t &world)
     }
   }
 }
+
 void SubhaloSnapshot_t::GlobalizeTrackReferences()
 /*translate subhalo references from index to trackIds*/
 {
@@ -1386,8 +1476,8 @@ void SubhaloSnapshot_t::CleanTracks()
 
 void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap)
 {
-  /*renew ranks after unbinding*/
-  RegisterNewTracks(world); // performance bottleneck here. no. just poor synchronization.
+  /* Decide a new TrackId for new subhaloes. */
+  RegisterNewTracks(world, halo_snap); // performance bottleneck here. no. just poor synchronization.
 
   // Update vmax for use in assigning rank within the host
 #pragma omp parallel for if (ParallelizeHaloes)
