@@ -56,6 +56,7 @@ nav:
   - Algorithm:
       - ./algorithm/overview.md
       - ./algorithm/friends_of_friends.md
+      - ./algorithm/unbinding.md
       - ./algorithm/parameter_choices.md
   - ./installation.md
   - Running:
