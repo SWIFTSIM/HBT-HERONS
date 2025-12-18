@@ -1,5 +1,6 @@
-# Unbinding and mass stripping
-### Binding energies
+# Unbinding
+
+## Binding energies
 
 For the purposes of unbinding, subhaloes in HBT-HERONS are treated as if they were isolated in the universe. This means that nearby mass not explicitly associated to the subhalo does contribute to the gravitational potential calculations. In fact, only the gravitational potential of bound particles is included. These two approximations are commonly used in other structure finding codes, although some relax these assumptions.
 
@@ -39,7 +40,7 @@ $$
 
 Again, the Heaviside step function ensures that only bound particles contribute to the potential calculations.
 
-### Iterative unbinding
+## Iterative unbinding
 
 As explained above, several of the properties required to check whether particles are bound (e.g. centre of mass position and velocity) require knowing which particles are bound. But how do we know *a priori* which particles are bound, and hence which particles contribute to the above sums? The answer is that we need to start with an initial guess.
 
@@ -64,7 +65,7 @@ We see that in this example, the source subhalo contains a large amount of unbou
 The fact that the source subhalo becomes increasingly dominated by unbound particles as subhaloes experience tidal stripping can have important implications when identifying the bound component of resolved subhaloes. Unbound particles have velocities larger than the escape velocity of the system, so the estimated centre of mass velocity will be large relative to the velocity of the true centre of the subhalo. Moreover, because of the Hubble flow, the spatial offset between the estimated centre of mass and the true centre of the subhalo will further overestimate the kinetic energy of the particles within the subhalo core. To avoid a catastrophic case where a resolved subhalo is misidentified as disrupted, HBT-HERONS limits the source subhalo to have a maximum size relative to the bound component of subhalo ([`SourceSubRelaxFactor`](../running/parameter_file.md#unbinding)).
 
 
-### Particle subsampling
+## Particle subsampling
 
 The process of unbinding is generally the most expensive part of finding subhaloes in simulations, unless you analyse a large cosmological box with relatively poor mass resolution (I/O limited). Not only do you need to compute the gravitational potential of all bound particles, but you also need to do so for (potentially) many unbinding iterations.
 
