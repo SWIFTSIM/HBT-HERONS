@@ -14,7 +14,7 @@ These parameters set the format of the simulation, how the output of the simulat
 
 ### File paths
 
-| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
 | `SnapshotPath`                   | - | Path to the files containing the particle information.                   |
 | `HaloPath`                           | - | Path to the files containing the particle FoF group memberships. |
@@ -34,7 +34,7 @@ These parameters set the format of the simulation, how the output of the simulat
 
 These options specify the format of the simulation particle and FoF group data. It also determines whether additional information for the particles bound to a subhalo is saved.
 
-| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
 | `SnapshotFormat`                   | `gadget3` | The format used by files containing the particle information.                   |
 | `GroupFileFormat`                           | `gadget3_int` | The format used by the files containing the FoF memberships of particles. |
@@ -48,7 +48,7 @@ These options specify the format of the simulation particle and FoF group data. 
 The unit system used by the simulation and used in the outputs. For `Swift` outputs,
 the values are set using the snapshot metadata.
 
-| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:590px">Description</div>       |
+| <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:590px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
 | `MassInMsunh`                   | 1e10 | Mass of particles in units of $\mathrm{M}_{\odot}\,h^{-1}$.                   |
 | `LengthInMpch`                           | 1 | Lengths in units of $\mathrm{Mpc}\,h^{-1}$. |
@@ -58,8 +58,8 @@ the values are set using the snapshot metadata.
 
 If the box is periodic, and if so, the box size.
 
-<!-- | <div style="width:260px">Property</div> | <div style="width:787px">Description</div>       | -->
-| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:590px">Description</div>       |
+<!-- | <div style="width:275px">Property</div> | <div style="width:787px">Description</div>       | -->
+| <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:590px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
 | `PeriodicBoundaryOn`                    | `1` | Whether the box is periodic.                   |
 | `BoxSize`                               | - | Side length of each side of the box. Only cubes are supported. |
@@ -70,7 +70,7 @@ If the box is periodic, and if so, the box size.
 
 These options specify how the tree is built and the geometric condition used to open a tree node.
 
-| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
 | `TreeNodeOpenAngle`                   | 0.45 | Geometric criterion used to determine whether a tree node should be opened or can be used as is. Smaller values make the code slower but more accurate.             |
 | `TreeAllocFactor`                           | 0.8 | The maximum number of cells used in the gravity tree, relative to the number of particles. |
@@ -80,7 +80,7 @@ These options specify how the tree is built and the geometric condition used to 
 
 The value of the softening used for the gravity kernel. Should always be provided, unless the I/O can load it directly from the particle output metadata (e.g. `Swift`).
 
-| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
 | `SofteningHalo`                   | - | The comoving gravitational softening value in units of `LengthInMpch`. Assumed to be the same for all particle types.                   |
 | `MaxPhysicalSofteningHalo`                           | - | The maximum physical gravitational softening value in units of `LengthInMpch`. If no value is provided, the gravitational softening length will always be based on `SofteningHalo`. Assumed to be the same for all particle types. |
@@ -91,11 +91,13 @@ Various options that tell the code how to do the unbinding, the subhalo self-bou
 
 ### Unbinding
 
-| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
 | `BoundMassPrecision`                                | 0.995 | Convergence threshold of the fractional difference in the number of bound particles between two consecutive unbinding iterations.                   |
 | `SourceSubRelaxFactor`                              | 3 | How many particles a subhalo can have associated to it, relative to its number of bound particles. |
 | `MaxSampleSizeOfPotentialEstimate`                  | 1000 | Maximum number of particles used to estimate the gravitational potential of particles. If the subhalo has more particles than this value, a randomly selected `MaxSampleSizeOfPotentialEstimate` particles are used as gravity sources. To disable subsampling, set its value equal to 0.|
+| `DoNotSubsampleParticleTypes`                  | 5 | Particle types that will never be subsampled, even if the subhalo is sufficiently large to trigger subsampling. Provide the value(s) as a space-separated list of particle type numbers|
+| `PotentialEstimateUpscaleMassesPerType`                  | 1 | Boolean controlling whether the mass upscale factor to ensure mass conservation during particle subsampling is the same for all particles types (0) or it is done on a per-particle-type basis (1). |
 | `RefineMostBoundParticle`                           | 1 | If the self-binding energy of the most bound subset of particles should be computed after unbinding the subhalo. This step is done to better identify the most bound particle if potential subsampling was enabled. |
 | `BoundFractionCenterRefinement`                     | 0.1 | Fraction of the most bound particles whose self-binding energies are computed to better estimate the most bound particle. The actual value is `max(MaxSampleSizeOfPotentialEstimate, BoundFractionCenterRefinement)` |
 
@@ -103,7 +105,7 @@ Various options that tell the code how to do the unbinding, the subhalo self-bou
 
 Parameters relating to the tracking and merging of subhaloes, as well as the criteria used to determine if a subhalo is self-bound or not.
 
-| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
 | `TracerParticleTypes`                   | 1 4 | Particle types that can be used as subhalo tracers, given as a space-separated list of particle type numbers. We recommend using time-persistent, collisionless particles (e.g. DM & stars).                   |
 | `MinNumPartOfSub`                       | 20 | Minimum number of bound particles required for a subhalo to be resolved, regardless of their particle type.        |
@@ -116,7 +118,7 @@ Parameters relating to the tracking and merging of subhaloes, as well as the cri
 
 ## Miscellaneous
 
-| <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
 | `SnapshotHasIdBlock`                   | 1 | Whether the simulation outputs have a dataset containing the particle IDs.|
 | `ParticleIdNeedHash`                           | 1 | Whether to create a hash map to retrieve particle properties given an ID. |
