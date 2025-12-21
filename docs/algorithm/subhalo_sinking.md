@@ -1,14 +1,14 @@
 # Subhalo sinking
 
-In addition to tidal stripping, subhaloes can grow in mass by merging with neighbouring subhaloes. Merging in HBT-HERONS precisely refers to the coalesence in phase-space between two or more *resolved* subhaloes. This definition thus excludes subhaloes that are stripped below the resolution level of the simulation.
+In addition to tidal stripping, subhaloes can grow in mass by merging with neighbouring subhaloes. Merging in HBT-HERONS precisely refers to the coalesence in phase-space between two or more *resolved* subhaloes. This definition thus excludes mass growth by subhaloes that are stripped below the resolution level of the simulation.
 
 The subhalo systems where this definition of coalescence applies are those in which dynamical friction is non-neglibible, e.g. during major mergers. This is because at least one of the subhaloes needs to lose orbital kinetic energy so that its core coalesces with the core of the neighbouring subhalo. In the frame of reference of the most massive subhalo, this appears as if the lower mass subhalo "sinks" towards its centre, hence the name "subhalo sinking".
 
-In this page, we define how the phase-space location of subhaloes is defined, the metric used to identify if subhaloes overlap in phase-space, and what happens if so. We further explain why it is an essential step within HBT-HERONS, and how its omission can lead to double-counting subhaloes.
+In this page, we define how the phase-space location of subhaloes is defined, the metric used to identify whether subhaloes overlap in phase-space, and what happens if so. We further explain why it is an essential step within HBT-HERONS, and how its omission can lead to double-counting subhaloes.
 
 ## Subhalo cores
 
-To determine if subhaloes overlap with each other, we first need to locate them in phase-space. There are alternative ways of doing so, like using the position and velocity of the most bound particle or of the centre of mass of all bound particles. For the purpose of identifying subhalo cores, using a single particle is noisy. Using the centre of mass of all bound particles may be offset from the true centre, particularly for as subhaloes as disturbed as those undergoing a major merger.
+To determine if subhaloes overlap with each other, we first need to locate them in phase-space. There are alternative ways of doing so, like using the position and velocity of the most bound particle or of the centre of mass of all bound particles. For the purpose of identifying subhalo cores, using a single particle is noisy. Using the centre of mass of all bound particles may be offset from the true centre, particularly for disturbed subhaloes (as one would expect for those involved in a major merger).
 
 HBT-HERONS defines the phase-space location of a subhalo core using the centre of mass position and velocity of the $N_{\rm core}$ most bound particles:
 
@@ -16,15 +16,13 @@ $$
 \vec{x}_{\rm core} = \dfrac{\sum \vec{x}_{i}m_{i}}{\sum m_{i}} \; \;\; \;\mathrm{and}  \; \;\; \; \vec{v}_{\rm core} = \dfrac{\sum \vec{v}_{i}m_{i}}{\sum m_{i}}.
 $$
 
-However, locating the subhalo core is one part of the problem. Since we want to evaluate whether two subhaloes overlap in phase-space, we need to associate an "uncertainty" to the measured position and velocity of the subhalo. Is it the gravitational softening length? A multiple of the half-mass radius?
-
-For the "uncertainty" of the core phase-space location, HBT-HERONS uses the position and velocity dispersion of the $N_{\rm core}$ most bound particles:
+However, locating the subhalo core is one part of the problem. Since we want to evaluate whether two subhaloes overlap in phase-space, we need to associate an "uncertainty" to the measured position and velocity of the subhalo. Is it the gravitational softening length? A multiple of the half-mass radius? For the "uncertainty" of the core phase-space location, HBT-HERONS uses the position and velocity dispersion of the $N_{\rm core}$ most bound particles:
 
 $$
 \sigma_{x} = \sqrt{ \dfrac{\sum m_{i}|\vec{x}_{i} - \vec{x}_{\rm core} |^{2}}{\sum m_{i}}} \; \;\; \;\mathrm{and}  \; \;\; \; \sigma_{v} = \sqrt{ \dfrac{\sum m_{i}|\vec{v}_{i} - \vec{v}_{\rm core} |^{2}}{\sum m_{i}}} .
 $$
 
-The number of most bound particles that contribute to the sums defined above is determined by a combination of the user-defined values of $N^{\rm min}_{\rm core}$ (`MinCoreSize`) and $f_{\rm core}$ (`SubCoreSizeFactor`):
+The number of most bound particles that contribute to the sums defined above is determined by a combination of the user-defined values of $N^{\rm min}_{\rm core}$ ([`MinCoreSize`](../running/parameter_file.md#sinking)) and $f_{\rm core}$ ([`SubCoreSizeFactor`](../running/parameter_file.md#sinking)):
 
 $$
 N_{\rm core} = \max(N^{\rm min}_{\rm core}, f_{\rm core}N_{\rm bound}).
