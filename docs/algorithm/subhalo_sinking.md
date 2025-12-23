@@ -1,6 +1,6 @@
 # Subhalo sinking
 
-In addition to tidal stripping, subhaloes can grow in mass by merging with neighbouring subhaloes. Merging in HBT-HERONS precisely refers to the coalesence in phase-space between two or more *resolved* subhaloes. This definition thus excludes mass growth by subhaloes that are stripped below the resolution level of the simulation.
+In the paradigm of hierarchical structure formation, subhaloes grow in mass either by accreting diffuse mass (e.g. by stripping mass from satellite subhaloes) or by merging with neighbouring subhaloes. Merging in HBT-HERONS precisely refers to the coalesence in phase-space between two or more *resolved* subhaloes. This definition thus excludes mass growth by subhaloes that are stripped below the resolution level of the simulation.
 
 The subhalo systems where this definition of coalescence applies are those in which dynamical friction is non-neglibible, e.g. during major mergers. This is because at least one of the subhaloes needs to lose orbital kinetic energy so that its core coalesces with the core of the neighbouring subhalo. In the frame of reference of the most massive subhalo, this appears as if the lower mass subhalo "sinks" towards its centre, hence the name "subhalo sinking".
 
