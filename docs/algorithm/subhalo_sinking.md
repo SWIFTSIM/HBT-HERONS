@@ -30,3 +30,18 @@ $$
 
 For the reasons provided at the beginning of this section, making $N_{\rm core} = 1$ or $N_{\rm core} \approx N_{\rm bound}$ is discouraged. Using small values yields noisy estimates of the core location and its dispersion, whereas large values overestimate its dispersion. By default, HBT-HERONS uses $N^{\rm min}_{\rm core} = 20$ and $f_{\rm core} = 0$.
 
+## Overlap metric
+
+Two subhaloes ($i$, $j$) with masses $m_{i} \geq m_{j}$ overlap if their centres are separated in phase-space by less than the phase-space dispersion of their cores:
+
+$$
+\Delta \equiv \min(\Delta_{ij},\Delta_{ji}) \leq 2,
+$$
+
+where:
+
+$$
+\Delta_{ij} = \dfrac{|\vec{x}_{\mathrm{core}, i} - \vec{x}_{\mathrm{core},j}|}{\sigma_{x,i}} + \dfrac{|\vec{v}_{\mathrm{core},i} - \vec{v}_{\mathrm{core},j}|}{\sigma_{v,i}} \; \;\; \;\mathrm{and}  \; \;\; \; \Delta_{ji} = \dfrac{|\vec{x}_{\mathrm{core}, i} - \vec{x}_{\mathrm{core},j}|}{\sigma_{x,j}} + \dfrac{|\vec{v}_{\mathrm{core},i} - \vec{v}_{\mathrm{core},j}|}{\sigma_{v,j}}.
+$$
+
+The difference between $\Delta_{ij}$ and $\Delta_{ji}$ is that the first expression uses the core dispersion of the most massive subhalo of the pair, whereas the second expression uses the core dispersion of the least massive subhalo of the pair. One may expect the more massive subhalo to have a larger core dispersion that the lower mass one, e.g. the gravitational potential is deeper and the particle velocities are therefore larger. This is indeed typically the case, but there are a small number of cases in which the lower mass subhalo has a larger dispersion. These cases typically occur close to the resolution limit of the simulation.
