@@ -282,35 +282,43 @@ void DecideTargetProcessor(int NumProc, vector<Halo_T> &InHalos, vector<IdRank_t
     TotalParticles += InHalos[haloid].Particles.size();
   }
 
-  HBTInt DesiredPartPerRank = TotalParticles / NumProc;
-  float tolerance = 1.15; // make this configurable, or start small (1.05?) and keep increasing until a solution is found
+  HBTInt MaxPartPerRank = TotalParticles / NumProc;
   int ThisRank = 0;
-  HBTInt ParticlesThisRank = 0;
+  vector<HBTInt> ParticlesOnRank(NumProc, 0);
   for (HBTInt i = 0; i < InHalos.size(); i++)
   {
     TargetRank[i].Id = i;
-    if((ParticlesThisRank + InHaloSizes[i] < DesiredPartPerRank * tolerance)
-       or (ParticlesThisRank == 0))  // allow at least one halo per rank, even if it's big
+    // We do a round-robin over the ranks. However, if the next rank in the round-robin is
+    // full (MaxPartPerRank) we skip to the next one. If a rank is empty MaxPartPerRank is
+    // ignored so that we can always assign at least one halo per rank so that the biggest
+    // halos can be assigned.
+    for (int TriedRanks = 0; TriedRanks < NumProc; TriedRanks++)
+    {
+      if((ParticlesOnRank[ThisRank] + InHaloSizes[i] < MaxPartPerRank)
+	 or (ParticlesOnRank[ThisRank] == 0))
       {
-	// there is space for the halo left on this rank
 	TargetRank[i].Rank = ThisRank;
-	ParticlesThisRank += InHaloSizes[i];
+	ParticlesOnRank[ThisRank] += InHaloSizes[i];
+	ThisRank++;  // Next group will start with next rank.
+	ThisRank %= NumProc;
+	break;
       }
-    else if(ThisRank >= NumProc)
-      {
-	// we have run out of ranks before running out of halos, abort
-	stringstream error_message;
-	error_message << "Could not distribute halos with particle balance tolerance " << tolerance << ". Try again with larger tolerance." << endl;
-	throw runtime_error(error_message.str());
-      }
-    else
-      {
-	// start a new rank
-	ThisRank += 1;
-	ParticlesThisRank = 0;
-	TargetRank[i].Rank = ThisRank;
-      }
-    ParticlesThisRank += InHaloSizes[i];
+      ThisRank++;
+      ThisRank %= NumProc;
+      if 
+    }
+    if(TriedRanks == NumProc)
+    {
+      // Tried all ranks for this halo and couldn't find a place - abort.
+      // This should be impossible.
+      stringstream error_message;
+      error_message << "Failed to distribute group with ID " << i << "." << endl;
+      error_message << "It has " << InHaloSizes[i] << " particles." << endl;
+      error_message << "Max particles per rank (summed over assigned groups) is set to " << MaxPartPerRank << "." << endl;
+      error_message << "When trying to assign this group, particle load on ranks so far is:" << endl;
+      for(int rank = 0; rank < NumProc; rank++) error_message << "  Rank " << rank << ": " << ParticlesOnRank[rank] << endl;
+      throw runtime_error(error_message.str());
+    }
   }
 }
 
