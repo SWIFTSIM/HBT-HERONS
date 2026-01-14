@@ -305,19 +305,18 @@ void DecideTargetProcessor(int NumProc, vector<Halo_T> &InHalos, vector<IdRank_t
       }
       ThisRank++;
       ThisRank %= NumProc;
-      if 
-    }
-    if(TriedRanks == NumProc)
-    {
-      // Tried all ranks for this halo and couldn't find a place - abort.
-      // This should be impossible.
-      stringstream error_message;
-      error_message << "Failed to distribute group with ID " << i << "." << endl;
-      error_message << "It has " << InHaloSizes[i] << " particles." << endl;
-      error_message << "Max particles per rank (summed over assigned groups) is set to " << MaxPartPerRank << "." << endl;
-      error_message << "When trying to assign this group, particle load on ranks so far is:" << endl;
-      for(int rank = 0; rank < NumProc; rank++) error_message << "  Rank " << rank << ": " << ParticlesOnRank[rank] << endl;
-      throw runtime_error(error_message.str());
+      if(TriedRanks == NumProc)
+      {
+        // Tried all ranks for this halo and couldn't find a place - abort.
+        // This should be impossible.
+        stringstream error_message;
+        error_message << "Failed to distribute group with ID " << i << "." << endl;
+        error_message << "It has " << InHaloSizes[i] << " particles." << endl;
+        error_message << "Max particles per rank (summed over assigned groups) is set to " << MaxPartPerRank << "." << endl;
+        error_message << "When trying to assign this group, particle load on ranks so far is:" << endl;
+        for(int rank = 0; rank < NumProc; rank++) error_message << "  Rank " << rank << ": " << ParticlesOnRank[rank] << endl;
+        throw runtime_error(error_message.str());
+      }
     }
   }
 }
