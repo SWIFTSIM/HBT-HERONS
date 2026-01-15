@@ -273,7 +273,7 @@ void ParticleExchanger_t<Halo_T>::Exchange()
 template <class Halo_T>
 void DecideTargetProcessor(int NumProc, vector<Halo_T> &InHalos, vector<IdRank_t> &TargetRank)
 {
-  // get halo particle counts and total count
+  /* Get halo particle counts and total count */
   vector<HBTInt> InHaloSizes(InHalos.size());
   HBTInt TotalParticles = 0;
   for (HBTInt haloid = 0; haloid < InHalos.size(); haloid++)
@@ -294,17 +294,17 @@ void DecideTargetProcessor(int NumProc, vector<Halo_T> &InHalos, vector<IdRank_t
     // halos can be assigned.
     for (int TriedRanks = 0; TriedRanks < NumProc; TriedRanks++)
     {
-      if((ParticlesOnRank[ThisRank] + InHaloSizes[i] < MaxPartPerRank)
-	 or (ParticlesOnRank[ThisRank] == 0))
+      if((ParticlesOnRank[ThisRank] + InHaloSizes[i] < MaxPartPerRank) || (ParticlesOnRank[ThisRank] == 0))
       {
-	TargetRank[i].Rank = ThisRank;
-	ParticlesOnRank[ThisRank] += InHaloSizes[i];
-	ThisRank++;  // Next group will start with next rank.
-	ThisRank %= NumProc;
-	break;
+        TargetRank[i].Rank = ThisRank;
+        ParticlesOnRank[ThisRank] += InHaloSizes[i];
+        ThisRank++; // Next group will start with next rank.
+        ThisRank %= NumProc;
+        break;
       }
       ThisRank++;
       ThisRank %= NumProc;
+
       if(TriedRanks == NumProc)
       {
         // Tried all ranks for this halo and couldn't find a place - abort.
@@ -314,7 +314,9 @@ void DecideTargetProcessor(int NumProc, vector<Halo_T> &InHalos, vector<IdRank_t
         error_message << "It has " << InHaloSizes[i] << " particles." << endl;
         error_message << "Max particles per rank (summed over assigned groups) is set to " << MaxPartPerRank << "." << endl;
         error_message << "When trying to assign this group, particle load on ranks so far is:" << endl;
-        for(int rank = 0; rank < NumProc; rank++) error_message << "  Rank " << rank << ": " << ParticlesOnRank[rank] << endl;
+        for(int rank = 0; rank < NumProc; rank++)
+          error_message << "  Rank " << rank << ": " << ParticlesOnRank[rank] << endl;
+
         throw runtime_error(error_message.str());
       }
     }
@@ -328,7 +330,6 @@ void ParticleSnapshot_t::ExchangeHalos(MpiWorker_t &world, vector<Halo_T> &InHal
   typedef typename vector<Halo_T>::iterator HaloIterator_t;
   typedef HaloParticleIterator_t<HaloIterator_t> ParticleIterator_t;
 
-  //   cout<<"Query particle..."<<flush;
   { // query particles
     ParticleExchanger_t<Halo_T> Exchanger(world, *this, InHalos);
     Exchanger.Exchange();
@@ -337,7 +338,7 @@ void ParticleSnapshot_t::ExchangeHalos(MpiWorker_t &world, vector<Halo_T> &InHal
   vector<IdRank_t> TargetRank(InHalos.size());
   DecideTargetProcessor(world.size(), InHalos, TargetRank);
 
-  // distribute halo shells
+  /* Distribute halo shells, which contain all but the particle information. */
   vector<int> SendHaloCounts(world.size(), 0), RecvHaloCounts(world.size()), SendHaloDisps(world.size()),
     RecvHaloDisps(world.size());
   sort(TargetRank.begin(), TargetRank.end(), CompareRank);

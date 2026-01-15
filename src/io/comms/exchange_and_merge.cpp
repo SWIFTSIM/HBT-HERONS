@@ -248,7 +248,7 @@ static void ExchangeHalos(MpiWorker_t &world, vector<Halo_t> &InHalos, vector<Ha
   vector<IdRank_t> TargetRank(InHalos.size());
   DecideTargetProcessor(world, InHalos, TargetRank);
 
-  // distribute halo shells
+  /* Distribute halo shells, which contain all but the particle information. */
   vector<int> SendHaloCounts(world.size(), 0), RecvHaloCounts(world.size()), SendHaloDisps(world.size()),
     RecvHaloDisps(world.size());
   sort(TargetRank.begin(), TargetRank.end(), CompareRank);
@@ -299,6 +299,9 @@ static void ExchangeHalos(MpiWorker_t &world, vector<Halo_t> &InHalos, vector<Ha
   }
 }
 
+/* Gathers fragments of FoF groups that have been read by different MPI ranks into
+ * the same MPI rank. Once collected, each FoF fragment is merged together to get the
+ * complete FoF group. */
 void ExchangeAndMerge(MpiWorker_t &world, vector<Halo_t> &Halos)
 {
   vector<Halo_t> LocalHalos;
