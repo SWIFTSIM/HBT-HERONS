@@ -239,12 +239,40 @@ static void MergeHalos(vector<Halo_t> &Halos)
   }
 }
 
-static void ExchangeHalos(MpiWorker_t &world, vector<Halo_t> &InHalos, vector<Halo_t> &OutHalos,
-                          MPI_Datatype MPI_Halo_Shell_Type)
+/* Communicates the particles of each FoF group segment to its assigned rank. */
+void ExchangeHaloParticles(MpiWorker_t &world, vector<IdRank_t> &TargetRank, vector<Halo_t> &InHalosSorted,
+  vector<int> &SendHaloDisps, vector<int> &SendHaloCounts,
+  vector<Halo_t>::iterator NewHalos, vector<int> &RecvHaloDisps, vector<int> &RecvHaloCounts)
 {
   typedef typename vector<Halo_t>::iterator HaloIterator_t;
   typedef HaloParticleIterator_t<HaloIterator_t> ParticleIterator_t;
 
+  /* Combined iterator for groups of haloes */
+  vector<ParticleIterator_t> InParticleIterator(world.size());
+  vector<ParticleIterator_t> OutParticleIterator(world.size());
+  for (int rank = 0; rank < world.size(); rank++)
+  {
+    InParticleIterator[rank].init(InHalosSorted.begin() + SendHaloDisps[rank],
+                                  InHalosSorted.begin() + SendHaloDisps[rank] + SendHaloCounts[rank]);
+    OutParticleIterator[rank].init(NewHalos + RecvHaloDisps[rank],
+                                   NewHalos + RecvHaloDisps[rank] + RecvHaloCounts[rank]);
+  }
+  vector<HBTInt> InParticleCount(world.size(), 0);
+  for (HBTInt i = 0; i < InHalosSorted.size(); i++)
+    InParticleCount[TargetRank[i].Rank] += InHalosSorted[i].Particles.size();
+
+  /* Distribute halo particles */
+  MPI_Datatype MPI_HBT_Particle;
+  Particle_t().create_MPI_type(MPI_HBT_Particle);
+  MyAllToAll<Particle_t, ParticleIterator_t, ParticleIterator_t>(world, InParticleIterator, InParticleCount,
+                                                                 OutParticleIterator, MPI_HBT_Particle);
+  MPI_Type_free(&MPI_HBT_Particle);
+}
+
+static void ExchangeHalos(MpiWorker_t &world, vector<Halo_t> &InHalos, vector<Halo_t> &OutHalos,
+                          MPI_Datatype MPI_Halo_Shell_Type)
+{
+  /* Decide how haloes will be distributed across MPI ranks. */
   vector<IdRank_t> TargetRank(InHalos.size());
   DecideTargetProcessor(world, InHalos, TargetRank);
 
@@ -274,29 +302,9 @@ static void ExchangeHalos(MpiWorker_t &world, vector<Halo_t> &InHalos, vector<Ha
   for (HBTInt i = 0; i < NumNewHalos; i++)
     NewHalos[i].Particles.resize(OutHaloSizes[i]);
 
-  {
-    // distribute halo particles
-    MPI_Datatype MPI_HBT_Particle;
-    Particle_t().create_MPI_type(MPI_HBT_Particle);
-    // create combined iterator for each bunch of haloes
-    vector<ParticleIterator_t> InParticleIterator(world.size());
-    vector<ParticleIterator_t> OutParticleIterator(world.size());
-    for (int rank = 0; rank < world.size(); rank++)
-    {
-      InParticleIterator[rank].init(InHalosSorted.begin() + SendHaloDisps[rank],
-                                    InHalosSorted.begin() + SendHaloDisps[rank] + SendHaloCounts[rank]);
-      OutParticleIterator[rank].init(NewHalos + RecvHaloDisps[rank],
-                                     NewHalos + RecvHaloDisps[rank] + RecvHaloCounts[rank]);
-    }
-    vector<HBTInt> InParticleCount(world.size(), 0);
-    for (HBTInt i = 0; i < InHalosSorted.size(); i++)
-      InParticleCount[TargetRank[i].Rank] += InHalosSorted[i].Particles.size();
-
-    MyAllToAll<Particle_t, ParticleIterator_t, ParticleIterator_t>(world, InParticleIterator, InParticleCount,
-                                                                   OutParticleIterator, MPI_HBT_Particle);
-
-    MPI_Type_free(&MPI_HBT_Particle);
-  }
+  /* First we send the basic information of each FoF group, then the particle
+   * information. */
+  ExchangeHaloParticles(world, TargetRank, InHalosSorted, SendHaloCounts, SendHaloDisps, NewHalos, RecvHaloCounts, RecvHaloDisps);
 }
 
 /* Gathers fragments of FoF groups that have been read by different MPI ranks into

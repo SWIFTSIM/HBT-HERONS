@@ -64,7 +64,7 @@ void HaloSnapshot_t::BuildMPIDataType()
   create_MPI_Halo_Id_type(MPI_HBT_HaloId_t);
 }
 
-/* Updates the properties of particles that are a part of a loaed FoF group */
+/* Updates the properties of particles that are a part of a loaded FoF group */
 void HaloSnapshot_t::UpdateParticles(MpiWorker_t &world, const ParticleSnapshot_t &snap)
 {
   Cosmology = snap.Cosmology;
