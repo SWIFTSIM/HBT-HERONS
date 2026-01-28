@@ -92,9 +92,15 @@ inline bool CompHaloFragment_HaloId(const HaloFragment_t &a, const HaloFragment_
   return a.HaloId < b.HaloId;
 }
 
-inline bool CompHaloFragment_Size(const HaloFragment_t &a, const HaloFragment_t &b)
+/* Sorts by particle number and by HaloId */
+inline bool CompHaloFragment_Size_HaloId(const HaloFragment_t &a, const HaloFragment_t &b)
 {
-  return a.NumberParticles > b.NumberParticles;
+  if (a.NumberParticles > b.NumberParticles)
+    return true;
+  if (a.NumberParticles < b.NumberParticles)
+    return false;
+
+  return CompHaloFragment_HaloId(a,b);
 }
 
 inline bool CompHaloFragment_OriginalOrder(const HaloFragment_t &a, const HaloFragment_t &b)
@@ -233,7 +239,7 @@ std::vector<IdRank_t> RoundRobinAssignment(MpiWorker_t &world, std::vector<HaloF
       TotalParticles += GlobalHaloSizes[i].NumberParticles;
     }
 
-    std::sort(GlobalHaloSizes.begin(), GlobalHaloSizes.end(), CompHaloFragment_Size);
+    std::sort(GlobalHaloSizes.begin(), GlobalHaloSizes.end(), CompHaloFragment_Size_HaloId);
 
     /* We will try to assign haloes such that the number of particles per MPI
      * rank remains below or close to this value (ignoring the largest FoFs). */
