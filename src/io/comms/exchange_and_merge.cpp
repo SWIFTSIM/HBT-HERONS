@@ -87,6 +87,11 @@ static void ComputeMPICounts(MpiWorker_t &world, const std::vector<IdRank_t> &Ta
   CompileOffsets(recv_counts, recv_displacement);
 }
 
+inline bool CompHaloFragment_HaloId(const HaloFragment_t &a, const HaloFragment_t &b)
+{
+  return a.HaloId < b.HaloId;
+}
+
 inline bool CompHaloFragment_Size(const HaloFragment_t &a, const HaloFragment_t &b)
 {
   return a.NumberParticles > b.NumberParticles;
@@ -288,7 +293,69 @@ std::vector<IdRank_t> RoundRobinAssignment(MpiWorker_t &world, std::vector<HaloF
   }
   return TargetTask;
 }
+
+/* This function makes the round-robin-based task assignment, which is done on a
+ * halo-level after fragments have been merged, into the same size and ordering
+ * as haloes. */
+ std::vector<IdRank_t> CommunicateTaskAssignment(MpiWorker_t &world, const std::vector<IdRank_t> HaloTaskAssignment, const std::vector<Halo_t> &Halos)
+{
+  /* We store the properties of local halo fragments. */
+  std::vector<HaloFragment_t> DisjointHaloFragments(Halos.size());
+  for (size_t fragment_i = 0; fragment_i < DisjointHaloFragments.size(); fragment_i++)
+  {
+    DisjointHaloFragments[fragment_i].HaloId = Halos[fragment_i].HaloId;
+    DisjointHaloFragments[fragment_i].TargetRank = RankFromIdHash(Halos[fragment_i].HaloId, world.size());
+  }
+
+  /* Sort vectors according to rank. */
+  std::sort(DisjointHaloFragments.begin(), DisjointHaloFragments.end(), CompHaloInfo_TargetRank);
+
+  /* We obtain counts and offsets for MPI communication. */
+  std::vector<int> SendHaloCounts(world.size()),
+                   RecvHaloCounts(world.size()),
+                   SendHaloDisps (world.size()),
+                   RecvHaloDisps (world.size());
+  ComputeMPICounts(world, DisjointHaloFragments, SendHaloCounts, SendHaloDisps, RecvHaloCounts, RecvHaloDisps);
+
+  /* Collect fragments within their assigned ranks. */
+  size_t TotalRecvCount = std::accumulate(RecvHaloCounts.begin(), RecvHaloCounts.end(), 0);
+  std::vector<HaloFragment_t> ProbingHaloFragments(TotalRecvCount);
+  MPI_Datatype MPI_HaloFragment_t;
+  create_MPI_HaloInfo_t(MPI_HaloFragment_t);
+  MPI_Alltoallv(DisjointHaloFragments.data()   , SendHaloCounts.data(), SendHaloDisps.data(), MPI_HaloFragment_t,
+                ProbingHaloFragments.data(), RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_HaloFragment_t, world.Communicator);
+
+  /* Store original order and sort by host halo ID */
+  for(size_t i = 0; i < ProbingHaloFragments.size(); i++)
+    ProbingHaloFragments[i].OriginalOrder = i;
+
+  std::sort(ProbingHaloFragments.begin(), ProbingHaloFragments.end(), CompHaloFragment_HaloId);
+
+  /* We iterate across all halo fragments and copy the assignment */
+  std::vector<IdRank_t>::const_iterator CurrentHaloRankAssignment = HaloTaskAssignment.begin();
+  for(size_t i = 0; i < ProbingHaloFragments.size(); i++)
+  {
+    while ((CurrentHaloRankAssignment->Id != ProbingHaloFragments[i].HaloId) \
+          &(CurrentHaloRankAssignment != HaloTaskAssignment.end()))
+      CurrentHaloRankAssignment++;
+
+    if(ProbingHaloFragments[i].HaloId == CurrentHaloRankAssignment->Id)
+      ProbingHaloFragments[i].TargetRank = CurrentHaloRankAssignment->Rank;
+  }
+
+  /* Return to the original order and then to original task. */
+  std::sort(ProbingHaloFragments.begin(), ProbingHaloFragments.end(), CompHaloFragment_OriginalOrder);
+  MPI_Alltoallv(ProbingHaloFragments.data() , RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_HaloFragment_t,
+                DisjointHaloFragments.data(), SendHaloCounts.data(), SendHaloDisps.data(), MPI_HaloFragment_t, world.Communicator);
   MPI_Type_free(&MPI_HaloFragment_t);
+
+  std::vector<IdRank_t> RankAssignment(DisjointHaloFragments.size());
+  for(size_t i = 0; i < DisjointHaloFragments.size(); i++)
+  {
+    RankAssignment[i].Id = DisjointHaloFragments[i].HaloId;
+    RankAssignment[i].Rank = DisjointHaloFragments[i].TargetRank;
+  }
+  return RankAssignment;
 }
 
 /* Assigns MPI tasks to haloes so that the number of FoF particles is approximately
@@ -297,15 +364,15 @@ static std::vector<IdRank_t> DecideTargetProcessor(MpiWorker_t &world, std::vect
 {
   /* First we compute total FoF group sizes. Note that the ordering and vector
    * size of HaloSizes and Halos is not the same, as Halos contains disjoint
-   * FoF fragments but HaloSizes has merged all of them. */
+   * FoF fragments but HaloSizes has merged all of them (to get total size). */
   std::vector<HaloFragment_t> HaloSizes = GetTotalHaloSizes(world, Halos);
 
-  /* Assign a target MPI rank to haloes based on their size. The resulting vector
-   * has the same global ordering as HaloSizes. */
+  /* Assign a target MPI rank to haloes based on their total size. The resulting
+   * vector has the same global ordering as HaloSizes. */
   std::vector<IdRank_t> HaloTaskAssignment = RoundRobinAssignment(world, HaloSizes);
 
-  /* We now need to propagate the rank assignment within HaloTaskAssignment to
-   * the disjoint halo fragments. */
+  /* We now need to propagate the rank assignment into a vector with the same
+   * ordering as the disjoint halo fragments (Halos). */
   std::vector<IdRank_t> HaloFragmentTaskAssignment = CommunicateTaskAssignment(world, HaloTaskAssignment, Halos);
 
   return HaloFragmentTaskAssignment;
