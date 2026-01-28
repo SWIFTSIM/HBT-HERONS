@@ -1,4 +1,3 @@
-using namespace std;
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -13,14 +12,15 @@ using namespace std;
 #include "../../halo.h"
 #include "../../mymath.h"
 #include "../../hash_integers.h"
-#include "../../halo_particle_iterator.h"
 #include "../../particle_exchanger.h"
+#include "../../halo_particle_iterator.h"
 
 struct HaloFragment_t
 {
   HBTInt HaloId;
   HBTInt NumberParticles;
   int OriginalRank;
+  int OriginalOrder;
   int TargetRank;
 };
 
@@ -48,6 +48,7 @@ static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
   RegisterAttr(HaloId, MPI_HBT_INT, 1);
   RegisterAttr(NumberParticles, MPI_HBT_INT, 1);
   RegisterAttr(OriginalRank, MPI_INT, 1);
+  RegisterAttr(OriginalOrder, MPI_INT, 1);
   RegisterAttr(TargetRank, MPI_INT, 1);
 #undef RegisterAttr
   assert(i <= NumAttr);
@@ -84,6 +85,16 @@ static void ComputeMPICounts(MpiWorker_t &world, const std::vector<IdRank_t> &Ta
   MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, world.Communicator);
   CompileOffsets(send_counts, send_displacement);
   CompileOffsets(recv_counts, recv_displacement);
+}
+
+inline bool CompHaloFragment_Size(const HaloFragment_t &a, const HaloFragment_t &b)
+{
+  return a.NumberParticles > b.NumberParticles;
+}
+
+inline bool CompHaloFragment_OriginalOrder(const HaloFragment_t &a, const HaloFragment_t &b)
+{
+  return a.OriginalOrder < b.OriginalOrder;
 }
 
 inline bool CompHaloInfo_TargetRank(const HaloFragment_t &a, const HaloFragment_t &b)
@@ -150,15 +161,154 @@ std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const std::vec
   return MergedHaloFragments;
 }
 
+/* Assigns each unique halo to a MPI rank based on a modified rounb-robin scheme.
+ * The assignment tries to keep the total number of FoF particles in a rank to
+ * be close to the average expected number of FoF particles per rank. Nonetheless,
+ * the largest haloes will always be placed in a rank, regardless of whether
+ * it violates the above criterion. */
+std::vector<IdRank_t> RoundRobinAssignment(MpiWorker_t &world, std::vector<HaloFragment_t> &LocalHaloSizes)
+{
+  /* NOTE: this function might become inefficient for large numbers of haloes,
+   * because one rank is tasked with holding all information instead of being
+   * spread across all ranks that we have. We could use batch sort to prevent
+   * this (not implemented in HBT-HERONS yet). */
+
+  /* How many unique FoF groups do we have across all ranks. */
+  std::vector<HBTInt> GlobalNumHalos(world.size(), 0);
+  GlobalNumHalos[world.rank()] = LocalHaloSizes.size();
+  MPI_Allreduce(MPI_IN_PLACE, GlobalNumHalos.data(), world.size(), MPI_HBT_INT, MPI_SUM, world.Communicator);
+
+  /* Create a list of offsets for receiving data in the root rank */
+  HBTInt NHalosTotal = GlobalNumHalos[0];
+  std::vector<int> vector_offset(world.size(), 0);
+  for(int i = 1; i < world.size(); i++)
+  {
+    vector_offset[i] = vector_offset[i-1] + GlobalNumHalos[i-1];
+    NHalosTotal += GlobalNumHalos[i];
+  }
+
+  /* Add warnings because we can only pass INT as count and offset dtype to
+   * MPI_Gatherv. If we have more new subhaloes than INT_MAX per rank or across
+   * all ranks, an overflow will happen. */
+  if (GlobalNumHalos[world.rank()] > INT_MAX)
+   throw runtime_error("Error: in RoundRobinAssignment(). The number of new halos in a single rank is larger than INT_MAX. "
+                       "It will cause required MPI communications to overflow. Please try more MPI threads. Aborting.\n");
+  if (NHalosTotal > INT_MAX)
+    throw runtime_error("Error: in RoundRobinAssignment(). The number of halos across all ranks is larger than INT_MAX. "
+                        "It will cause required MPI communications to overflow. Please try more MPI threads. Aborting.\n");
+
+  /* Convert count and displacement vectors into int. */
+  std::vector<int> recv_counts(GlobalNumHalos.begin(), GlobalNumHalos.end());
+  std::vector<int> recv_disps(vector_offset.begin(), vector_offset.end());
+
+  /* To hold all the sizes of all haloes in the simulation. We only resize in
+   * root rank because that is where the ranking will take place. */
+  std::vector<HaloFragment_t> GlobalHaloSizes;
+  if(world.rank() == 0)
+    GlobalHaloSizes.resize(NHalosTotal);
+
+  /* Gather all into root rank*/
+  MPI_Datatype MPI_HaloFragment_t;
+  create_MPI_HaloInfo_t(MPI_HaloFragment_t);
+  MPI_Gatherv(LocalHaloSizes.data() , LocalHaloSizes.size(), MPI_HaloFragment_t,
+              GlobalHaloSizes.data(), recv_counts.data(), recv_disps.data(), MPI_HaloFragment_t,
+              0, world.Communicator);
+
+  /* We can now do the assignment */
+  if (world.rank() == 0)
+  {
+    int NumProc = world.size();
+
+    /* Store original order and then sort in descending halo size (we start
+     * assigning ranks to the largest haloes first) */
+    HBTInt TotalParticles = 0;
+    for(size_t i = 0; i < GlobalHaloSizes.size(); i++)
+    {
+      GlobalHaloSizes[i].OriginalOrder = i;
+      TotalParticles += GlobalHaloSizes[i].NumberParticles;
+    }
+
+    std::sort(GlobalHaloSizes.begin(), GlobalHaloSizes.end(), CompHaloFragment_Size);
+
+    /* We will try to assign haloes such that the number of particles per MPI
+     * rank remains below or close to this value (ignoring the largest FoFs). */
+    HBTInt MaxPartPerRank = TotalParticles / NumProc;
+    int ThisRank = 0;
+    std::vector<HBTInt> ParticlesOnRank(NumProc, 0);
+    for (size_t i = 0; i < GlobalHaloSizes.size(); i++)
+    {
+      /* We do a round-robin over the ranks. However, if the next rank in the round-robin is
+       * full (MaxPartPerRank) we skip to the next one. If a rank is empty MaxPartPerRank is
+       * ignored so that we can always assign at least one halo per rank so that the biggest
+       * halos can be assigned. */
+      for (int TriedRanks = 0; TriedRanks < NumProc; TriedRanks++)
+      {
+        if((ParticlesOnRank[ThisRank] + GlobalHaloSizes[i].NumberParticles < MaxPartPerRank) \
+        || (ParticlesOnRank[ThisRank] == 0))
+        {
+          GlobalHaloSizes[i].TargetRank = ThisRank;
+          ParticlesOnRank[ThisRank] += GlobalHaloSizes[i].NumberParticles;
+          ThisRank++; // Next group will start with next rank.
+          ThisRank %= NumProc;
+          break;
+        }
+        ThisRank++;
+        ThisRank %= NumProc;
+
+        if(TriedRanks == NumProc)
+        {
+          // Tried all ranks for this halo and couldn't find a place - abort.
+          // This should be impossible.
+          stringstream error_message;
+          error_message << "Failed to distribute group with ID " << GlobalHaloSizes[i].HaloId << "." << endl;
+          error_message << "It has " << GlobalHaloSizes[i].NumberParticles << " particles." << endl;
+          error_message << "Max particles per rank (summed over assigned groups) is set to " << MaxPartPerRank << "." << endl;
+          error_message << "When trying to assign this group, particle load on ranks so far is:" << endl;
+          for(int rank = 0; rank < NumProc; rank++)
+            error_message << "  Rank " << rank << ": " << ParticlesOnRank[rank] << endl;
+
+          throw runtime_error(error_message.str());
+        }
+      }
+    }
+
+    /* Return to original order to scatter back to original tasks. */
+    std::sort(GlobalHaloSizes.begin(), GlobalHaloSizes.end(), CompHaloFragment_OriginalOrder);
+  }
+
+  MPI_Scatterv(GlobalHaloSizes.data(), recv_counts.data()   , recv_disps.data() , MPI_HaloFragment_t,
+               LocalHaloSizes.data() , LocalHaloSizes.size(), MPI_HaloFragment_t, 0, world.Communicator);
+  MPI_Type_free(&MPI_HaloFragment_t);
+
+  std::vector<IdRank_t> TargetTask(LocalHaloSizes.size());
+  for(size_t i = 0; i < LocalHaloSizes.size(); i++)
+  {
+    TargetTask[i].Id = LocalHaloSizes[i].HaloId;
+    TargetTask[i].Rank = LocalHaloSizes[i].TargetRank;
+  }
+  return TargetTask;
+}
+  MPI_Type_free(&MPI_HaloFragment_t);
+}
+
 /* Assigns MPI tasks to haloes so that the number of FoF particles is approximately
  * equal across ranks. */
 static std::vector<IdRank_t> DecideTargetProcessor(MpiWorker_t &world, std::vector<Halo_t> &Halos)
 {
   /* First we compute total FoF group sizes. Note that the ordering and vector
-   * size of HaloSizes and Halos is not the same! */
+   * size of HaloSizes and Halos is not the same, as Halos contains disjoint
+   * FoF fragments but HaloSizes has merged all of them. */
   std::vector<HaloFragment_t> HaloSizes = GetTotalHaloSizes(world, Halos);
-  std::vector<IdRank_t> TargetTask(Halos.size());
-  return TargetTask;
+
+  /* Assign a target MPI rank to haloes based on their size. The resulting vector
+   * has the same global ordering as HaloSizes. */
+  std::vector<IdRank_t> HaloTaskAssignment = RoundRobinAssignment(world, HaloSizes);
+
+  /* We now need to propagate the rank assignment within HaloTaskAssignment to
+   * the disjoint halo fragments. */
+  std::vector<IdRank_t> HaloFragmentTaskAssignment = CommunicateTaskAssignment(world, HaloTaskAssignment, Halos);
+
+  return HaloFragmentTaskAssignment;
 }
 
 /* After communicating disjoint pieces of FoF groups from different MPI ranks,
