@@ -12,20 +12,21 @@ using namespace std;
 
 #include "../../halo.h"
 #include "../../mymath.h"
+#include "../../hash_integers.h"
 #include "../../halo_particle_iterator.h"
 #include "../../particle_exchanger.h"
 
-struct HaloInfo_t
+struct HaloFragment_t
 {
-  HBTInt id;
-  HBTReal m;
-  HBTxyz x;
-  int order;
+  HBTInt HaloId;
+  HBTInt NumberParticles;
+  int OriginalRank;
+  int TargetRank;
 };
 
 static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
 {
-  HaloInfo_t p;
+  HaloFragment_t p;
 #define NumAttr 13
   MPI_Datatype oldtypes[NumAttr];
   int blockcounts[NumAttr];
@@ -44,10 +45,10 @@ static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
     blockcounts[i] = count;                                                                                            \
     i++;                                                                                                               \
   }
-  RegisterAttr(id, MPI_HBT_INT, 1);
-  RegisterAttr(m, MPI_HBT_REAL, 1);
-  RegisterAttr(x[0], MPI_HBT_REAL, 3);
-  RegisterAttr(order, MPI_INT, 1);
+  RegisterAttr(HaloId, MPI_HBT_INT, 1);
+  RegisterAttr(NumberParticles, MPI_HBT_INT, 1);
+  RegisterAttr(OriginalRank, MPI_INT, 1);
+  RegisterAttr(TargetRank, MPI_INT, 1);
 #undef RegisterAttr
   assert(i <= NumAttr);
 
@@ -57,14 +58,37 @@ static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
 #undef NumAttr
 }
 
-inline bool CompHaloInfo_Id(const HaloInfo_t &a, const HaloInfo_t &b)
+/* Populates receive and send count and displacement vectors with the values to
+ * use within MPI.*/
+static void ComputeMPICounts(MpiWorker_t &world, const std::vector<IdRank_t> &TargetRank,
+  std::vector<int> &send_counts, std::vector<int> &send_displacement,
+  std::vector<int> &recv_counts, std::vector<int> &recv_displacement)
 {
-  return a.id < b.id;
+  for (size_t i = 0; i < TargetRank.size(); i++)
+    send_counts[TargetRank[i].Rank]++;
+
+  MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, world.Communicator);
+  CompileOffsets(send_counts, send_displacement);
+  CompileOffsets(recv_counts, recv_displacement);
 }
 
-inline bool CompHaloInfo_Order(const HaloInfo_t &a, const HaloInfo_t &b)
+/* Populates receive and send count and displacement vectors with the values to
+ * use within MPI.*/
+ static void ComputeMPICounts(MpiWorker_t &world, const std::vector<HaloFragment_t> &HaloFragments,
+  std::vector<int> &send_counts, std::vector<int> &send_displacement,
+  std::vector<int> &recv_counts, std::vector<int> &recv_displacement)
 {
-  return a.order < b.order;
+  for (size_t i = 0; i < HaloFragments.size(); i++)
+    send_counts[HaloFragments[i].TargetRank]++;
+
+  MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, world.Communicator);
+  CompileOffsets(send_counts, send_displacement);
+  CompileOffsets(recv_counts, recv_displacement);
+}
+
+inline bool CompHaloInfo_TargetRank(const HaloFragment_t &a, const HaloFragment_t &b)
+{
+  return a.TargetRank < b.TargetRank;
 }
 
 inline bool CompHaloId(const Halo_t &a, const Halo_t &b)
@@ -72,135 +96,69 @@ inline bool CompHaloId(const Halo_t &a, const Halo_t &b)
   return a.HaloId < b.HaloId;
 }
 
-static double ReduceHaloPosition(vector<HaloInfo_t>::iterator it_begin, vector<HaloInfo_t>::iterator it_end, HBTxyz &x)
+/* Gets the total size of haloes. This function returns a vector in which each
+ * halo is only present once across all ranks. */
+std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const std::vector<Halo_t> &Halos)
 {
-  HBTInt i, j;
-  double sx[3], origin[3], msum;
-
-  if (it_begin == it_end)
-    return 0.;
-  if (it_begin + 1 == it_end)
+  /* We store the properties of local halo fragments. */
+  std::vector<HaloFragment_t> DisjointHaloFragments(Halos.size());
+  for (size_t fragment_i = 0; fragment_i < DisjointHaloFragments.size(); fragment_i++)
   {
-    copyHBTxyz(x, it_begin->x);
-    return it_begin->m;
+    /* To get global size of each FoF. */
+    DisjointHaloFragments[fragment_i].HaloId = Halos[fragment_i].HaloId;
+    DisjointHaloFragments[fragment_i].NumberParticles = Halos[fragment_i].Particles.size();
+
+    /* For MPI communications. */
+    DisjointHaloFragments[fragment_i].OriginalRank = world.rank();
+    DisjointHaloFragments[fragment_i].TargetRank = RankFromIdHash(Halos[fragment_i].HaloId, world.size());
   }
 
-  sx[0] = sx[1] = sx[2] = 0.;
-  msum = 0.;
-  if (HBTConfig.PeriodicBoundaryOn)
-    for (j = 0; j < 3; j++)
-      origin[j] = it_begin->x[j];
+  /* Sort vectors according to rank. */
+  std::sort(DisjointHaloFragments.begin(), DisjointHaloFragments.end(), CompHaloInfo_TargetRank);
 
-  for (auto it = it_begin; it != it_end; ++it)
+  /* We obtain counts and offsets for MPI communication. */
+  std::vector<int> SendHaloCounts(world.size()),
+                   RecvHaloCounts(world.size()),
+                   SendHaloDisps (world.size()),
+                   RecvHaloDisps (world.size());
+  ComputeMPICounts(world, DisjointHaloFragments, SendHaloCounts, SendHaloDisps, RecvHaloCounts, RecvHaloDisps);
+
+  /* Collect fragments within their assigned ranks. */
+  size_t TotalRecvCount = std::accumulate(RecvHaloCounts.begin(), RecvHaloCounts.end(), 0);
+  std::vector<HaloFragment_t> MergedHaloFragments(TotalRecvCount);
+  MPI_Datatype MPI_HaloFragment_t;
+  create_MPI_HaloInfo_t(MPI_HaloFragment_t);
+  MPI_Alltoallv(DisjointHaloFragments.data()   , SendHaloCounts.data(), SendHaloDisps.data(), MPI_HaloFragment_t,
+                MergedHaloFragments.data(), RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_HaloFragment_t, world.Communicator);
+  MPI_Type_free(&MPI_HaloFragment_t);
+
+  /* Accumulate the size of unique haloes in this rank. */
+  std::unordered_map<HBTInt, HBTInt> HaloSizes;
+  for (size_t fragment_i = 0; fragment_i < MergedHaloFragments.size(); fragment_i++)
+    HaloSizes[MergedHaloFragments[fragment_i].HaloId] += MergedHaloFragments[fragment_i].NumberParticles;
+
+  /* Assign total sizes to the halo fragments */
+  MergedHaloFragments.resize(HaloSizes.size());
+  size_t fragment_i = 0;
+  for (auto &unique_halo_it: HaloSizes)
   {
-    HBTReal m = it->m;
-    msum += m;
-    for (j = 0; j < 3; j++)
-      if (HBTConfig.PeriodicBoundaryOn)
-        sx[j] += NEAREST(it->x[j] - origin[j]) * m;
-      else
-        sx[j] += it->x[j] * m;
+    MergedHaloFragments[fragment_i].HaloId = unique_halo_it.first;
+    MergedHaloFragments[fragment_i].NumberParticles = unique_halo_it.second;
+    fragment_i++;
   }
 
-  for (j = 0; j < 3; j++)
-  {
-    sx[j] /= msum;
-    if (HBTConfig.PeriodicBoundaryOn)
-    {
-      sx[j] += origin[j];
-      x[j] = position_modulus(sx[j], HBTConfig.BoxSize);
-    }
-    else
-      x[j] = sx[j];
-  }
-  return msum;
+  return MergedHaloFragments;
 }
 
-static void ReduceHaloRank(vector<HaloInfo_t>::iterator it_begin, vector<HaloInfo_t>::iterator it_end, HBTxyz &step,
-                           vector<int> &dims)
+/* Assigns MPI tasks to haloes so that the number of FoF particles is approximately
+ * equal across ranks. */
+static std::vector<IdRank_t> DecideTargetProcessor(MpiWorker_t &world, std::vector<Halo_t> &Halos)
 {
-  HBTxyz x;
-  ReduceHaloPosition(it_begin, it_end, x);
-  int rank = AssignCell(x, step, dims);
-  for (auto it = it_begin; it != it_end; ++it)
-    it->id = rank; // store destination rank in id.
-}
-
-static vector<IdRank_t> DecideTargetProcessor(MpiWorker_t &world, vector<Halo_t> &Halos)
-{
-  int this_rank = world.rank();
-  for (auto &&h : Halos)
-    h.Mass = AveragePosition(h.ComovingAveragePosition, h.Particles.data(), h.Particles.size());
-
-  vector<HaloInfo_t> HaloInfoSend(Halos.size()), HaloInfoRecv;
-  for (HBTInt i = 0; i < Halos.size(); i++)
-  {
-    HaloInfoSend[i].id = Halos[i].HaloId;
-    HaloInfoSend[i].m = Halos[i].Mass;
-    HaloInfoSend[i].x = Halos[i].ComovingAveragePosition;
-  }
-  HBTInt MaxHaloId = 0;
-  if (Halos.size())
-    MaxHaloId = Halos.back().HaloId;
-  MPI_Allreduce(MPI_IN_PLACE, &MaxHaloId, 1, MPI_HBT_INT, MPI_MAX, world.Communicator);
-  HBTInt ndiv = (++MaxHaloId) / world.size();
-  if (MaxHaloId % world.size())
-    ndiv++;
-  vector<int> SendSizes(world.size(), 0), SendOffsets(world.size()), RecvSizes(world.size()), RecvOffsets(world.size());
-  for (HBTInt i = 0; i < Halos.size(); i++)
-  {
-    int idiv = Halos[i].HaloId / ndiv;
-    SendSizes[idiv]++;
-  }
-  CompileOffsets(SendSizes, SendOffsets);
-  MPI_Alltoall(SendSizes.data(), 1, MPI_INT, RecvSizes.data(), 1, MPI_INT, world.Communicator);
-  int nhalo_recv = CompileOffsets(RecvSizes, RecvOffsets);
-  HaloInfoRecv.resize(nhalo_recv);
-  MPI_Datatype MPI_HaloInfo_t;
-  create_MPI_HaloInfo_t(MPI_HaloInfo_t);
-  MPI_Alltoallv(HaloInfoSend.data(), SendSizes.data(), SendOffsets.data(), MPI_HaloInfo_t, HaloInfoRecv.data(),
-                RecvSizes.data(), RecvOffsets.data(), MPI_HaloInfo_t, world.Communicator);
-  for (int i = 0; i < nhalo_recv; i++)
-    HaloInfoRecv[i].order = i;
-  sort(HaloInfoRecv.begin(), HaloInfoRecv.end(), CompHaloInfo_Id);
-  list<int> haloid_offsets;
-  HBTInt curr_id = -1;
-  for (int i = 0; i < nhalo_recv; i++)
-  {
-    if (curr_id != HaloInfoRecv[i].id)
-    {
-      haloid_offsets.push_back(i);
-      curr_id = HaloInfoRecv[i].id;
-    }
-  }
-  haloid_offsets.push_back(nhalo_recv);
-  // combine coordinates and determine target
-  auto dims = ClosestFactors(world.size(), 3);
-  HBTxyz step;
-  for (int i = 0; i < 3; i++)
-    step[i] = HBTConfig.BoxSize / dims[i];
-  auto it_end = haloid_offsets.end();
-  --it_end;
-  for (auto it = haloid_offsets.begin(); it != it_end; it++)
-  {
-    auto it_next = it;
-    ++it_next;
-    ReduceHaloRank(HaloInfoRecv.begin() + *it, HaloInfoRecv.begin() + *it_next, step, dims);
-  }
-  sort(HaloInfoRecv.begin(), HaloInfoRecv.end(), CompHaloInfo_Order);
-  // send back
-  MPI_Alltoallv(HaloInfoRecv.data(), RecvSizes.data(), RecvOffsets.data(), MPI_HaloInfo_t, HaloInfoSend.data(),
-                SendSizes.data(), SendOffsets.data(), MPI_HaloInfo_t, world.Communicator);
-  MPI_Type_free(&MPI_HaloInfo_t);
-
-  vector<IdRank_t> TargetRank(Halos.size());
-  for (HBTInt i = 0; i < TargetRank.size(); i++)
-  {
-    TargetRank[i].Id = i;
-    TargetRank[i].Rank = HaloInfoSend[i].id;
-  }
-  std::sort(TargetRank.begin(), TargetRank.end(), CompareRank);
-  return TargetRank;
+  /* First we compute total FoF group sizes. Note that the ordering and vector
+   * size of HaloSizes and Halos is not the same! */
+  std::vector<HaloFragment_t> HaloSizes = GetTotalHaloSizes(world, Halos);
+  std::vector<IdRank_t> TargetTask(Halos.size());
+  return TargetTask;
 }
 
 /* After communicating disjoint pieces of FoF groups from different MPI ranks,
@@ -256,7 +214,6 @@ void ExchangeHaloProperties(MpiWorker_t &world, const std::vector<IdRank_t> &Tar
 /* Communicates the particles of each FoF group segment to its assigned rank. */
 void ExchangeHaloParticles(MpiWorker_t &world, std::vector<IdRank_t> &TargetRank,
                            std::vector<Halo_t> &InHalosSorted, std::vector<Halo_t> &OutHalos,
-                            //  std::vector<Halo_t>::iterator NewHalos,
                            std::vector<int> &SendHaloDisps, std::vector<int> &SendHaloCounts,
                            std::vector<int> &RecvHaloDisps, std::vector<int> &RecvHaloCounts)
 {
@@ -300,21 +257,6 @@ void ExchangeHaloParticles(MpiWorker_t &world, std::vector<IdRank_t> &TargetRank
   MyAllToAll<Particle_t, ParticleIterator_t, ParticleIterator_t>(world, InParticleIterator, InParticleCount,
                                                                  OutParticleIterator, MPI_HBT_Particle);
   MPI_Type_free(&MPI_HBT_Particle);
-}
-
-/* Populates receive and send count and displacement vectors with the values to
- * use within MPI.*/
-static void ComputeMPICounts(MpiWorker_t &world, const std::vector<IdRank_t> &TargetRank,
-                             std::vector<int> &send_counts, std::vector<int> &send_displacement,
-                             std::vector<int> &recv_counts, std::vector<int> &recv_displacement)
-{
-  for (size_t i = 0; i < TargetRank.size(); i++)
-    send_counts[TargetRank[i].Rank]++;
-
-  MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, world.Communicator);
-
-  CompileOffsets(send_counts, send_displacement);
-  CompileOffsets(recv_counts, recv_displacement);
 }
 
 static void ExchangeHaloFragments(MpiWorker_t &world, std::vector<Halo_t> &InHalos)
