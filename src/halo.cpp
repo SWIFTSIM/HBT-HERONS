@@ -63,9 +63,16 @@ void HaloSnapshot_t::BuildMPIDataType()
 {
   create_MPI_Halo_Id_type(MPI_HBT_HaloId_t);
 }
+
+/* Updates the properties of particles that are a part of a loaded FoF group */
 void HaloSnapshot_t::UpdateParticles(MpiWorker_t &world, const ParticleSnapshot_t &snap)
 {
   Cosmology = snap.Cosmology;
+
+  /* This only triggers if the FoF particle information we loaded does not
+   * contain all of the required particle properties (masses, coordinates, etc).
+   * If not, we need to match FoF particles with the snapshot particles to get
+   * them. */
   if (!HBTConfig.GroupLoadedFullParticle)
   {
     HaloList_t LocalHalos;
