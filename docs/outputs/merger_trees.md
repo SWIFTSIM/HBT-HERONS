@@ -166,7 +166,7 @@ The `disrupted_progenitors` array contains a `TrackId` for each subhalo that dis
 
 The sinking of a subhalo refers to process of its core becoming indistinguishable in phase-space from the core of another subhalo, whilst both remain self-bound. The coalescence occurs as dynamical friction makes the core of the least massive of the pair to "sink" towards the core of more massive one. As the efficiency of dynamical friction increases when the masses of both subhaloes becomes comparable, sinking only happens for non-negligible mass ratios.
 
-Formally, HBT-HERONS checks the phase-space offset between the cores of subhaloes that have a hierarchical connection. If it identifies them to be within a threshold distance, HBT-HERONS flags the least massive of the two as being sunk and removes it from the simulation. The `TrackId` of the most massive of the two is assigned as the `SinkTrackId` of the subhalo that sunk.
+Formally, HBT-HERONS checks the phase-space offset between the cores of subhaloes that have a hierarchical connection. If it identifies them to be within a threshold distance, HBT-HERONS flags the least massive of the two as being sunk and converts it to an orphan subhalo. The `TrackId` of the most massive of the two is assigned as the `SinkTrackId` of the subhalo that sunk.
 
 <h4>Code example</h4>
 
