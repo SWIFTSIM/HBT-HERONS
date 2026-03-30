@@ -30,8 +30,8 @@ Different ways to quantify how massive a subhalo is.
 | :------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
 |                `Nbound`                 | The total number of particles bound to the subhalo.                                                                                                 |
 |                `Mbound`                 | The total mass of particles bound to the subhalo.                                                                                                   |
-|              `NboundType`               | The total number of particles bound to the subhalo, classifed according to their particle type.                                                     |
-|              `MboundType`               | The total mass of particles bound to the subhalo, classifed according to their particle type.                                                       |
+|              `NboundType`               | The total number of particles bound to the subhalo, classified according to their particle type.                                                     |
+|              `MboundType`               | The total mass of particles bound to the subhalo, classified according to their particle type.                                                       |
 |             `VmaxPhysical`              | The maximum value of the circularised rotation curve of the subhalo. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.                                                                            |
 |             `BoundM200Crit`             | Mass of a region with a spherical overdensity of 200 times the critical density of the universe. Only bound mass is included and only for centrals. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`. |
 
@@ -104,9 +104,9 @@ The second type of property corresponds to key events in the evolution of a subh
 |         `SnapshotOfBirth`          | The output when the subhalo was first identified.                      |
 |          `SnapshotOfSink`          | If the subhalo has [sunk](../outputs/merger_trees.md/#subhalo-sinking), the output when that happened. If it has not sunk, it equals -1. |
 |         `SnapshotOfDeath`          | If the subhalo has sunk or disrupted, the output when that happened. If neither has happened, it equals -1. |
-|     `SnapshotOfLastIsolation`      | If the subhalo has ever been a satellite, the output before it ever became a satellite for the first time. If it has always been a central subhalo, it equals -1.    |
-|      `SnapshotOfLastMaxVmax`       | The output when the subhalo reached its maximum value of VmaxPhysical. |
-|      `SnapshotOfLastMaxMass`       | The output when the subhalo reached its maximum value of Mbound        |
+|     `SnapshotOfLastIsolation`      | If the subhalo has ever been a satellite, the most recent output when this object was a central subhalo. Note that this is not always the same as the output before a subhalo became a satellite for the first time. If it has always been a central subhalo, it equals -1.    |
+|      `SnapshotOfLastMaxVmax`       | The output when the subhalo reached its maximum value of `VmaxPhysical`. |
+|      `SnapshotOfLastMaxMass`       | The output when the subhalo reached its maximum value of `Mbound`.        |
 |              `LastMaxMass`              | The maximum mass that the subhalo has reached so far.                  |
 |          `LastMaxVmaxPhysical`          | The maximum VmaxPhysical that the subhalo has reached so far.          |
 
@@ -146,4 +146,4 @@ All timestamps are provided in nanoseconds since the beginning of the analysis t
 | `StartCentreRefinement`                           | Time when the subhalo centre refinement started. It equals `-1` if no refinement is done, e.g. for any subhaloes with $N_{\rm bound} \leq N_{\rm subsample}$ or for runs with no subsampling (`MaxSampleSizeOfPotentialEstimate = -1`). |
 | `EndCentreRefinement`                           |  Time when the subhalo centre refinement finished. It equals `-1` if no refinement is done, e.g. for any subhaloes with $N_{\rm bound} \leq N_{\rm subsample}$ or for runs with no subsampling (`MaxSampleSizeOfPotentialEstimate = -1`). |
 | `StartPhaseSpace`                   | Time when the calculation of the phase-space location of the subhalo started. It equals `-1` if no phase-space calculations are done, e.g. for any orphan subhaloes. |
-| `EndPhaseSpace`                   | Time when the calculation of the phase-space location of the subhalo fnished. It equals `-1` if no phase-space calculations are done, e.g. for any orphan subhaloes. |
+| `EndPhaseSpace`                   | Time when the calculation of the phase-space location of the subhalo finished. It equals `-1` if no phase-space calculations are done, e.g. for any orphan subhaloes. |
