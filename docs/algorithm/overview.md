@@ -4,7 +4,6 @@
 
     The algorithm section is currently under construction, and will contain detailed information and visualisations about the internal HBT-HERONS algorithm. Planned sections beyond those already existing:
 
-    * Assignment of host haloes
     * Identification of central subhaloes
     * Diffuse mass accretion
     * Subhalo sinking
