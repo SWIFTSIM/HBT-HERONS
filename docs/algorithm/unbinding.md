@@ -1,4 +1,4 @@
-# Unbinding
+# Subhalo unbinding
 
 Identifying which particles are bound to a subhalo is known as "unbinding". The name reflects the fact that we begin the analysis of a subhalo with a set of particles that generally includes unbound particles. We clean that set of particles by [identifying which particles are bound](#binding-energies) and removing unbound ones.
 
