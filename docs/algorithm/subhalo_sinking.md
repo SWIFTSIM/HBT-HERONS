@@ -30,9 +30,13 @@ $$
 
 For the reasons provided at the beginning of this section, making $N_{\rm core} = 1$ or $N_{\rm core} \approx N_{\rm bound}$ is discouraged. HBT-HERONS uses a default of $N^{\rm min}_{\rm core} = 20$ and $f_{\rm core} = 0$, but see [here](./parameter_choices.md/#mincoresize) to see the effect of changing $N^{\rm min}_{\rm core}$.
 
+<h4>Orphan subhaloes</h4>
+
+For an orphan subhalo, we use as its phase-space coordinates the position and velocity of its tracer particle, which is the most bound tracer particle when the orphan subhalo were last resolved. We do not associate a phase-space dispersion to orphan subhaloes like for resolved subhaloes, because it is undefined for a single particle.
+
 ## Flagging overlaps
 
-Two subhaloes ($i$, $j$) with masses $m_{i} \geq m_{j}$ overlap if their centres are separated in phase-space by less than the phase-space dispersion of their cores:
+Two subhaloes ($i$, $j$) with masses $m_{i} \geq m_{j}$ and $m_{i} > 0$ overlap if their centres are separated in phase-space by less than the phase-space dispersion of their cores:
 
 $$
 \Delta \equiv \min(\Delta_{ij},\Delta_{ji}) \leq 2,
@@ -46,12 +50,18 @@ $$
 
 The difference between $\Delta_{ij}$ and $\Delta_{ji}$ is that the first expression uses the core dispersion of the most massive subhalo of the pair, whereas the second expression uses the core dispersion of the least massive subhalo of the pair. One may expect the more massive subhalo to have a larger phase-space dispersion that the lower mass one, e.g. the gravitational potential is deeper and the particle velocities are therefore larger. This is indeed typically the case, but there are a small number of cases in which the lower mass subhalo has a larger dispersion, like when it is close to the resolution limit of the simulation. To not miss these cases and delay the merging of overlapping subhaloes, we choose the smallest phase-space offset.
 
+<h4>Orphan subhaloes</h4>
+
+HBT-HERONS still checks whether orphan subhaloes overlap in phase-space with resolved subhaloes, but since orphan subhaloes have no assigned position or velocity dispersion, only $\Delta_{ij}$ is used.
+
+An orphan subhalo that overlaps with a resolved subhalo is part of an **unresolved sinking event**. The term reflects the fact that the orphan subhalo has to have experienced dynamical friction before it disrupted, as otherwise it is unlikely to overlap in phase-space with the core of a resolved subhalo, but it did not contain sufficient particles to survive the tides experienced during the sinking process. In other words, if the resolution of the simulation was to be increased, these unresolved sinking events would simply become sinking events. These events can be identified by can be identified by `SnapshotOfSink > SnapshotOfDeath != -1`.
+
 ## Merging subhaloes
 
 HBT-HERONS checks whether subhaloes overlap in phase-space inmediately after subjecting a subhalo to the iterative unbinding procedure. It does so by computing the phase-space offset between the current subhalo and all of the subhaloes contained deeper within its hierarchy tree. This means that subhalo sinking can only happen between subhaloes that fell in as a group, since hierarchical connections need to exist between them.
 
 Any subhalo that satisfies $\Delta \leq 2$ is flagged as sunk (`SnapshotOfSink != -1`), and all of its bound particles (if any) are acquired by the most massive subhalo of the pair. To account for the potential accretion of new mass from the sunk subhalo, HBT-HERONS triggers a re-unbinding of the subhalo with which the subhalo sunk to.
 
-!!! warning
+<h4>Orphan subhaloes</h4>
 
-    Poorly resolved systems can also undergo unresolved sinking events. This happens if the subhalo that is sinking towards the centre disrupts before the sinking is complete. These "unresolved" sinking events can be identified by `SnapshotOfSink > SnapshotOfDeath != -1`.
+Orphan subhaloes have no bound mass, so the subhalo they have sunk to does not acquire any new particles from the orphan subhalo.

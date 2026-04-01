@@ -105,7 +105,7 @@ Various options that tell the code how to do the unbinding, the subhalo self-bou
 
 | <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
-| `SubCoreSizeMin`                                | 20 | The minimum number of most bound particles used to calculate the phase-space coordinates and dispersion associated with the core of resolved subhaloes. For orphan subhaloes, it will always be its tracer particle due to a lack of bound particles.                   |
+| `SubCoreSizeMin`                                | 20 | The minimum number of most bound particles used to calculate the phase-space coordinates and dispersion associated with the core of resolved subhaloes.                   |
 | `SubCoreSizeFactor`                              | 0.0 | The fraction of most bound particles used to calculate the phase-space coordinates and dispersion associated with the core of resolved subhaloes. If this value is less than `SubCoreSizeMin`, it is the value specified in `SubCoreSizeMin` that it is used. |
 | `MergeTrappedSubhalos`                  | 1 |  Boolean indicating whether to manually merge self-bound subhaloes that overlap in phase-space. Recommended to always leave on to prevent overlapping subhaloes. |
 
