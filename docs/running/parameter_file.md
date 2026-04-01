@@ -101,6 +101,14 @@ Various options that tell the code how to do the unbinding, the subhalo self-bou
 | `RefineMostBoundParticle`                           | 1 | If the self-binding energy of the most bound subset of particles should be computed after unbinding the subhalo. This step is done to better identify the most bound particle if potential subsampling was enabled. |
 | `BoundFractionCenterRefinement`                     | 0.1 | Fraction of the most bound particles whose self-binding energies are computed to better estimate the most bound particle. The actual value is `max(MaxSampleSizeOfPotentialEstimate, BoundFractionCenterRefinement)` |
 
+### Sinking
+
+| <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
+| :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
+| `SubCoreSizeMin`                                | 20 | The minimum number of most bound particles used to calculate the phase-space coordinates and dispersion associated with the core of resolved subhaloes.                   |
+| `SubCoreSizeFactor`                              | 0.0 | The fraction of most bound particles used to calculate the phase-space coordinates and dispersion associated with the core of resolved subhaloes. If this value is less than `SubCoreSizeMin`, it is the value specified in `SubCoreSizeMin` that it is used. |
+| `MergeTrappedSubhalos`                  | 1 |  Boolean indicating whether to manually merge self-bound subhaloes that overlap in phase-space. Recommended to always leave on to prevent overlapping subhaloes. |
+
 ### Tracking
 
 Parameters relating to the tracking and merging of subhaloes, as well as the criteria used to determine if a subhalo is self-bound or not.
@@ -112,7 +120,6 @@ Parameters relating to the tracking and merging of subhaloes, as well as the cri
 | `MinNumTracerPartOfSub`                  | 10 |   Minimum number of bound particles required for a subhalo to be resolved, of the chosen tracer particle types. |
 | `NumTracerHostFinding`                  | 10 |   How many most bound tracer particles are used to identify the host FoF group of subhaloes. The weighting of each particle reflects their binding energy ordering in the previous output. |
 | `NumTracersForDescendants`              | 10 |  How many most bound tracer particles are used to identify which subhalo has accreted the core of subhaloes that have disrupted in the current snapshot. |
-| `MergeTrappedSubhalos`                  | 1 |  Whether to manually merge self-bound subhaloes that overlap in phase-space. Recommended to always leave on to prevent overlapping subhaloes. |
 | `MajorProgenitorMassRatio`              | 0.8 |  The threshold used to identify which subhaloes are central candidates within a Friends of Friends group. Expressed relative to the previous bound mass of the most massive subhalo in said host FoF group. |
 | `ReassignParticles`              | - |  If gas particles will be re-attached to a new subgroup if they are sufficiently far away from their assigned subhalo. **Defaults to being enabled in hydrodynamical runs.** |
 
