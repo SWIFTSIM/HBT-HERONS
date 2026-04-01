@@ -2,7 +2,7 @@
 
 Subhaloes grow in mass either by accreting diffuse mass (e.g. by stripping mass from less massive subhaloes) or by merging (e.g. by coalescing in phase-space with neighbouring subhaloes). HBT-HERONS identifies which of these two mass growth modes a subhalo has experienced throughout its evolution. This page describes the algorithm used to determine whether two subhaloes have coalesced in phase-space, which is termed as **subhalo sinking**.
 
-The systems where subhalo sinking happens are those in which dynamical friction is non-neglibible, i.e. during major mergers, because one of the subhaloes needs to lose sufficient orbital kinetic energy to coalesce with the neighbouring subhalo. In the frame of reference of the most massive subhalo, it appears as if the lower mass subhalo "sinks" towards its centre, hence the name "subhalo sinking".
+The systems where subhalo sinking happens are those in which dynamical friction is non-negligible, i.e. during major mergers, because one of the subhaloes needs to lose sufficient orbital kinetic energy to coalesce with the neighbouring subhalo. In the frame of reference of the most massive subhalo, it appears as if the lower mass subhalo "sinks" towards its centre, hence the name "subhalo sinking".
 
 In this page, we define how the phase-space location of subhaloes is defined, the metric used to identify whether subhaloes overlap in phase-space, and what happens if so.
 
@@ -10,19 +10,19 @@ In this page, we define how the phase-space location of subhaloes is defined, th
 
 To determine if subhaloes overlap with each other, we need to assign each of them a phase-space position. There are different choices available, like using the position and velocity of the most bound particle or of the centre of mass of all bound particles. Using a single particle is a noisy estimate, but using the centre of mass of all bound particles may result in a systematically offset position for disturbed subhaloes (as one would expect for those involved in a sinking event).
 
-HBT-HERONS thus defines the phase-space location of a subhalo using the centre of mass position and velocity of the $N_{\rm core}$ most bound particles:
+HBT-HERONS thus defines the phase-space location of a subhalo using the centre of mass position and velocity of the $N_{\rm core}$ most bound tracer particles:
 
 $$
 \vec{x}_{\rm core} = \dfrac{\sum \vec{x}_{i}m_{i}}{\sum m_{i}} \; \;\; \;\mathrm{and}  \; \;\; \; \vec{v}_{\rm core} = \dfrac{\sum \vec{v}_{i}m_{i}}{\sum m_{i}}.
 $$
 
-The idea is that this estimate represents the phase-space position of the *subhalo core*. However, since we want to evaluate whether two subhaloes overlap in phase-space, we need to associate an "uncertainty" to the measured position and velocity of the subhalo core. Is it the gravitational softening length? A multiple of the half-mass radius? HBT-HERONS uses the position and velocity dispersion of the $N_{\rm core}$ most bound particles as "uncertainty", i.e.
+The idea is that this estimate represents the phase-space position of the *subhalo core*. However, since we want to evaluate whether two subhaloes overlap in phase-space, we need to associate an "uncertainty" to the measured position and velocity of the subhalo core. Possible values could be the gravitational softening length or a multiple of the half-mass radius, but HBT-HERONS uses the position and velocity dispersion of the $N_{\rm core}$ most bound tracer particles as "uncertainty", i.e.
 
 $$
 \sigma_{x} = \sqrt{ \dfrac{\sum m_{i}|\vec{x}_{i} - \vec{x}_{\rm core} |^{2}}{\sum m_{i}}} \; \;\; \;\mathrm{and}  \; \;\; \; \sigma_{v} = \sqrt{ \dfrac{\sum m_{i}|\vec{v}_{i} - \vec{v}_{\rm core} |^{2}}{\sum m_{i}}} .
 $$
 
-The number of most bound particles that contribute to the sums defined above is determined by a combination of the user-defined values of $N^{\rm min}_{\rm core}$ ([`SubCoreSizeMin`](../running/parameter_file.md#sinking)) and $f_{\rm core}$ ([`SubCoreSizeFactor`](../running/parameter_file.md#sinking)):
+The number of most bound tracer particles that contribute to the sums defined above is determined by a combination of the user-defined values of $N^{\rm min}_{\rm core}$ ([`SubCoreSizeMin`](../running/parameter_file.md#sinking)) and $f_{\rm core}$ ([`SubCoreSizeFactor`](../running/parameter_file.md#sinking)):
 
 $$
 N_{\rm core} = \max(N^{\rm min}_{\rm core}, f_{\rm core}N_{\rm bound}).
