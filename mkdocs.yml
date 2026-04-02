@@ -57,6 +57,7 @@ nav:
       - ./algorithm/overview.md
       - ./algorithm/friends_of_friends.md
       - ./algorithm/host_haloes.md
+      - ./algorithm/subhalo_hierarchy.md
       - ./algorithm/unbinding.md
       - ./algorithm/subhalo_sinking.md
       - ./algorithm/parameter_choices.md

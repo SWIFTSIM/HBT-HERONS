@@ -12,6 +12,7 @@ Each of the key steps and data used within the HBT-HERONS algorithm are explaine
 
 * [Halo catalogue](./friends_of_friends.md)
 * [Host haloes](./host_haloes.md)
+* [Subhalo hierarchy](./subhalo_hierarchy.md)
 * [Subhalo unbinding](./unbinding.md)
 * [Subhalo sinking](./subhalo_sinking.md)
 
