@@ -4,7 +4,6 @@
 
     The algorithm section is currently under construction, and will contain detailed information and visualisations about the internal HBT-HERONS algorithm. Planned sections beyond those already existing:
 
-    * Identification of central subhaloes
     * Diffuse mass accretion
     * Mass stripping
 
@@ -12,6 +11,7 @@ Each of the key steps and data used within the HBT-HERONS algorithm are explaine
 
 * [Halo catalogue](./friends_of_friends.md)
 * [Host haloes](./host_haloes.md)
+* [Subhalo hierarchy](./subhalo_hierarchy.md)
 * [Subhalo unbinding](./unbinding.md)
 * [Subhalo sinking](./subhalo_sinking.md)
 
