@@ -14,7 +14,7 @@ Accretion of diffuse mass by the central subhalo happens before unbinding, meani
 HBT-HERONS does this by identifying a mass threshold above which subhaloes are considered to be central candidates. The threshold is based on the most massive subhalo of the current halo in the previous output. HBT-HERONS uses the bound mass from the previous output because no unbinding has been performed yet, so masses at the current output are unknown. Thus, the threshold mass is:
 
 $$
-M_{\rm threshold} = f_{\rm major}M_{\rm 0}\,,
+M_{\rm threshold} = f_{\rm major}M_{\rm 0},
 $$
 
 where $f_{\rm major}$ is a user-defined parameter and $M_{\rm 0}$ the bound mass of the most massive subhalo of the current halo in the previous output. The effect of varying the value of $f_{\rm major}$ can be seen [here](./parameter_choices.md#majorprogenitormassratio).
