@@ -1,6 +1,6 @@
 # Subhalo merger trees
 
-The history-based approach of HBT-HERONS means that the evolution of subhaloes is tracked simultaneously with their identification in each simulation output. No additional algorithm is therefore required to link subhaloes forward in time, because the information required to build merger trees is already contained within the catalogues.
+The history-based approach of HBT-HERONS means that the evolution of subhaloes is tracked simultaneously with their identification in each simulation output. No additional algorithm is therefore required to find subhalo progenitors or descendants, because the information required to build merger trees is already contained within the catalogues.
 
 ## Main evolutionary branch
 
@@ -26,7 +26,7 @@ The subhaloes where this descendant entry should be used can be identified by `S
 
 Subhaloes that are found to overlap in phase-space with the core of another resolved subhalo of `TrackId` store this value as `SinkTrackId`. Contrary to `DescendantTrackId`, the value of `SinkTrackId` can never be `-1`, because sinking needs another existing subhalo to serve as a reference for the phase-space overlap. This means that subhaloes that have sunk can be selected via `SinkTrackId != -1` or `SnapshotOfSink != -1`.
 
-The subhaloes where this descendant entry should be used can be identified by `SnapshotOfDeath = SnapshotOfSink != -1`. Note that HBT-HERONS also computes a `DescendantTrackId` at this time because the subhalo becomes an orphan (see [unusual descendants](#unusual-descendants)).
+The subhaloes where this descendant entry should be used can be identified by `SnapshotOfDeath = SnapshotOfSink != -1`. Note that HBT-HERONS also computes a `DescendantTrackId` at this time because the subhalo becomes an orphan. The `DescendantTrackId` is the same as `SinkTrackId` in $\approx 99.9\%$ of sinking events, with the discrepant values explained in [unusual descendants](#unusual-descendants).
 
 ## Important considerations
 
@@ -38,7 +38,7 @@ Beyond disruption and sinking, subhaloes may also become orphans through a third
 
 The "unresolved" qualifier reflects the fact that, if the resolution of the simulation were to be increased, these subhaloes would sink before disrupting. This expectation stems from the fact that dynamical friction in the associated orbital system must be efficient enough for the sinking process to occur, as otherwise it is unlikely for the phase-space overlap to happen. Hence, increasing the resolution will make the subhalo more resilient to disruption before the sinking is complete.
 
-For these instances, we recommend using as the subhalo descendant the value provided in `DescendantTrackId`, and not the one in `SinkTrackId`.
+For these instances, we recommend using as the subhalo descendant the value provided in `DescendantTrackId`, and not the one in `SinkTrackId` (they have the same value for $\approx80\%$ of unresolved sinking events).
 
 ### Unusual descendants
 
@@ -49,7 +49,7 @@ Although we make specific recommendations of which entry to use depending on how
 | <div style="width:75px">Description</div> | <div style="width:70">Mask</div> |<div style="width:100px">Statistics</div> |
 | :-------------------------------------- | :---- | :-------------------------------------------------------------------------------------------------------------- |
 | The subhalo **disrupts** but the majority of its core is not bound to any subhalo. | `DescendantTrackId = -1 &` <br>`SinkTrackId = -1`                                                      | $20\%$ of all orphan subhaloes. |
-| The subhalo **sinks** but the majority of its core is bound to a different subhalo from the one it sunk to. | `DescendantTrackId != SinkTrackId & SinkTrackId != -1`                                                      | $0.01\%$ of all orphan subhaloes. |
+| The subhalo **sinks** but the majority of its core is bound to a different subhalo from the one it sunk to. | `DescendantTrackId != SinkTrackId &` <br> `DescendantTrackId != -1 & SinkTrackId != -1`                                                      | $0.01\%$ of all orphan subhaloes. |
 | The subhalo **sinks** but the majority of its core is not bound to any subhalo. | `DescendantTrackId = -1 &`  <br>  `SinkTrackId != -1`                                                      |$0.0001\%$ of all orphan subhaloes.  |
 
 ### Re-resolving orphans
