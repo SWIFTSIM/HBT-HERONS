@@ -7,13 +7,14 @@
     * Diffuse mass accretion
     * Mass stripping
 
-Each of the key steps and data used within the HBT-HERONS algorithm are explained in detail in the following pages:
+Each of the key steps, data and concepts used within the HBT-HERONS algorithm are explained in the following pages:
 
 * [Halo catalogue](./friends_of_friends.md)
 * [Host haloes](./host_haloes.md)
 * [Subhalo hierarchy](./subhalo_hierarchy.md)
 * [Subhalo unbinding](./unbinding.md)
 * [Subhalo sinking](./subhalo_sinking.md)
+* [Subhalo merger trees](./subhalo_merger_trees.md)
 
 Several free parameters are involved in one or more of the above steps. The default values the code uses are chosen to produce sensible results. Nonetheless provide a [series of tests](./parameter_choices.md) of how changing the subhalo tracking and unbinding parameters affect subhalo-related statistics.
 
