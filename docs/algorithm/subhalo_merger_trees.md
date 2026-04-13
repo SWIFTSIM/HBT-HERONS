@@ -38,7 +38,7 @@ Beyond disruption and sinking, subhaloes may also become orphans through a third
 
 The "unresolved" qualifier reflects the fact that, if the resolution of the simulation were to be increased, these subhaloes would sink before disrupting. This expectation stems from the fact that dynamical friction in the associated orbital system must be efficient enough for the sinking process to occur, as otherwise it is unlikely for the phase-space overlap to happen. Hence, increasing the resolution will make the subhalo more resilient to disruption before the sinking is complete.
 
-For these instances, we recommend using as the subhalo descendant the value provided in `DescendantTrackId`, and not the one in `SinkTrackId` (they have the same value for $\approx80\%$ of unresolved sinking events).
+For these instances, we recommend using as the subhalo descendant the value provided in `DescendantTrackId`, and not the one in `SinkTrackId` (they have the same value for $\approx90\%$ of unresolved sinking events).
 
 ### Unusual descendants
 
