@@ -15,7 +15,8 @@ We have generated an example HBT-HERONS catalogue from a dark-matter-only simula
 To download, run the following:
 
 ```bash
-tar -xzvf sorted_catalogues.tar.gz
+wget https://hbt-herons.strw.leidenuniv.nl/data/ExampleCatalogues.tar.gz
+tar -xzvf ExampleCatalogues.tar.gz
 ```
 
 Once unzipped, there will be two directories:
