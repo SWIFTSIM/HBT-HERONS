@@ -71,7 +71,11 @@ nav:
       - ./outputs/format.md
       - ./outputs/timing.md
       - ./outputs/subhalo_properties.md
-      - ./outputs/merger_trees.md
+  - Examples:
+      - ./examples/overview.md
+      - ./examples/population_level_statistics.md
+      - ./examples/internal_halo_population.md
+      - ./examples/merger_trees.md
 
 repo_url: https://github.com/SWIFTSIM/HBT-HERONS
 repo_name: SWIFTSIM/HBT-HERONS
