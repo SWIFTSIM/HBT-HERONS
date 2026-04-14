@@ -40,12 +40,22 @@ In any case, it is easy to make the bound mass function at a given redshift of i
 
     ```python
     import sys
-    sys.path.append("<HBT-HERONS_PATH>/toolbox")
+    sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
     from HBTReader import HBTReader
+    import matplotlib.pyplot as plt
 
-    # The reader will parse the base folder and parameter file to identify number
-    # of outputs and if any are missing.
-    catalogue = HBTReader("<HBT-HERONS_CATALOGUE_BASE_PATH>")
+    catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
+    Mbound = catalogue.LoadSubhalos(property_selection=["Mbound"]) * catalogue.get_mass_units()
+
+    # Make the plot
+    fig, ax1 = plt.subplots(1)
+    ax1.plot(np.sort(Mbound)[::-1], np.arange(len(Mbound)) + 1, label="All subhaloes")
+    ax1.set_yscale("log")
+    ax1.set_xscale("log")
+    ax1.set_xlabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
+    ax1.set_ylabel(r"$N(\geq M_{\rm bound})$")
+    ax1.legend()
+    plt.show()
     ```
 ??? abstract "Bonus: the mass function of hostless subhaloes"
 
@@ -88,12 +98,32 @@ In any case, it is easy to make the bound mass function at a given redshift of i
 
         ```python
         import sys
-        sys.path.append("<HBT-HERONS_PATH>/toolbox")
+        sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
         from HBTReader import HBTReader
+        import matplotlib.pyplot as plt
 
-        # The reader will parse the base folder and parameter file to identify number
-        # of outputs and if any are missing.
-        catalogue = HBTReader("<HBT-HERONS_CATALOGUE_BASE_PATH>")
+        # Open catalogue for this HBT-HERONS run
+        catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
+
+        # Load required data
+        subhalo_data = catalogue.LoadSubhalos(property_selection=["Mbound", "HostHaloId"])
+        Mbound     = subhalo_data["Mbound"] * catalogue.get_mass_units()
+        HostHaloId = subhalo_data["HostHaloId"]
+
+        # Identify which subhaloes are hostless and get their bound mass
+        hostless_subhaloes_mask = HostHaloId == -1
+        Mbound_hostless = Mbound[hostless_subhaloes_mask]
+
+        # Make the plot
+        fig, ax1 = plt.subplots(1)
+        ax1.plot(np.sort(Mbound)[::-1], np.arange(len(Mbound)) + 1, label="All subhaloes")
+        ax1.plot(np.sort(Mbound_hostless)[::-1], np.arange(len(Mbound_hostless)) + 1, label="Hostless subhaloes")
+        ax1.set_yscale("log")
+        ax1.set_xscale("log")
+        ax1.set_xlabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
+        ax1.set_ylabel(r"$N(\geq M_{\rm bound})$")
+        ax1.legend()
+        plt.show()
         ```
 
 ## Peak mass function
@@ -135,12 +165,25 @@ One may also make the peak maximum velocity function, by using `LastMaxVmaxPhysi
 
     ```python
     import sys
-    sys.path.append("<HBT-HERONS_PATH>/toolbox")
+    sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
     from HBTReader import HBTReader
+    import matplotlib.pyplot as plt
 
-    # The reader will parse the base folder and parameter file to identify number
-    # of outputs and if any are missing.
-    catalogue = HBTReader("<HBT-HERONS_CATALOGUE_BASE_PATH>")
+    # Open catalogue for this HBT-HERONS run
+    catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
+
+    # Load required data
+    Mpeak = catalogue.LoadSubhalos(property_selection=["LastMaxMass"]) * catalogue.get_mass_units()
+
+    # Make the plot
+    fig, ax1 = plt.subplots(1)
+    ax1.plot(np.sort(Mpeak )[::-1], np.arange(len(Mpeak )) + 1, label="All subhaloes")
+    ax1.set_yscale("log")
+    ax1.set_xscale("log")
+    ax1.set_xlabel(r"$M_{\rm peak} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
+    ax1.set_ylabel(r"$N(\geq M_{\rm peak})$")
+    ax1.legend()
+    plt.show()
     ```
 
 ??? abstract "Bonus: the peak mass function of orphan subhaloes"
@@ -164,7 +207,7 @@ One may also make the peak maximum velocity function, by using `LastMaxVmaxPhysi
             mass_units = catalogue["Units/MassInMsunh"][0]
             Mpeak = catalogue["Subhalos/LastMaxMass"][()] * mass_units
 
-            # Identify curren orphan subhaloes and get their peak bound mass.
+            # Identify current orphan subhaloes and get their peak bound mass.
             orphan_subhaloes_mask = catalogue["Subhalos/SnapshotOfDeath"][()] != -1
             Mpeak_orphans = Mpeak[orphan_subhaloes_mask]
 
@@ -184,12 +227,32 @@ One may also make the peak maximum velocity function, by using `LastMaxVmaxPhysi
 
         ```python
         import sys
-        sys.path.append("<HBT-HERONS_PATH>/toolbox")
+        sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
         from HBTReader import HBTReader
+        import matplotlib.pyplot as plt
 
-        # The reader will parse the base folder and parameter file to identify number
-        # of outputs and if any are missing.
-        catalogue = HBTReader("<HBT-HERONS_CATALOGUE_BASE_PATH>")
+        # Open catalogue for this HBT-HERONS run
+        catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
+
+        # Load required data
+        subhalo_data = catalogue.LoadSubhalos(property_selection=["LastMaxMass", "SnapshotOfDeath"])
+        Mpeak = subhalo_data["LastMaxMass"] * catalogue.get_mass_units()
+        SnapshotOfDeath = subhalo_data["SnapshotOfDeath"]
+
+        # Identify current orphan subhaloes and get their peak bound mass.
+        orphan_subhaloes_mask = SnapshotOfDeath != -1
+        Mpeak_orphans = Mpeak[orphan_subhaloes_mask]
+
+        # Make the plot
+        fig, ax1 = plt.subplots(1)
+        ax1.plot(np.sort(Mpeak )[::-1], np.arange(len(Mpeak )) + 1, label="All subhaloes")
+        ax1.plot(np.sort(Mpeak_orphans )[::-1], np.arange(len(Mpeak_orphans )) + 1, label="Orphan subhaloes")
+        ax1.set_yscale("log")
+        ax1.set_xscale("log")
+        ax1.set_xlabel(r"$M_{\rm peak} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
+        ax1.set_ylabel(r"$N(\geq M_{\rm peak})$")
+        ax1.legend()
+        plt.show()
         ```
 
 ## Merger rates
@@ -231,13 +294,29 @@ Another set of evolutionary milestones that HBT-HERONS saves relates to the time
 
     ```python
     import sys
-    sys.path.append("<HBT-HERONS_PATH>/toolbox")
+    sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
     from HBTReader import HBTReader
+    import matplotlib.pyplot as plt
 
-    # The reader will parse the base folder and parameter file to identify number
-    # of outputs and if any are missing.
-    catalogue = HBTReader("<HBT-HERONS_CATALOGUE_BASE_PATH>")
+    # Open catalogue for this HBT-HERONS run
+    catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
 
+    # Load required data
+    SnapshotOfDeath = catalogue.LoadSubhalos(property_selection=["SnapshotOfDeath"])
+
+    # Only keep orphan subhaloes
+    orphan_subhaloes_mask = SnapshotOfDeath != -1
+    SnapshotOfDeath = SnapshotOfDeath[orphan_subhaloes_mask]
+
+    # Make the plot
+    fig, ax1 = plt.subplots(1)
+    output_number, number_orphans_created = np.unique(SnapshotOfDeath, return_counts = 1)
+    ax1.plot(output_number, number_orphans_created, label="All orphans")
+    ax1.set_yscale("log")
+    ax1.set_xlabel(r"Output number")
+    ax1.set_ylabel(r"$N_{\rm new \; orphans}$")
+    ax1.legend()
+    plt.show()
     ```
 ??? abstract "Bonus: the merger rate of disrupted and sunken subhaloes"
 
@@ -284,10 +363,34 @@ Another set of evolutionary milestones that HBT-HERONS saves relates to the time
 
         ```python
         import sys
-        sys.path.append("<HBT-HERONS_PATH>/toolbox")
+        sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
         from HBTReader import HBTReader
+        import matplotlib.pyplot as plt
 
-        # The reader will parse the base folder and parameter file to identify number
-        # of outputs and if any are missing.
-        catalogue = HBTReader("<HBT-HERONS_CATALOGUE_BASE_PATH>")
+        # Open catalogue for this HBT-HERONS run
+        catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
+
+        # Load required data
+        subhalo_data = catalogue.LoadSubhalos(property_selection=["SnapshotOfDeath", "SnapshotOfSink"])
+        SnapshotOfDeath = subhalo_data["SnapshotOfDeath"]
+        SnapshotOfSink = subhalo_data["SnapshotOfSink"]
+
+        # Only keep orphan subhaloes, but subdivide population into orphans that disrupted and those that sunk.
+        sunk_orphan_subhaloes_mask = (SnapshotOfDeath != -1) & (SnapshotOfSink == SnapshotOfDeath)
+        disrupted_orphan_subhaloes_mask = (SnapshotOfDeath != -1) & (SnapshotOfSink == -1)
+
+        SnapshotOfDeath_sunk_subhaloes      = SnapshotOfDeath[sunk_orphan_subhaloes_mask]
+        SnapshotOfDeath_disrupted_subhaloes = SnapshotOfDeath[disrupted_orphan_subhaloes_mask]
+
+        # Make the plot
+        fig, ax1 = plt.subplots(1)
+        output_number, number_orphans_created = np.unique(SnapshotOfDeath_sunk_subhaloes, return_counts = 1)
+        ax1.plot(output_number, number_orphans_created, label="Sunk orphans")
+        output_number, number_orphans_created = np.unique(SnapshotOfDeath_disrupted_subhaloes, return_counts = 1)
+        ax1.plot(output_number, number_orphans_created, label="Disrupted orphans")
+        ax1.set_yscale("log")
+        ax1.set_xlabel(r"Output number")
+        ax1.set_ylabel(r"$N_{\rm new \; orphans}$")
+        ax1.legend()
+        plt.show()
         ```
