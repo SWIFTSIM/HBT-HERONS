@@ -1,6 +1,6 @@
 # Merger tree traversal
 
-In this page we explain how to follow the evolution of a subhalo of interest ([main progenitor](#evolution-of-a-subhalo)), and how to identify subhaloes that contributed to its build-up ([secondary progenitors](#secondary-progenitors)).
+In this page we explain how to follow the evolution of a subhalo of interest ([main progenitor](#main-progenitor)), and how to identify subhaloes that contributed to its build-up ([secondary progenitors](#secondary-progenitors)).
 
 ## Main progenitor
 

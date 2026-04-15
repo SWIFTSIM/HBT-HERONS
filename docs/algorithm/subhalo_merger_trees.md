@@ -6,13 +6,13 @@ The history-based approach of HBT-HERONS means that the evolution of subhaloes i
 
 For many applications, the only information required to follow the evolution of a subhalo is its **main evolutionary branch**. The main evolutionary branch of a subhalo can be identified by selecting the entries across all simulation outputs that share the same value of `TrackId`. Note that the main evolutionary branch will also provide the evolution of the orphan subhalo, which can be removed by discarding all outputs greater than `SnapshotOfDeath`.
 
-We provide an example of how this works in practice [in the following page](../outputs/merger_trees.md#evolution-of-a-single-subhalo).
+We provide an example of how this works in practice [in the following page](../examples/merger_trees.md#main-progenitor).
 
 ## Secondary evolutionary branch
 
 If one is interested in the evolution of all of the subhaloes that contributed to the build-up of a given subhalo, then its **secondary evolutionary branches** also need to be considered. Identifying secondary evolutionary branches requires connecting disjoint main evolutionary branches, identified by their `TrackId`, at the time when their associated subhaloes first became orphans. HBT-HERONS identifies the descendants of subhaloes that have just become orphans in two different ways, depending on whether [sinking](./subhalo_sinking.md) or [disruption](./unbinding.md) lead to its conversion to an orphan subhalo.
 
-We provide an example of how to use the information that HBT-HERONS outputs to find secondary evolutionary branches [in the following page](../outputs/merger_trees.md#identifying-subhalo-mergers).
+We provide an example of how to use the information that HBT-HERONS outputs to find secondary evolutionary branches [in the following page](../examples/merger_trees.md#secondary-progenitors).
 
 ### Disruption descendants
 
