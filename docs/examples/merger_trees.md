@@ -1,4 +1,4 @@
-# Merger trees
+# Merger tree traversal
 
 In this page we explain how to follow the evolution of a subhalo of interest ([main progenitor](#evolution-of-a-subhalo)), and how to identify subhaloes that contributed to its build-up ([secondary progenitors](#secondary-progenitors)).
 
@@ -264,3 +264,13 @@ Here we show how to identify all subhaloes that sunk and merged with the subhalo
     ax1.set_yscale('log')
     plt.show()
     ```
+
+<!-- ## Complete merger tree -->
+<!--
+The examples provided above only give, but the full merger tree of a subhalo includes subhaloes that merged, e.g. second level progenitors. To obtain them, one needs to apply the same methodology, but for the progenitors of the progenitors. -->
+
+
+<!-- The `disrupted_progenitors` array contains a `TrackId` for each subhalo that disrupted and whose core ended bound to the example subhalo (`TrackId_to_follow`). If you want to find *every* subhalo that is connected to the example subhalo through disruption, e.g. to build its full merger tree, you will need to repeat the above code for each of the `disrupted_progenitors` until a complete list is built. The evolution of each subhalo prior to disrupting can be followed in the same way as for an [individual subhalo](#evolution-of-a-single-subhalo). -->
+
+<!--
+The `sink_progenitors` array contains a `TrackId` for each subhalo that sunk with the example subhalo (`TrackId_to_follow`). If you want to find *every* subhalo that is connected to the example subhalo through sinking, e.g. to build its full merger tree, you will need to repeat the above code for each of the `sink_progenitors` until a complete list is built. The evolution of each subhalo prior to sinking can be followed in the same way as for an [individual subhalo](#evolution-of-a-single-subhalo). -->
