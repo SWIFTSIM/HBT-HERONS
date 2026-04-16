@@ -438,7 +438,7 @@ class HBTReader:
 
         return subhalo_particles
 
-    def GetTrackSnapshot(self, TrackId, snap_nr=None, fields=None):
+    def GetTrackSnapshot(self, TrackId, snap_nr, fields=None):
         """
         Load the properties of a given TrackId in the specified snapshot.
 
@@ -453,16 +453,17 @@ class HBTReader:
             everything.
         """
 
-        # Find the  index location of the requested TrackId. If we do not find
-        # it, it does not exist at this point.
-        subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection='TrackId') == TrackId)
-        if len(subhalo_index) == 0:
-            raise LookupError("The requested TrackId does not exist in the snapshot of interest.")
-        subhalo_index = subhalo_index[0]
+        if self.__sorted_catalogues:
+            return self.LoadSubhalos(snap_nr, TrackId, fields)
+        else:
+            # Find the index location of the requested TrackId. If we do not find
+            # it, it does not exist at this point.
+            subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection='TrackId') == TrackId)
+            if len(subhalo_index) == 0:
+                raise LookupError("The requested TrackId does not exist in the snapshot of interest.")
+            subhalo_index = subhalo_index[0]
 
-        subhalo = self.LoadSubhalos(snap_nr, subhalo_index=subhalo_index, property_selection=fields)
-
-        return subhalo
+            return self.LoadSubhalos(snap_nr, subhalo_index=subhalo_index, property_selection=fields)
 
     def GetTrackEvolution(self, TrackId, fields=None):
         """
