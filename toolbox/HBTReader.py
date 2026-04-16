@@ -29,46 +29,6 @@ import numpy as np
 from glob import glob
 from numpy.lib.recfunctions import append_fields
 
-class ConfigReader:
-    """
-    Class to read the HBT-HERONS configuration files.
-    """
-    Options = {}
-
-    def __init__(self, path_to_config_file):
-        """
-        Loads which options are present in the HBT-HERONS parameter file, and
-        their values.
-
-        Parameters
-        ==========
-        path_to_config_file: str
-            Path to the HBT-HERONS configuration file.
-        """
-
-        with open(path_to_config_file, 'r') as file:
-            for line in file:
-                self.__parse_line(line)
-
-    def __parse_line(self, line):
-        """
-        Extracts the name and value of a HBT-HERONS parameter, if it is present
-        in the provided line.
-
-        Parameters
-        ==========
-        line: str
-            A single line of a parameter file.
-        """
-        pair = line.lstrip().split("#", 1)[0].split("[", 1)[0].split()
-        if len(pair) == 2:
-            self.Options[pair[0]] = pair[1]
-        elif len(pair) > 2:
-            self.Options[pair[0]] = pair[1:]
-
-    def __getitem__(self, ParameterName):
-        return self.Options[ParameterName]
-
 def get_hbt_snapnum(snapname, is_sorted):
     """
     Get the snapshot number from the name of a HBT-HERONS catalogue file.
