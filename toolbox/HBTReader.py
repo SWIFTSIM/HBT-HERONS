@@ -247,6 +247,9 @@ class HBTReader:
             ordered in binding energy.
         """
 
+        if self.__sorted_catalogues and filetype == "Src":
+            raise ValueError("Source subhalo information is not available in the sorted catalogues.")
+
         if snap_nr is None:
             snap_nr = self.SnapshotIdList.max()
 
