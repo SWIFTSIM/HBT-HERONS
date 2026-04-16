@@ -1,10 +1,10 @@
-# Internal halo population
+# Halo substructure and hierarchy
 
 In this page we showcase how to study the population of subhaloes within a single halo, with particular emphasis to the concept of subhalo hierarchy and subhalo parents.
 
 ## Satellite peak mass function
 
-Subhaloes that are in the same halo share the value of `HostHaloId`, allowing us to select satellite systems. Each satellite has an assigned hierarchical depth, which encodes how many connections away a subhalo is from the central. Subhaloes that have <br> `Depth = 0`  are centrals, `Depth= 1` are satellites, `Depth= 2` are satellites-of-satellites, etc
+Subhaloes that are in the same halo share the value of `HostHaloId`, allowing us to select satellite systems. Each satellite has an assigned hierarchical depth, which encodes how many connections away a subhalo is from the central. Subhaloes that have <br> `Depth = 0`  are centrals, `Depth = 1` are satellites, `Depth = 2` are satellites-of-satellites, etc
 
 In the provided code, we show how to select satellite subhaloes that are in the same halo as the most massive subhalo at the last output of the simulation. We will use this information to plot the satellite peak mass function, which is further subdivided according to the `Depth` of satellites.
 
@@ -95,7 +95,7 @@ In the provided code, we show how to select satellite subhaloes that are in the 
 
 ## Hierarchical connections
 
-Every satellite subhalo has `NestedParentTrackId != -1`, which tells us the `TrackId` of the *immediate* parent subhalo of a satellite subhalo. In other words, the `NestedParentTrackId` tells us which `Depth = l` subhalo is the parent of a subhalo of <br> `Depth = l + 1`. Note that the value of `NestedParentTrackId` reflects whether a previously-associated collection of subhaloes were accreted at the same time by a halo, but the subhalo systems may be far apart due to post-infall orbital scattering.
+Every satellite subhalo has `NestedParentTrackId != -1`, which tells us the `TrackId` of the *immediate* parent subhalo of a satellite subhalo. In other words, the `NestedParentTrackId` tells us which `Depth = D` subhalo is the parent of a subhalo of <br> `Depth = D + 1`. Note that the value of `NestedParentTrackId` reflects whether a previously-associated collection of subhaloes were accreted at the same time by a halo, but the subhalo systems may be far apart due to post-infall orbital scattering.
 
 In the following code, we plot the spatial position all subhaloes in the halo that contains the most massive subhalo at the last output of the simulation. We draw connections between subhaloes following the value of `NestedParentTrackId` to indicate connections between subhaloes.
 
