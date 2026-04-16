@@ -394,7 +394,7 @@ class HBTReader:
         if self.__sorted_catalogues:
             return np.flatnonzero(mask_progenitors & self.__mask_sunk_subhaloes)
         else:
-            return self.LoadSubhalos(self.SnapshotIdList.max(), property_selection=["TrackId"])[mask_progenitors & self.__mask_sunk_subhaloes]
+            return np.sort(self.LoadSubhalos(self.SnapshotIdList.max(), property_selection=["TrackId"])["TrackId"][mask_progenitors & self.__mask_sunk_subhaloes])
 
     def GetDisruptionProgenitors(self, TrackId):
         """
@@ -424,7 +424,7 @@ class HBTReader:
         if self.__sorted_catalogues:
             return np.flatnonzero(mask_progenitors & self.__mask_disrupted_subhaloes)
         else:
-            return self.LoadSubhalos(self.SnapshotIdList.max(), property_selection=["TrackId"])[mask_progenitors & self.__mask_disrupted_subhaloes]
+            return np.sort(self.LoadSubhalos(self.SnapshotIdList.max(), property_selection=["TrackId"])["TrackId"][mask_progenitors & self.__mask_disrupted_subhaloes])
 
     def GetAllProgenitors(self, TrackId, only_direct_progenitors=False):
         """
@@ -460,7 +460,7 @@ class HBTReader:
                 all_progenitors.extend(current_TrackId_progenitors)
                 queue.extend(current_TrackId_progenitors)
 
-            return np.asarray(all_progenitors)
+            return np.sort(np.asarray(all_progenitors))
 
     #===========================================================================
     # Scale factor handling.
