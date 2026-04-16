@@ -100,6 +100,11 @@ class HBTReader:
         assert len(file_list) > 0, "No catalogue files found in the provided directory."
         self.SnapshotIdList = np.array([get_hbt_snapnum(path, self.__sorted_catalogues) for path in file_list])
 
+        # For raw catalogues we will have a certain number of files per snapshot.
+        if not self.__sorted_catalogues:
+            with h5py.File(file_list[0].format(subfile_nr=0, filetype="Sub"), 'r') as subfile:
+                self.nfiles = subfile["NumberOfFiles"][0]
+
         return file_list
 
     def GetFileName(self, snap_nr, subfile_nr=0, filetype='Sub'):
