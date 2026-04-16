@@ -281,7 +281,7 @@ class HBTReader:
         return subhalo_particles
 
     #===========================================================================
-    # TrackId loading functions.
+    # Functions to load properties of specified TrackIds.
     #===========================================================================
     def GetTrackSnapshot(self, TrackId, snap_nr, fields=None):
         """
@@ -343,7 +343,106 @@ class HBTReader:
             track, ['Snapshot', 'ScaleFactor'], [snapshots_to_load, scales], usemask=False)
 
     #===========================================================================
-    # Scale factor functions.
+    # Functions to identify progenitor subhaloes.
+    #===========================================================================
+    def GetSinkProgenitors(self, TrackId):
+        """
+        Returns the TrackId of subhaloes that sunk into the subhalo of interest.
+
+        Parameters
+        ==========
+        TrackId: int
+            The TrackId of the subhalo whose sunk progenitors we are interested in.
+
+        Returns
+        =======
+        np.ndarray of int
+            The TrackId of subhaloes that sunk into the subhalo of interest.
+        """
+
+        # If we are calling this function, we might need SnapshotOfDeath
+        # and SnapshotOfSink information more than once. Since these datasets are
+        # unique and based on the last available output. Let's ensure they remain
+        # loaded if not already.
+        self.__load_merger_snapshot_information()
+
+        if not hasattr(self, "SinkTrackId"):
+            self.__SinkTrackId = self.LoadSubhalos(self.SnapshotIdList.max(), property_selection=['SinkTrackId'])['SinkTrackId']
+        mask_progenitors = self.__SinkTrackId == TrackId
+
+        if self.__sorted_catalogues:
+            return np.flatnonzero(mask_progenitors & self.__mask_sunk_subhaloes)
+        else:
+            return self.LoadSubhalos(self.SnapshotIdList.max(), property_selection=["TrackId"])[mask_progenitors & self.__mask_sunk_subhaloes]
+
+    def GetDisruptionProgenitors(self, TrackId):
+        """
+        Returns the TrackId of subhaloes that disrupted into the subhalo of interest.
+
+        Parameters
+        ==========
+        TrackId: int
+            The TrackId of the subhalo whose disrupted progenitors we are interested in.
+
+        Returns
+        =======
+        np.ndarray of int
+            The TrackId of subhaloes that disrupted into the subhalo of interest.
+        """
+
+        # If we are calling this function, we might need SnapshotOfDeath
+        # and SnapshotOfSink information more than once. Since these datasets are
+        # unique and based on the last available output. Let's ensure they remain
+        # loaded if not already.
+        self.__load_merger_snapshot_information()
+
+        if not hasattr(self, "__DescendantTrackId"):
+            self.__DescendantTrackId = self.LoadSubhalos(self.SnapshotIdList.max(), property_selection=['DescendantTrackId'])['DescendantTrackId']
+        mask_progenitors = self.__DescendantTrackId == TrackId
+
+        if self.__sorted_catalogues:
+            return np.flatnonzero(mask_progenitors & self.__mask_disrupted_subhaloes)
+        else:
+            return self.LoadSubhalos(self.SnapshotIdList.max(), property_selection=["TrackId"])[mask_progenitors & self.__mask_disrupted_subhaloes]
+
+    def GetAllProgenitors(self, TrackId, only_direct_progenitors=False):
+        """
+        Returns the TrackId of all subhaloes that merged into the subhalo of interest.
+        If direct_progenitors is set to True, only returns those that merged
+        directly onto the subhalo of interest.
+
+        Parameters
+        ==========
+        TrackId: int
+            The TrackId of the subhalo whose progenitors we are interested in.
+        only_direct_progenitors: bool, opt
+            Whether to only return the direct progenitors of the subhalo of interest.
+            Defaults to False.
+        """
+
+        if only_direct_progenitors:
+            return np.hstack([self.GetDisruptionProgenitors(TrackId), self.GetSinkProgenitors(TrackId)])
+        else:
+            all_progenitors = [] # To keep track of all progenitors we found
+
+            # We start a queue with the request TrackId, and keep on adding and
+            # removing subhaloes until we do not need to find the progenitors of
+            # any other.
+            queue = [TrackId]
+            while len(queue) > 0:
+
+                # Grab the next TrackId in the queue.
+                current_TrackId = queue.pop(0)
+
+                # Get the progenitors of the current TrackId.
+                current_TrackId_progenitors = self.GetAllProgenitors(current_TrackId, only_direct_progenitors=True).tolist()
+                all_progenitors.extend(current_TrackId_progenitors)
+                queue.extend(current_TrackId_progenitors)
+
+            return np.asarray(all_progenitors)
+
+    #===========================================================================
+    # Scale factor handling.
     #===========================================================================
     def GetScaleFactor(self, snap_nr):
         """
@@ -374,7 +473,7 @@ class HBTReader:
         return dict([(snap_nr, self.GetScaleFactor(snap_nr)) for snap_nr in self.SnapshotIdList])
 
     #===========================================================================
-    # Unit handling functions.
+    # Unit handling.
     #===========================================================================
     def GetMassUnits_Msunh(self):
         """
@@ -570,3 +669,19 @@ class HBTReader:
                     subhaloes_data[property] = catalogue_file[f"Subhalos/{property}"][TrackId]
 
         return subhaloes_data
+
+    def __load_merger_snapshot_information(self):
+        """
+        Identify how each subhalo in the simulation merged with others and store
+        for later use.
+        """
+        if not hasattr(self, "__mask_disrupted_subhaloes") or not hasattr(self, "__mask_sunk_subhaloes"):
+
+            subhalo_data = self.LoadSubhalos(self.SnapshotIdList.max(), property_selection=['SnapshotOfDeath', 'SnapshotOfSink'])
+
+            # Identify subhaloes that disrupted or underwent unresolved sinking.
+            self.__mask_disrupted_subhaloes = ( subhalo_data['SnapshotOfDeath'] != -1) & \
+                                              ((subhalo_data['SnapshotOfSink']  == -1) | (subhalo_data['SnapshotOfSink'] > subhalo_data['SnapshotOfDeath']))
+            # Identify subhaloes that sunk
+            self.__mask_sunk_subhaloes = (subhalo_data['SnapshotOfDeath'] != -1) & \
+                                         (subhalo_data['SnapshotOfSink']  == subhalo_data['SnapshotOfDeath'])
