@@ -33,10 +33,11 @@ traditional subhalo finding methods.
 
 The documentation touches upon the following aspects of the code:
 
-* [Algorithm](./algorithm/overview.md): a general description of the philosophy and theory behind HBT-HERONS, highlighting the effect of different free parameters that arise from its code implementation.
+* [Algorithm](./algorithm/overview.md): philosophy and theory behind HBT-HERONS, as well as the effect of free parameters that arise from its code implementation.
 * [Installation](./installation.md): required packages, compile-time options and how to compile.
-* [Running](./running/start.md): submitting an analyis, mandatory and optional parameters, and general diagnostics to look out for during the execution of HBT-HERONS.
-* [Outputs](./outputs/format.md): file structure, which subhalo properties are saved, how to select particles bound to them, and how to navigate the merger trees.
+* [Running](./running/start.md): submitting an analyis, parameters, and diagnostics to look out for during the execution of HBT-HERONS.
+* [Outputs](./outputs/format.md): file structure and which subhalo properties are saved.
+* [Examples](./examples/overview.md): we illustrate how to interface with the HBT-HERONS outputs, and provide an example catalogue for doing so.
 
 !!! question
 

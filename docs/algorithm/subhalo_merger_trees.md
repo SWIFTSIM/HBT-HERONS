@@ -6,13 +6,13 @@ The history-based approach of HBT-HERONS means that the evolution of subhaloes i
 
 For many applications, the only information required to follow the evolution of a subhalo is its **main evolutionary branch**. The main evolutionary branch of a subhalo can be identified by selecting the entries across all simulation outputs that share the same value of `TrackId`. Note that the main evolutionary branch will also provide the evolution of the orphan subhalo, which can be removed by discarding all outputs greater than `SnapshotOfDeath`.
 
-We provide an example of how this works in practice [in the following page](../outputs/merger_trees.md#evolution-of-a-single-subhalo).
+We provide an example of how this works in practice [in the following page](../examples/merger_trees.md#main-progenitor).
 
 ## Secondary evolutionary branch
 
 If one is interested in the evolution of all of the subhaloes that contributed to the build-up of a given subhalo, then its **secondary evolutionary branches** also need to be considered. Identifying secondary evolutionary branches requires connecting disjoint main evolutionary branches, identified by their `TrackId`, at the time when their associated subhaloes first became orphans. HBT-HERONS identifies the descendants of subhaloes that have just become orphans in two different ways, depending on whether [sinking](./subhalo_sinking.md) or [disruption](./unbinding.md) lead to its conversion to an orphan subhalo.
 
-We provide an example of how to use the information that HBT-HERONS outputs to find secondary evolutionary branches [in the following page](../outputs/merger_trees.md#identifying-subhalo-mergers).
+We provide an example of how to use the information that HBT-HERONS outputs to find secondary evolutionary branches [in the following page](../examples/merger_trees.md#secondary-progenitors).
 
 ### Disruption descendants
 
@@ -38,7 +38,7 @@ Beyond disruption and sinking, subhaloes may also become orphans through a third
 
 The "unresolved" qualifier reflects the fact that, if the resolution of the simulation were to be increased, these subhaloes would sink before disrupting. This expectation stems from the fact that dynamical friction in the associated orbital system must be efficient enough for the sinking process to occur, as otherwise it is unlikely for the phase-space overlap to happen. Hence, increasing the resolution will make the subhalo more resilient to disruption before the sinking is complete.
 
-For these instances, we recommend using as the subhalo descendant the value provided in `DescendantTrackId`, and not the one in `SinkTrackId` (they have the same value for $\approx80\%$ of unresolved sinking events).
+For these instances, we recommend using as the subhalo descendant the value provided in `DescendantTrackId`, and not the one in `SinkTrackId` (they have the same value for $\approx90\%$ of unresolved sinking events).
 
 ### Unusual descendants
 

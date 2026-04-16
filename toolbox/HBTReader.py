@@ -76,6 +76,9 @@ class HBTReader:
     """
     Class to read HBT-HERONS catalogues.
     """
+    mass_units = None
+    length_units = None
+    velocity_units = None
 
     def __init__(self, base_dir):
         """
@@ -424,3 +427,42 @@ class HBTReader:
             Mapping between snapshot number and scale factor.
         """
         return dict([(snap_nr, self.GetScaleFactor(snap_nr)) for snap_nr in self.SnapshotIdList])
+
+    def GetMassUnits_Msunh(self):
+        """
+        Returns the mass units of the catalogue outputs in Msun/h.
+
+        Returns
+        =======
+        float
+            Mass units of the catalogue outputs, in Msun/h.
+        """
+        if self.mass_units is None:
+            self.mass_units = h5py.File(self.GetFileName(self.SnapshotIdList[0]), 'r')['Units/MassInMsunh'][0]
+        return self.mass_units
+
+    def GetLengthUnits_Mpch(self):
+        """
+        Returns the length units of the catalogue outputs.
+
+        Returns
+        =======
+        float
+            Length units of the catalogue outputs, in Mpc/h.
+        """
+        if self.length_units is None:
+            self.length_units = h5py.File(self.GetFileName(self.SnapshotIdList[0]), 'r')['Units/LengthInMpch'][0]
+        return self.length_units
+
+    def GetVelocityUnits_kms(self):
+        """
+        Returns the velocity units of the catalogue outputs in km/s.
+
+        Returns
+        =======
+        float
+            Velocity units of the catalogue outputs, in km/s.
+        """
+        if self.velocity_units is None:
+            self.velocity_units = h5py.File(self.GetFileName(self.SnapshotIdList[0]), 'r')['Units/VelInKmS'][0]
+        return self.velocity_units

@@ -102,7 +102,7 @@ The second type of property corresponds to key events in the evolution of a subh
 | <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------  | :--------------------------------------------------------------------- |
 |         `SnapshotOfBirth`          | The output when the subhalo was first identified.                      |
-|          `SnapshotOfSink`          | If the subhalo has [sunk](../outputs/merger_trees.md/#subhalo-sinking), the output when that happened. If it has not sunk, it equals -1. |
+|          `SnapshotOfSink`          | If the subhalo has sunk, the output when that happened. If it has not sunk, it equals -1. |
 |         `SnapshotOfDeath`          | If the subhalo has sunk or disrupted, the output when that happened. If neither has happened, it equals -1. |
 |     `SnapshotOfLastIsolation`      | If the subhalo has ever been a satellite, the most recent output when this object was a central subhalo. Note that this is not always the same as the output before a subhalo became a satellite for the first time. If it has always been a central subhalo, it equals -1.    |
 |      `SnapshotOfLastMaxVmax`       | The output when the subhalo reached its maximum value of `VmaxPhysical`. |
