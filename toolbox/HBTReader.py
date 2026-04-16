@@ -51,6 +51,27 @@ def get_hbt_snapnum(snapname, is_sorted):
     else:
         return int(snapname.format(filetype="Sub", subfile_nr=0).rsplit('SubSnap_')[1].split('.')[0])
 
+def generate_custom_array_dtypes(h5py_group, requested_properties):
+    """
+    Returns a list of tuples that is used to create custom dtype arrays.
+
+    Returns
+    =======
+    list of tuples
+        A list where each tuple specifies the name, dtype and shape of a custom
+        numpy dtype.
+    """
+
+    # Build an array with custom dtypes for the requested properties.
+    array_dtypes = []
+    for property in requested_properties:
+        if h5py_group[f"{property}"].ndim == 1:
+            array_dtypes.append((property, h5py_group[f"{property}"].dtype))
+        else:
+            array_dtypes.append((property, h5py_group[f"{property}"].dtype, h5py_group[f"{property}"].shape[1]))
+
+    return array_dtypes
+
 class HBTReader:
     """
     Class to read HBT-HERONS catalogues.
@@ -560,7 +581,8 @@ class HBTReader:
 
         # Handle defaults, and list inputs
         if property_selection is None:
-            property_selection = np.s_[:]
+            with h5py.File(self.GetFileName(snap_nr), 'r') as subfile:
+                property_selection = subfile['Subhalos'].dtype.names
         else:
             if type(property_selection) is list:
                 property_selection = tuple(property_selection)
@@ -576,23 +598,28 @@ class HBTReader:
                 print(".", end="")
 
             with h5py.File(self.GetFileName(snap_nr, subfile_nr), 'r') as subfile:
-                nsub = subfile['Subhalos'].shape[0]
+                number_subhaloes = subfile['Subhalos'].shape[0]
 
                 # Nothing to load
-                if nsub == 0:
+                if number_subhaloes == 0:
                     continue
 
-                # Keep iterating over subfiles until we find our target entry.
-                if load_single_subhalo:
-                    if (offset+nsub > subhalo_index):
-                        subhalos.append(subfile['Subhalos'][property_selection][subhalo_index-offset])
+                subhaloes_dtype = generate_custom_array_dtypes(subfile['Subhalos'], property_selection)
+                subhaloes_data  = np.empty(1 if load_single_subhalo else number_subhaloes, dtype=subhaloes_dtype)
+
+                if load_single_subhalo: # Iterate over subfiles until we find our target.
+                    if (offset+number_subhaloes > subhalo_index):
+                        for property in property_selection:
+                            subhaloes_data[property] = subfile['Subhalos'][property][subhalo_index-offset]
                         break
                     else:
-                        offset += nsub
+                        offset += number_subhaloes
                         continue
+                else: # Load everything
+                    for property in property_selection:
+                        subhaloes_data[property] = subfile['Subhalos'][property]
 
-                # Load everything
-                subhalos.append(subfile['Subhalos'][property_selection])
+                subhalos.append(subhaloes_data)
 
         if len(subhalos):
             subhalos = np.hstack(subhalos)
@@ -649,18 +676,8 @@ class HBTReader:
             if property_selection is None:
                 property_selection = list(catalogue_file['Subhalos'].keys())
 
-            # Build an array with custom dtypes for the requested properties.
-            subhaloes_dtype = []
-            for property in property_selection:
-                if catalogue_file[f"Subhalos/{property}"].ndim == 1:
-                    subhaloes_dtype.append((property, catalogue_file[f"Subhalos/{property}"].dtype))
-                else:
-                    subhaloes_dtype.append((property, catalogue_file[f"Subhalos/{property}"].dtype, catalogue_file[f"Subhalos/{property}"].shape[1]))
-
-            if load_single_subhalo:
-                subhaloes_data = np.empty(1, dtype=subhaloes_dtype, )
-            else:
-                subhaloes_data = np.empty(number_subhaloes, dtype=subhaloes_dtype, )
+            subhaloes_dtype = generate_custom_array_dtypes(catalogue_file['Subhalos'], property_selection)
+            subhaloes_data = np.empty(1 if load_single_subhalo else number_subhaloes, dtype=subhaloes_dtype)
 
             for property in property_selection:
                 if TrackId is None:
