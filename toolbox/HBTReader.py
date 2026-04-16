@@ -69,8 +69,27 @@ class ConfigReader:
     def __getitem__(self, ParameterName):
         return self.Options[ParameterName]
 
-def get_hbt_snapnum(snapname):
-    return int(snapname.rsplit('SubSnap_')[1].split('.')[0])
+def get_hbt_snapnum(snapname, is_sorted):
+    """
+    Get the snapshot number from the name of a HBT-HERONS catalogue file.
+
+    Parameters
+    ==========
+    snapname: str
+        Name of the HBT-HERONS catalogue file.
+    is_sorted: bool
+        Whether the catalogue is sorted.
+
+    Returns
+    =======
+    int
+        Snapshot number.
+    """
+
+    if is_sorted:
+        return int(snapname.rsplit('OrderedSubSnap_')[1].split('.')[0])
+    else:
+        return int(snapname.format(filetype="Sub", subfile_nr=0).rsplit('SubSnap_')[1].split('.')[0])
 
 class HBTReader:
     """
@@ -80,34 +99,48 @@ class HBTReader:
     length_units = None
     velocity_units = None
 
-    def __init__(self, base_dir):
+    def __init__(self, base_dir, sorted_catalogues = False):
         """
         Initialize HBTReader to read data from base_dir where all the outputs
-        are saved. A parameter file must exist there (Parameters.log dumped by
-        HBT-HERONS during runtime).
+        are saved.
+
+        Parameters
+        ==========
+        base_dir: str
+            Base directory of where the HBT-HERONS catalogues are saved.
+        sorted_catalogues: bool, opt
+            Whether the catalogues have been merged into a single file and
+            sorted in ascending TrackId (see ./catalogue_cleanup/SortCatalogues.py).
+            It defaults to False.
         """
 
-        self.Options = ConfigReader(base_dir +'/Parameters.log').Options
         self.base_dir = base_dir
+        self.__sorted_catalogues = sorted_catalogues
+        self.__file_list = self.GetFileList()
 
-        # To know which files to open.
-        self.MinimumSnapshotIndex = int(self.Options['MinSnapshotIndex'])
-        self.MaximumSnapshotIndex = int(self.Options['MaxSnapshotIndex'])
-        if "SnapshotIdList" in self.Options:
-            self.SnapshotIdList = np.array(self.Options["SnapshotIdList"], int)
+    def GetFileList(self):
+        """
+        Get the paths to the catalogue files, sorted in ascending output number.
+
+        Returns
+        =======
+        list of str
+            List of paths to the catalogue files, sorted in ascending output
+            number.
+        """
+
+        if self.__sorted_catalogues:
+            file_list = sorted(glob(self.base_dir + "/OrderedSubSnap_*.hdf5"), key=lambda x: get_hbt_snapnum(x, self.__sorted_catalogues))
         else:
-            self.SnapshotIdList = np.arange(self.MinimumSnapshotIndex, self.MaximumSnapshotIndex + 1)
+            # Create f-formatted strings because we may have several subfiles per snapshot.
+            file_list = sorted(glob(self.base_dir + "/*/SubSnap_*.0.hdf5"), key=lambda x: get_hbt_snapnum(x, self.__sorted_catalogues))
+            file_list = [path.replace(".0.hdf5",".{subfile_nr}.hdf5").replace("SubSnap","{filetype}Snap") for path in file_list]
 
-        # Generate an f-formated list of files
-        self._file_list = sorted(glob(self.base_dir+'/*/SubSnap_*.0.hdf5'),key=get_hbt_snapnum)
-        self._file_list = [path.replace(".0.hdf5",".{subfile_nr}.hdf5") for path in self._file_list]
-        self._file_list = [path.replace("SubSnap","{filetype}Snap") for path in self._file_list]
+        # Did we find any files?
+        assert len(file_list) > 0, "No catalogue files found in the provided directory."
+        self.SnapshotIdList = np.array([get_hbt_snapnum(path, self.__sorted_catalogues) for path in file_list])
 
-        # Do we have the same number of files as we expect? If not, remove the
-        # missing catalogues.
-        if len(self._file_list) != len(self.SnapshotIdList):
-            print(f"HBT-HERONS run not finished yet. Only found {len(self._file_list)} outputs out of {len(self.SnapshotIdList)} total.")
-            self.SnapshotIdList = self.SnapshotIdList[:len(self._file_list)]
+        return file_list
 
     def GetFileName(self, snap_nr, subfile_nr=0, filetype='Sub'):
         """
@@ -133,7 +166,7 @@ class HBTReader:
         if len(index) == 0:
             raise ValueError(f"The requested snapshot number ({snap_nr}) is not available. Possible values:\n {self.SnapshotIdList}")
 
-        return self._file_list[index[0]].format(subfile_nr = subfile_nr, filetype = filetype)
+        return self.__file_list[index[0]].format(subfile_nr = subfile_nr, filetype = filetype)
 
     def LoadNestedSubhalos(self, snap_nr=None):
         """
