@@ -78,6 +78,9 @@ class HBTReader:
         self.__sorted_catalogues = sorted_catalogues
         self.__file_list = self.GetFileList()
 
+    #===========================================================================
+    # File path functions.
+    #===========================================================================
     def GetFileList(self):
         """
         Get the paths to the catalogue files, sorted in ascending output number.
@@ -134,6 +137,287 @@ class HBTReader:
 
         return self.__file_list[index[0]].format(subfile_nr = subfile_nr, filetype = filetype)
 
+    #===========================================================================
+    # Data loading functions.
+    #===========================================================================
+    def GetNumberOfSubhalos(self, snap_nr=None):
+        """
+        Returns the total number of subhaloes in a given catalogue output.
+
+        Parameters
+        ==========
+        snap_nr : int, opt
+            Snapshot number of the catalogue we are interested in. It defaults
+            to the last snapshot with currently available catalogues.
+
+        Returns
+        =======
+        int
+            The total number of subhaloes (resolved + unresolved) that exist
+            at the current snapshot.
+        """
+
+        if snap_nr is None:
+            snap_nr = self.SnapshotIdList.max()
+
+        with h5py.File(self.GetFileName(snap_nr, 0), 'r') as file:
+            return file["NumberOfSubhalosInAllFiles"][0]
+
+    def LoadSubhalos(self, snap_nr=None, subhalo_index=None, property_selection=None, show_progress=False):
+        """
+        Load subhalos from a single snapshot, with the option to load a subset
+        of properties and subhaloes.
+
+        Parameters
+        ==========
+        snap_nr: int, opt
+            The snapshot number we are interested in. It defaults to the
+            latest snapshot with available catalogues.
+        subhalo_index: int, opt
+            If specified, only load the subhalo in the specified entry. For
+            unsorted catalogues, this does not correspond to the TrackId of the
+            subhalo, but it does so for the sorted version. If not provided, all
+            subhaloes will be loaded.
+        property_selection: tuple or list of strings, opt
+            If specified, only load the specified properties. If not provided,
+            all subhalo properties will be loaded.
+        show_progess: bool, opt
+            For unsorted catalogues, enable the printing of a progress bar
+            indicating how many subfiles have been loaded. Defaults to False.
+
+        Returns
+        =======
+        subhalos: np.ndarray
+            Specified properties for the requested subhaloes at the snapshot
+            of interest. The array contains multiple dtypes, with each
+            corresponding to a different subhalo property. They can be accessed
+            via indexing, e.g. subhalos["PROPERTY_NAME"]
+        """
+
+        if self.__sorted_catalogues:
+            return self.__LoadSubhalos_SortedCatalogues(snap_nr, subhalo_index, property_selection)
+        else:
+            return self.__LoadSubhalos_UnsortedCatalogues(snap_nr, subhalo_index, property_selection, show_progress)
+
+    def LoadParticleIDs(self, TrackId=None, snap_nr=None, filetype='Sub'):
+        """
+        Load the particles that are bound or are part of the source subhalo
+        for the specified subhalo.
+
+        Parameters
+        ==========
+        TrackId: int, opt
+            The TrackId of the subhalo whose particles we are interested in. If
+            not specified, this function will return the particle IDs of all
+            TrackIds in the catalogue.
+        snap_nr : int, opt
+            Snapshot number of the catalogue we are interested in. It defaults
+            to the last snapshot with currently available catalogues.
+        file_type: str, opt
+            Whether to load particles bound ('Sub') or associated ('Src') of
+            the subhalo.
+
+        Returns
+        =======
+        subhalo_particles: np.ndarray
+            IDs of the particles that are either bound or part of the source
+            subhalo of all subhaloes or a specific subhalo. They are ordered
+            in the same manner as the subhalo arrays, and bound particles are
+            ordered in binding energy.
+        """
+
+        if snap_nr is None:
+            snap_nr = self.SnapshotIdList.max()
+
+        if filetype not in ["Sub","Src"]:
+            raise ValueError(f"Requested filetype ({filetype}) is not valid. Only \"Sub\" or \"Src\" are accepted.")
+        key_to_load = "SubhaloParticles" if filetype == "Sub" else "SrchaloParticles"
+
+        # Find the index location of the subhalo entry if we requested a given
+        # TrackId. If we do not find it, it does not exist at this point.
+        load_single_subhalo = TrackId is not None
+        if load_single_subhalo:
+
+            if not isinstance(TrackId, (np.integer, int)):
+                raise TypeError("Parameter TrackId is not of the required type (int).")
+
+            subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection='TrackId') == TrackId)
+            if len(subhalo_index) == 0:
+                raise LookupError("The requested TrackId does not exist in the snapshot of interest.")
+            subhalo_index = subhalo_index[0]
+
+        else:
+            subhalo_index = None
+
+        # Determine number of files for requested output, only present in SubSnap
+        # files.
+        with h5py.File(self.GetFileName(snap_nr), 'r') as subfile:
+            number_subfiles = subfile['NumberOfFiles'][0]
+
+        offset = 0
+        subhalo_particles = []
+        for subfile_nr in range(number_subfiles):
+            with h5py.File(self.GetFileName(snap_nr, subfile_nr, filetype), 'r') as subfile:
+                nsub = subfile['Subhalos'].shape[0] if filetype == "Sub" else subfile[key_to_load].shape[0]
+
+                # Nothing to load
+                if nsub == 0:
+                    continue
+
+                # Keep iterating over subfiles until we find our target entry.
+                if load_single_subhalo:
+                    if (offset+nsub > subhalo_index):
+                        subhalo_particles.append(subfile[key_to_load][subhalo_index-offset])
+                        break
+                    else:
+                        offset += nsub
+                        continue
+
+                # Load everything
+                subhalo_particles.append(subfile['SubhaloParticles'][:])
+
+        subhalo_particles = np.hstack(subhalo_particles)
+
+        return subhalo_particles
+
+    #===========================================================================
+    # TrackId loading functions.
+    #===========================================================================
+    def GetTrackSnapshot(self, TrackId, snap_nr, fields=None):
+        """
+        Load the properties of a given TrackId in the specified snapshot.
+
+        Parameters
+        ==========
+        TrackId: int
+            The TrackId of the subhalo whose properties we are interested in.
+        snap_nr: int
+            The snapshot we are interested in.
+        fields: tuple or list of properties, opt
+            The properties we are interested in loading. If not defined, we load
+            everything.
+        """
+
+        if self.__sorted_catalogues:
+            return self.LoadSubhalos(snap_nr, TrackId, fields)
+        else:
+            # Find the index location of the requested TrackId. If we do not find
+            # it, it does not exist at this point.
+            subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection='TrackId') == TrackId)
+            if len(subhalo_index) == 0:
+                raise LookupError("The requested TrackId does not exist in the snapshot of interest.")
+            subhalo_index = subhalo_index[0]
+
+            return self.LoadSubhalos(snap_nr, subhalo_index=subhalo_index, property_selection=fields)
+
+    def GetTrackEvolution(self, TrackId, fields=None):
+        """
+        Load the entire evolution of a given TrackId, from when it was first
+        resolved until the latest snapshot with available catalogues (even if it
+        the subhalo is unresolved by that time).
+
+        Parameters
+        ==========
+        TrackId: int
+            The TrackId of the subhalo whose evolution we are interested in.
+        fields: tuple or list of properties, opt
+            The properties we are interested in loading. If not defined, we load
+            everything.
+        """
+
+        # Only load information from when the subhalo was resolved. We try using
+        # the old and new dataset name for backwards compatibility.
+        try:
+            SnapshotOfBirth = self.GetTrackSnapshot(TrackId, self.SnapshotIdList.max())['SnapshotOfBirth']
+        except:
+            SnapshotOfBirth = self.GetTrackSnapshot(TrackId, self.SnapshotIdList.max())['SnapshotIndexOfBirth']
+        snapshots_to_load = self.SnapshotIdList[self.SnapshotIdList >= SnapshotOfBirth]
+
+        track = np.array(
+            [self.GetTrackSnapshot(TrackId, snap_nr, fields=fields)
+             for snap_nr in snapshots_to_load])
+
+        scales = np.array([self.GetScaleFactor(snap_nr) for snap_nr in snapshots_to_load])
+
+        return append_fields(
+            track, ['Snapshot', 'ScaleFactor'], [snapshots_to_load, scales], usemask=False)
+
+    #===========================================================================
+    # Scale factor functions.
+    #===========================================================================
+    def GetScaleFactor(self, snap_nr):
+        """
+        Returns the scale factor of a given catalogue output.
+
+        Parameters
+        ==========
+        snap_nr : int, opt
+            Snapshot number of the catalogue we are interested in.
+
+        Returns
+        =======
+        float
+            The scale factor of the snapshot.
+        """
+        return h5py.File(self.GetFileName(snap_nr), 'r')['Cosmology/ScaleFactor'][0]
+
+    def GetScaleFactorDict(self):
+        """
+        Returns a dictionary mapping each snapshot number to its corresponding
+        scale factor.
+
+        Returns
+        =======
+        dict of (int, float)
+            Mapping between snapshot number and scale factor.
+        """
+        return dict([(snap_nr, self.GetScaleFactor(snap_nr)) for snap_nr in self.SnapshotIdList])
+
+    #===========================================================================
+    # Unit handling functions.
+    #===========================================================================
+    def GetMassUnits_Msunh(self):
+        """
+        Returns the mass units of the catalogue outputs in Msun/h.
+
+        Returns
+        =======
+        float
+            Mass units of the catalogue outputs, in Msun/h.
+        """
+        if self.mass_units is None:
+            self.mass_units = h5py.File(self.GetFileName(self.SnapshotIdList[0]), 'r')['Units/MassInMsunh'][0]
+        return self.mass_units
+
+    def GetLengthUnits_Mpch(self):
+        """
+        Returns the length units of the catalogue outputs.
+
+        Returns
+        =======
+        float
+            Length units of the catalogue outputs, in Mpc/h.
+        """
+        if self.length_units is None:
+            self.length_units = h5py.File(self.GetFileName(self.SnapshotIdList[0]), 'r')['Units/LengthInMpch'][0]
+        return self.length_units
+
+    def GetVelocityUnits_kms(self):
+        """
+        Returns the velocity units of the catalogue outputs in km/s.
+
+        Returns
+        =======
+        float
+            Velocity units of the catalogue outputs, in km/s.
+        """
+        if self.velocity_units is None:
+            self.velocity_units = h5py.File(self.GetFileName(self.SnapshotIdList[0]), 'r')['Units/VelInKmS'][0]
+        return self.velocity_units
+
+    #===========================================================================
+    # Internal helper functions.
+    #===========================================================================
     def __LoadSubhalos_UnsortedCatalogues(self, snap_nr=None, subhalo_index=None, property_selection=None, show_progress=False):
         """
         Load subhalos from the unsorted HBT-HERONS catalogues, from a single
@@ -286,269 +570,3 @@ class HBTReader:
                     subhaloes_data[property] = catalogue_file[f"Subhalos/{property}"][TrackId]
 
         return subhaloes_data
-
-    def LoadSubhalos(self, snap_nr=None, subhalo_index=None, property_selection=None, show_progress=False):
-        """
-        Load subhalos from a single snapshot, with the option to load a subset
-        of properties and subhaloes.
-
-        Parameters
-        ==========
-        snap_nr: int, opt
-            The snapshot number we are interested in. It defaults to the
-            latest snapshot with available catalogues.
-        subhalo_index: int, opt
-            If specified, only load the subhalo in the specified entry. For
-            unsorted catalogues, this does not correspond to the TrackId of the
-            subhalo, but it does so for the sorted version. If not provided, all
-            subhaloes will be loaded.
-        property_selection: tuple or list of strings, opt
-            If specified, only load the specified properties. If not provided,
-            all subhalo properties will be loaded.
-        show_progess: bool, opt
-            For unsorted catalogues, enable the printing of a progress bar
-            indicating how many subfiles have been loaded. Defaults to False.
-
-        Returns
-        =======
-        subhalos: np.ndarray
-            Specified properties for the requested subhaloes at the snapshot
-            of interest. The array contains multiple dtypes, with each
-            corresponding to a different subhalo property. They can be accessed
-            via indexing, e.g. subhalos["PROPERTY_NAME"]
-        """
-
-        if self.__sorted_catalogues:
-            return self.__LoadSubhalos_SortedCatalogues(snap_nr, subhalo_index, property_selection)
-        else:
-            return self.__LoadSubhalos_UnsortedCatalogues(snap_nr, subhalo_index, property_selection, show_progress)
-
-    def GetNumberOfSubhalos(self, snap_nr=None):
-        """
-        Returns the total number of subhaloes in a given catalogue output.
-
-        Parameters
-        ==========
-        snap_nr : int, opt
-            Snapshot number of the catalogue we are interested in. It defaults
-            to the last snapshot with currently available catalogues.
-
-        Returns
-        =======
-        int
-            The total number of subhaloes (resolved + unresolved) that exist
-            at the current snapshot.
-        """
-
-        if snap_nr is None:
-            snap_nr = self.SnapshotIdList.max()
-
-        with h5py.File(self.GetFileName(snap_nr, 0), 'r') as file:
-            return file["NumberOfSubhalosInAllFiles"][0]
-
-    def LoadParticleIDs(self, TrackId=None, snap_nr=None, filetype='Sub'):
-        """
-        Load the particles that are bound or are part of the source subhalo
-        for the specified subhalo.
-
-        Parameters
-        ==========
-        TrackId: int, opt
-            The TrackId of the subhalo whose particles we are interested in. If
-            not specified, this function will return the particle IDs of all
-            TrackIds in the catalogue.
-        snap_nr : int, opt
-            Snapshot number of the catalogue we are interested in. It defaults
-            to the last snapshot with currently available catalogues.
-        file_type: str, opt
-            Whether to load particles bound ('Sub') or associated ('Src') of
-            the subhalo.
-
-        Returns
-        =======
-        subhalo_particles: np.ndarray
-            IDs of the particles that are either bound or part of the source
-            subhalo of all subhaloes or a specific subhalo. They are ordered
-            in the same manner as the subhalo arrays, and bound particles are
-            ordered in binding energy.
-        """
-
-        if snap_nr is None:
-            snap_nr = self.SnapshotIdList.max()
-
-        if filetype not in ["Sub","Src"]:
-            raise ValueError(f"Requested filetype ({filetype}) is not valid. Only \"Sub\" or \"Src\" are accepted.")
-        key_to_load = "SubhaloParticles" if filetype == "Sub" else "SrchaloParticles"
-
-        # Find the index location of the subhalo entry if we requested a given
-        # TrackId. If we do not find it, it does not exist at this point.
-        load_single_subhalo = TrackId is not None
-        if load_single_subhalo:
-
-            if not isinstance(TrackId, (np.integer, int)):
-                raise TypeError("Parameter TrackId is not of the required type (int).")
-
-            subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection='TrackId') == TrackId)
-            if len(subhalo_index) == 0:
-                raise LookupError("The requested TrackId does not exist in the snapshot of interest.")
-            subhalo_index = subhalo_index[0]
-
-        else:
-            subhalo_index = None
-
-        # Determine number of files for requested output, only present in SubSnap
-        # files.
-        with h5py.File(self.GetFileName(snap_nr), 'r') as subfile:
-            number_subfiles = subfile['NumberOfFiles'][0]
-
-        offset = 0
-        subhalo_particles = []
-        for subfile_nr in range(number_subfiles):
-            with h5py.File(self.GetFileName(snap_nr, subfile_nr, filetype), 'r') as subfile:
-                nsub = subfile['Subhalos'].shape[0] if filetype == "Sub" else subfile[key_to_load].shape[0]
-
-                # Nothing to load
-                if nsub == 0:
-                    continue
-
-                # Keep iterating over subfiles until we find our target entry.
-                if load_single_subhalo:
-                    if (offset+nsub > subhalo_index):
-                        subhalo_particles.append(subfile[key_to_load][subhalo_index-offset])
-                        break
-                    else:
-                        offset += nsub
-                        continue
-
-                # Load everything
-                subhalo_particles.append(subfile['SubhaloParticles'][:])
-
-        subhalo_particles = np.hstack(subhalo_particles)
-
-        return subhalo_particles
-
-    def GetTrackSnapshot(self, TrackId, snap_nr, fields=None):
-        """
-        Load the properties of a given TrackId in the specified snapshot.
-
-        Parameters
-        ==========
-        TrackId: int
-            The TrackId of the subhalo whose properties we are interested in.
-        snap_nr: int
-            The snapshot we are interested in.
-        fields: tuple or list of properties, opt
-            The properties we are interested in loading. If not defined, we load
-            everything.
-        """
-
-        if self.__sorted_catalogues:
-            return self.LoadSubhalos(snap_nr, TrackId, fields)
-        else:
-            # Find the index location of the requested TrackId. If we do not find
-            # it, it does not exist at this point.
-            subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection='TrackId') == TrackId)
-            if len(subhalo_index) == 0:
-                raise LookupError("The requested TrackId does not exist in the snapshot of interest.")
-            subhalo_index = subhalo_index[0]
-
-            return self.LoadSubhalos(snap_nr, subhalo_index=subhalo_index, property_selection=fields)
-
-    def GetTrackEvolution(self, TrackId, fields=None):
-        """
-        Load the entire evolution of a given TrackId, from when it was first
-        resolved until the latest snapshot with available catalogues (even if it
-        the subhalo is unresolved by that time).
-
-        Parameters
-        ==========
-        TrackId: int
-            The TrackId of the subhalo whose evolution we are interested in.
-        fields: tuple or list of properties, opt
-            The properties we are interested in loading. If not defined, we load
-            everything.
-        """
-
-        # Only load information from when the subhalo was resolved. We try using
-        # the old and new dataset name for backwards compatibility.
-        try:
-            SnapshotOfBirth = self.GetTrackSnapshot(TrackId, self.SnapshotIdList.max())['SnapshotOfBirth']
-        except:
-            SnapshotOfBirth = self.GetTrackSnapshot(TrackId, self.SnapshotIdList.max())['SnapshotIndexOfBirth']
-        snapshots_to_load = self.SnapshotIdList[self.SnapshotIdList >= SnapshotOfBirth]
-
-        track = np.array(
-            [self.GetTrackSnapshot(TrackId, snap_nr, fields=fields)
-             for snap_nr in snapshots_to_load])
-
-        scales = np.array([self.GetScaleFactor(snap_nr) for snap_nr in snapshots_to_load])
-
-        return append_fields(
-            track, ['Snapshot', 'ScaleFactor'], [snapshots_to_load, scales], usemask=False)
-
-    def GetScaleFactor(self, snap_nr):
-        """
-        Returns the scale factor of a given catalogue output.
-
-        Parameters
-        ==========
-        snap_nr : int, opt
-            Snapshot number of the catalogue we are interested in.
-
-        Returns
-        =======
-        float
-            The scale factor of the snapshot.
-        """
-        return h5py.File(self.GetFileName(snap_nr), 'r')['Cosmology/ScaleFactor'][0]
-
-    def GetScaleFactorDict(self):
-        """
-        Returns a dictionary mapping each snapshot number to its corresponding
-        scale factor.
-
-        Returns
-        =======
-        dict of (int, float)
-            Mapping between snapshot number and scale factor.
-        """
-        return dict([(snap_nr, self.GetScaleFactor(snap_nr)) for snap_nr in self.SnapshotIdList])
-
-    def GetMassUnits_Msunh(self):
-        """
-        Returns the mass units of the catalogue outputs in Msun/h.
-
-        Returns
-        =======
-        float
-            Mass units of the catalogue outputs, in Msun/h.
-        """
-        if self.mass_units is None:
-            self.mass_units = h5py.File(self.GetFileName(self.SnapshotIdList[0]), 'r')['Units/MassInMsunh'][0]
-        return self.mass_units
-
-    def GetLengthUnits_Mpch(self):
-        """
-        Returns the length units of the catalogue outputs.
-
-        Returns
-        =======
-        float
-            Length units of the catalogue outputs, in Mpc/h.
-        """
-        if self.length_units is None:
-            self.length_units = h5py.File(self.GetFileName(self.SnapshotIdList[0]), 'r')['Units/LengthInMpch'][0]
-        return self.length_units
-
-    def GetVelocityUnits_kms(self):
-        """
-        Returns the velocity units of the catalogue outputs in km/s.
-
-        Returns
-        =======
-        float
-            Velocity units of the catalogue outputs, in km/s.
-        """
-        if self.velocity_units is None:
-            self.velocity_units = h5py.File(self.GetFileName(self.SnapshotIdList[0]), 'r')['Units/VelInKmS'][0]
-        return self.velocity_units
