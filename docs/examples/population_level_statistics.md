@@ -45,7 +45,7 @@ In any case, it is easy to make the bound mass function at a given redshift of i
     import matplotlib.pyplot as plt
 
     catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
-    Mbound = catalogue.LoadSubhalos(property_selection=["Mbound"]) * catalogue.get_mass_units()
+    Mbound = catalogue.LoadSubhalos(property_selection=["Mbound"]) * catalogue.GetMassUnits_Msunh()
 
     # Make the plot
     fig, ax1 = plt.subplots(1)
@@ -107,7 +107,7 @@ In any case, it is easy to make the bound mass function at a given redshift of i
 
         # Load required data
         subhalo_data = catalogue.LoadSubhalos(property_selection=["Mbound", "HostHaloId"])
-        Mbound     = subhalo_data["Mbound"] * catalogue.get_mass_units()
+        Mbound     = subhalo_data["Mbound"] * catalogue.GetMassUnits_Msunh()
         HostHaloId = subhalo_data["HostHaloId"]
 
         # Identify which subhaloes are hostless and get their bound mass
@@ -173,7 +173,7 @@ One may also make the peak maximum velocity function, by using `LastMaxVmaxPhysi
     catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
 
     # Load required data
-    Mpeak = catalogue.LoadSubhalos(property_selection=["LastMaxMass"]) * catalogue.get_mass_units()
+    Mpeak = catalogue.LoadSubhalos(property_selection=["LastMaxMass"]) * catalogue.GetMassUnits_Msunh()
 
     # Make the plot
     fig, ax1 = plt.subplots(1)
@@ -236,7 +236,7 @@ One may also make the peak maximum velocity function, by using `LastMaxVmaxPhysi
 
         # Load required data
         subhalo_data = catalogue.LoadSubhalos(property_selection=["LastMaxMass", "SnapshotOfDeath"])
-        Mpeak = subhalo_data["LastMaxMass"] * catalogue.get_mass_units()
+        Mpeak = subhalo_data["LastMaxMass"] * catalogue.GetMassUnits_Msunh()
         SnapshotOfDeath = subhalo_data["SnapshotOfDeath"]
 
         # Identify current orphan subhaloes and get their peak bound mass.

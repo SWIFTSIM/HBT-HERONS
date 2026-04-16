@@ -83,7 +83,7 @@ In the provided code, we show how to select satellite subhaloes that are in the 
     Mbound_evolution = - np.ones((len(sunk_progenitors),catalogue.MaximumSnapshotIndex + 1))
     for i, sunk_progenitor in enumerate(sunk_progenitors):
         subhalo_evolution = catalogue.GetTrackEvolution(sunk_progenitor)
-        Mbound_evolution[i,subhalo_evolution["Snapshot"]] = subhalo_evolution["Mbound"] * catalogue.get_mass_units()
+        Mbound_evolution[i,subhalo_evolution["Snapshot"]] = subhalo_evolution["Mbound"] * catalogue.GetMassUnits_Msunh()
 
     fig, ax1 = plt.subplots(1)
     ax1.plot(Mbound_evolution.T)
@@ -178,8 +178,8 @@ In the following code, we plot the spatial position all subhaloes in the halo th
     catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
 
     # Required unit information
-    mass_units = catalogue.get_mass_units()
-    length_units = catalogue.get_length_units()
+    mass_units = catalogue.GetMassUnits_Msunh()
+    length_units = catalogue.GetLengthUnits_Mpch()
 
     # The reader loads the latest available snapshot by default and all subhalo properties.
     subhaloes = catalogue.LoadSubhalos()

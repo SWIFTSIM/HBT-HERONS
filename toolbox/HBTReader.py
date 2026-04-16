@@ -428,9 +428,9 @@ class HBTReader:
         """
         return dict([(snap_nr, self.GetScaleFactor(snap_nr)) for snap_nr in self.SnapshotIdList])
 
-    def get_mass_units(self):
+    def GetMassUnits_Msunh(self):
         """
-        Returns the mass units of the catalogue outputs.
+        Returns the mass units of the catalogue outputs in Msun/h.
 
         Returns
         =======
@@ -441,22 +441,22 @@ class HBTReader:
             self.mass_units = h5py.File(self.GetFileName(self.SnapshotIdList[0]), 'r')['Units/MassInMsunh'][0]
         return self.mass_units
 
-    def get_length_units(self):
+    def GetLengthUnits_Mpch(self):
         """
         Returns the length units of the catalogue outputs.
 
         Returns
         =======
         float
-            Length units of the catalogue outputs, in kpc/h.
+            Length units of the catalogue outputs, in Mpc/h.
         """
         if self.length_units is None:
             self.length_units = h5py.File(self.GetFileName(self.SnapshotIdList[0]), 'r')['Units/LengthInMpch'][0]
         return self.length_units
 
-    def get_velocity_units(self):
+    def GetVelocityUnits_kms(self):
         """
-        Returns the velocity units of the catalogue outputs.
+        Returns the velocity units of the catalogue outputs in km/s.
 
         Returns
         =======

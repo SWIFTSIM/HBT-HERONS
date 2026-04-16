@@ -67,7 +67,7 @@ In the code below we follow the bound mass evolution of the most massive subhalo
     # Get its bound mass evolution, which returns by default all properties and
     # the associated scale factors and snashot output numbers.
     subhalo_evolution  = catalogue.GetTrackEvolution(TrackId_to_follow)
-    Mbound_evolution   = subhalo_evolution["Mbound"] * catalogue.get_mass_units()
+    Mbound_evolution   = subhalo_evolution["Mbound"] * catalogue.GetMassUnits_Msunh()
 
     fig, ax1 = plt.subplots(1)
     ax1.plot(Mbound_evolution)
@@ -166,7 +166,7 @@ Here we show how to identify all subhaloes that disrupted and merged with the su
     Mbound_evolution = - np.ones((len(disrupted_progenitors),catalogue.MaximumSnapshotIndex + 1))
     for i, disrupted_progenitor in enumerate(disrupted_progenitors):
         subhalo_evolution = catalogue.GetTrackEvolution(disrupted_progenitor)
-        Mbound_evolution[i,subhalo_evolution["Snapshot"]] = subhalo_evolution["Mbound"] * catalogue.get_mass_units()
+        Mbound_evolution[i,subhalo_evolution["Snapshot"]] = subhalo_evolution["Mbound"] * catalogue.GetMassUnits_Msunh()
 
     fig, ax1 = plt.subplots(1)
     ax1.plot(Mbound_evolution.T)
@@ -255,7 +255,7 @@ Here we show how to identify all subhaloes that sunk and merged with the subhalo
     Mbound_evolution = - np.ones((len(sunk_progenitors),catalogue.MaximumSnapshotIndex + 1))
     for i, sunk_progenitor in enumerate(sunk_progenitors):
         subhalo_evolution = catalogue.GetTrackEvolution(sunk_progenitor)
-        Mbound_evolution[i,subhalo_evolution["Snapshot"]] = subhalo_evolution["Mbound"] * catalogue.get_mass_units()
+        Mbound_evolution[i,subhalo_evolution["Snapshot"]] = subhalo_evolution["Mbound"] * catalogue.GetMassUnits_Msunh()
 
     fig, ax1 = plt.subplots(1)
     ax1.plot(Mbound_evolution.T)
