@@ -645,9 +645,10 @@ class HBTReader:
         snap_nr: int, opt
             The snapshot number we are interested in. It defaults to the
             latest snapshot with available catalogues.
-        TrackId: int, opt
-            If specified, only load the subhalo with the specified TrackId. If
-            not provided, all subhaloes will be loaded.
+        TrackId: int or np.ndarray, opt
+            Only load the subhalo(es) with the specified TrackId, which must be
+            in ascending order if multiple are requested. If not provided, all
+            subhaloes will be loaded.
         property_selection: tuple or list of strings, opt
             If specified, only load the specified properties. If not provided,
             all subhalo properties will be loaded.
@@ -665,12 +666,15 @@ class HBTReader:
             snap_nr = self.SnapshotIdList.max()
         number_subhaloes = self.GetNumberOfSubhalos(snap_nr)
 
-        load_single_subhalo = TrackId is not None
-        if (load_single_subhalo):
-            if not isinstance(TrackId, (np.integer, int)):
-                raise TypeError("Parameter TrackId is not of the required type (int).")
-            if TrackId >= number_subhaloes:
-                raise ValueError(f"Selected subhalo entry ({TrackId}) is larger than the number of existing subhaloes ({number_subhaloes})")
+        if TrackId is not None:
+            if not isinstance(TrackId, (np.integer, int, np.ndarray)):
+                raise TypeError("Parameter TrackId is not of the required type (int or np.ndarray).")
+
+            if isinstance(TrackId, (np.integer, int)):
+                TrackId = np.array([TrackId])
+
+            if TrackId.max() >= number_subhaloes:
+                raise ValueError(f"Largest requested TrackId ({TrackId.max()}) is larger than the number of existing subhaloes ({number_subhaloes})")
 
         subhaloes_data  = []
         with h5py.File(self.GetFileName(snap_nr), 'r') as catalogue_file:
@@ -681,7 +685,7 @@ class HBTReader:
                 property_selection = list(catalogue_file['Subhalos'].keys())
 
             subhaloes_dtype = generate_custom_array_dtypes(catalogue_file['Subhalos'], property_selection)
-            subhaloes_data = np.empty(1 if load_single_subhalo else number_subhaloes, dtype=subhaloes_dtype)
+            subhaloes_data  = np.empty(len(TrackId) if TrackId is not None else number_subhaloes, dtype=subhaloes_dtype)
 
             for property in property_selection:
                 if TrackId is None:
