@@ -122,7 +122,8 @@ class HBTReader:
             Path to the subfile.
         """
 
-        index = np.where(self.SnapshotIdList == snap_nr)[0]
+        index = np.flatnonzero(self.SnapshotIdList == snap_nr)
+
         if len(index) == 0:
             raise ValueError(f"The requested snapshot number ({snap_nr}) is not available. Possible values:\n {self.SnapshotIdList}")
 
@@ -144,10 +145,10 @@ class HBTReader:
                 nests.extend(subfile['NestedSubhalos'][...])
         return np.array(nests)
 
-    def LoadSubhalos(self, snap_nr=None, subhalo_index=None, property_selection=None, show_progress=False):
+    def __LoadSubhalos_UnsortedCatalogues(self, snap_nr=None, subhalo_index=None, property_selection=None, show_progress=False):
         """
-        Load subhalos from a single snapshot, with the option to load a subset
-        of properties and subhaloes.
+        Load subhalos from the unsorted HBT-HERONS catalogues, from a single
+        simulation output.
 
         Parameters
         ==========
@@ -230,6 +231,108 @@ class HBTReader:
             print()
 
         return subhalos
+
+    def __LoadSubhalos_SortedCatalogues(self, snap_nr=None, TrackId=None, property_selection=None):
+        """
+        Load subhalos from the sorted HBT-HERONS catalogues, from a single
+        simulation output.
+
+        Parameters
+        ==========
+        snap_nr: int, opt
+            The snapshot number we are interested in. It defaults to the
+            latest snapshot with available catalogues.
+        TrackId: int, opt
+            If specified, only load the subhalo with the specified TrackId. If
+            not provided, all subhaloes will be loaded.
+        property_selection: tuple or list of strings, opt
+            If specified, only load the specified properties. If not provided,
+            all subhalo properties will be loaded.
+
+        Returns
+        =======
+        subhalos: np.ndarray
+            Specified properties for the requested subhaloes at the snapshot
+            of interest. The array contains multiple dtypes, with each
+            corresponding to a different subhalo property. They can be accessed
+            via indexing, e.g. subhalos["PROPERTY_NAME"]
+        """
+
+        if snap_nr is None:
+            snap_nr = self.SnapshotIdList.max()
+        number_subhaloes = self.GetNumberOfSubhalos(snap_nr)
+
+        load_single_subhalo = TrackId is not None
+        if (load_single_subhalo):
+            if not isinstance(TrackId, (np.integer, int)):
+                raise TypeError("Parameter TrackId is not of the required type (int).")
+            if TrackId >= number_subhaloes:
+                raise ValueError(f"Selected subhalo entry ({TrackId}) is larger than the number of existing subhaloes ({number_subhaloes})")
+
+        subhaloes_data  = []
+        with h5py.File(self.GetFileName(snap_nr), 'r') as catalogue_file:
+
+            # If we have not specified specific properties to load, we load
+            # everything.
+            if property_selection is None:
+                property_selection = list(catalogue_file['Subhalos'].keys())
+
+            # Build an array with custom dtypes for the requested properties.
+            subhaloes_dtype = []
+            for property in property_selection:
+                if catalogue_file[f"Subhalos/{property}"].ndim == 1:
+                    subhaloes_dtype.append((property, catalogue_file[f"Subhalos/{property}"].dtype))
+                else:
+                    subhaloes_dtype.append((property, catalogue_file[f"Subhalos/{property}"].dtype, catalogue_file[f"Subhalos/{property}"].shape[1]))
+
+            if load_single_subhalo:
+                subhaloes_data = np.empty(1, dtype=subhaloes_dtype, )
+            else:
+                subhaloes_data = np.empty(number_subhaloes, dtype=subhaloes_dtype, )
+
+            for property in property_selection:
+                if TrackId is None:
+                    subhaloes_data[property] = catalogue_file[f"Subhalos/{property}"][()]
+                else:
+                    subhaloes_data[property] = catalogue_file[f"Subhalos/{property}"][TrackId]
+
+        return subhaloes_data
+
+    def LoadSubhalos(self, snap_nr=None, subhalo_index=None, property_selection=None, show_progress=False):
+        """
+        Load subhalos from a single snapshot, with the option to load a subset
+        of properties and subhaloes.
+
+        Parameters
+        ==========
+        snap_nr: int, opt
+            The snapshot number we are interested in. It defaults to the
+            latest snapshot with available catalogues.
+        subhalo_index: int, opt
+            If specified, only load the subhalo in the specified entry. For
+            unsorted catalogues, this does not correspond to the TrackId of the
+            subhalo, but it does so for the sorted version. If not provided, all
+            subhaloes will be loaded.
+        property_selection: tuple or list of strings, opt
+            If specified, only load the specified properties. If not provided,
+            all subhalo properties will be loaded.
+        show_progess: bool, opt
+            For unsorted catalogues, enable the printing of a progress bar
+            indicating how many subfiles have been loaded. Defaults to False.
+
+        Returns
+        =======
+        subhalos: np.ndarray
+            Specified properties for the requested subhaloes at the snapshot
+            of interest. The array contains multiple dtypes, with each
+            corresponding to a different subhalo property. They can be accessed
+            via indexing, e.g. subhalos["PROPERTY_NAME"]
+        """
+
+        if self.__sorted_catalogues:
+            return self.__LoadSubhalos_SortedCatalogues(snap_nr, subhalo_index, property_selection)
+        else:
+            return self.__LoadSubhalos_UnsortedCatalogues(snap_nr, subhalo_index, property_selection, show_progress)
 
     def GetNumberOfSubhalos(self, snap_nr=None):
         """
