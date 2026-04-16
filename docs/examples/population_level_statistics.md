@@ -8,35 +8,32 @@ The bound mass of all subhaloes at a given simulation output can be directly loa
 
 In any case, it is easy to make the bound mass function at a given redshift of interest. One can also make the equivalent plot for the maximum circular velocity ($V_{\rm max}$), in which case the datasets `VmaxPhysical` and `Units/VelInKmS` should be used.
 
-=== "After running `toolbox/catalogue_cleanup/SortCatalogues.py`"
+```python
+import sys
+sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
+from HBTReader import HBTReader
+import matplotlib.pyplot as plt
 
-    ```python
-    import h5py
-    from glob import glob
-    import matplotlib.pyplot as plt
+use_sorted_catalogues = True
+catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                      sorted_catalogues=use_sorted_catalogues)
 
-    # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access its paths by output number.
-    catalogue_paths = sorted(glob(f"{SORTED_CATALOGUE_BASE_PATH}/OrderedSubSnap_*.hdf5"))
-    catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
-    max_output_number = list(catalogue_paths)[-1]
+Mbound = catalogue.LoadSubhalos(property_selection=["Mbound"])["Mbound"] * catalogue.GetMassUnits_Msunh()
 
-    with h5py.File(catalogue_paths[max_output_number]) as catalogue:
-        # Load the current bound mass of all subhaloes, in units of Msun/h
-        mass_units = catalogue["Units/MassInMsunh"][0]
-        Mbound = catalogue["Subhalos/Mbound"][()] * mass_units
+# Make the plot
+fig, ax1 = plt.subplots(1)
+ax1.plot(np.sort(Mbound)[::-1], np.arange(len(Mbound)) + 1, label="All subhaloes")
+ax1.set_yscale("log")
+ax1.set_xscale("log")
+ax1.set_xlabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
+ax1.set_ylabel(r"$N(\geq M_{\rm bound})$")
+ax1.legend()
+plt.show()
+```
 
-    # Make the plot
-    fig, ax1 = plt.subplots(1)
-    ax1.plot(np.sort(Mbound)[::-1], np.arange(len(Mbound)) + 1, label="All subhaloes")
-    ax1.set_yscale("log")
-    ax1.set_xscale("log")
-    ax1.set_xlabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-    ax1.set_ylabel(r"$N(\geq M_{\rm bound})$")
-    ax1.legend()
-    plt.show()
-    ```
+??? abstract "Bonus: the mass function of hostless subhaloes"
 
-=== "Without running `toolbox/catalogue_cleanup/SortCatalogues.py`"
+    Hostless subhaloes are a HBT-HERONS-specific population of subhaloes that, as the name implies, are not associated to any host haloes. These are generally close to the resolution limit of the simulation, and arise because the host halo they were associated to in the past has fragmented. You can select hostless subhaloes with `HostHaloId = -1`.
 
     ```python
     import sys
@@ -44,12 +41,24 @@ In any case, it is easy to make the bound mass function at a given redshift of i
     from HBTReader import HBTReader
     import matplotlib.pyplot as plt
 
-    catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
-    Mbound = catalogue.LoadSubhalos(property_selection=["Mbound"]) * catalogue.GetMassUnits_Msunh()
+
+    use_sorted_catalogues = True
+    catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                        sorted_catalogues=use_sorted_catalogues)
+
+    # Load required data
+    subhalo_data = catalogue.LoadSubhalos(property_selection=["Mbound", "HostHaloId"])
+    Mbound     = subhalo_data["Mbound"] * catalogue.GetMassUnits_Msunh()
+    HostHaloId = subhalo_data["HostHaloId"]
+
+    # Identify which subhaloes are hostless and get their bound mass
+    hostless_subhaloes_mask = HostHaloId == -1
+    Mbound_hostless = Mbound[hostless_subhaloes_mask]
 
     # Make the plot
     fig, ax1 = plt.subplots(1)
     ax1.plot(np.sort(Mbound)[::-1], np.arange(len(Mbound)) + 1, label="All subhaloes")
+    ax1.plot(np.sort(Mbound_hostless)[::-1], np.arange(len(Mbound_hostless)) + 1, label="Hostless subhaloes")
     ax1.set_yscale("log")
     ax1.set_xscale("log")
     ax1.set_xlabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
@@ -57,74 +66,6 @@ In any case, it is easy to make the bound mass function at a given redshift of i
     ax1.legend()
     plt.show()
     ```
-??? abstract "Bonus: the mass function of hostless subhaloes"
-
-    Hostless subhaloes are a HBT-HERONS-specific population of subhaloes that, as the name implies, are not associated to any host haloes. These are generally close to the resolution limit of the simulation, and arise because the host halo they were associated to in the past has fragmented. You can select hostless subhaloes with `HostHaloId = -1`.
-
-    === "After running `toolbox/catalogue_cleanup/SortCatalogues.py`"
-
-        ```python
-        import h5py
-        from glob import glob
-        import matplotlib.pyplot as plt
-
-        # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access its paths by output number.
-        catalogue_paths = sorted(glob(f"{SORTED_CATALOGUE_BASE_PATH}/OrderedSubSnap_*.hdf5"))
-        catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
-        max_output_number = list(catalogue_paths)[-1]
-
-        with h5py.File(catalogue_paths[max_output_number]) as catalogue:
-            # Load the current bound mass of all subhaloes, in units of Msun/h
-            mass_units = catalogue["Units/MassInMsunh"][0]
-            Mbound = catalogue["Subhalos/Mbound"][()] * mass_units
-
-            # Identify which subhaloes are hostless and get their bound mass
-            hostless_subhaloes_mask = catalogue["Subhalos/HostHaloId"][()] == -1
-            Mbound_hostless = Mbound[hostless_subhaloes_mask]
-
-        # Make the plot
-        fig, ax1 = plt.subplots(1)
-        ax1.plot(np.sort(Mbound)[::-1], np.arange(len(Mbound)) + 1, label="All subhaloes")
-        ax1.plot(np.sort(Mbound_hostless)[::-1], np.arange(len(Mbound_hostless)) + 1, label="Hostless subhaloes")
-        ax1.set_yscale("log")
-        ax1.set_xscale("log")
-        ax1.set_xlabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-        ax1.set_ylabel(r"$N(\geq M_{\rm bound})$")
-        ax1.legend()
-        plt.show()
-        ```
-
-    === "Without running `toolbox/catalogue_cleanup/SortCatalogues.py`"
-
-        ```python
-        import sys
-        sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
-        from HBTReader import HBTReader
-        import matplotlib.pyplot as plt
-
-        # Open catalogue for this HBT-HERONS run
-        catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
-
-        # Load required data
-        subhalo_data = catalogue.LoadSubhalos(property_selection=["Mbound", "HostHaloId"])
-        Mbound     = subhalo_data["Mbound"] * catalogue.GetMassUnits_Msunh()
-        HostHaloId = subhalo_data["HostHaloId"]
-
-        # Identify which subhaloes are hostless and get their bound mass
-        hostless_subhaloes_mask = HostHaloId == -1
-        Mbound_hostless = Mbound[hostless_subhaloes_mask]
-
-        # Make the plot
-        fig, ax1 = plt.subplots(1)
-        ax1.plot(np.sort(Mbound)[::-1], np.arange(len(Mbound)) + 1, label="All subhaloes")
-        ax1.plot(np.sort(Mbound_hostless)[::-1], np.arange(len(Mbound_hostless)) + 1, label="Hostless subhaloes")
-        ax1.set_yscale("log")
-        ax1.set_xscale("log")
-        ax1.set_xlabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-        ax1.set_ylabel(r"$N(\geq M_{\rm bound})$")
-        ax1.legend()
-        plt.show()
-        ```
 
 ## Peak mass function
 
@@ -132,165 +73,103 @@ HBT-HERONS stores information pertaining to past evolution of subhaloes, like th
 
 One may also make the peak maximum velocity function, by using `LastMaxVmaxPhysical` and `Units/VelInKmS`.
 
+```python
+import sys
+sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
+from HBTReader import HBTReader
+import matplotlib.pyplot as plt
 
-=== "After running `toolbox/catalogue_cleanup/SortCatalogues.py`"
 
-    ```python
-    import h5py
-    from glob import glob
-    import matplotlib.pyplot as plt
+use_sorted_catalogues = True
+catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                      sorted_catalogues=use_sorted_catalogues)
 
-    # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access its paths by output number.
-    catalogue_paths = sorted(glob(f"{SORTED_CATALOGUE_BASE_PATH}/OrderedSubSnap_*.hdf5"))
-    catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
-    max_output_number = list(catalogue_paths)[-1]
 
-    with h5py.File(catalogue_paths[max_output_number]) as catalogue:
-        # Load the maximum-ever bound mass of all subhaloes, in units of Msun/h
-        mass_units = catalogue["Units/MassInMsunh"][0]
-        Mpeak = catalogue["Subhalos/LastMaxMass"][()] * mass_units
+# Load required data
+Mpeak = catalogue.LoadSubhalos(property_selection=["LastMaxMass"])["LastMaxMass"] * catalogue.GetMassUnits_Msunh()
 
-    # Make the plot
-    fig, ax1 = plt.subplots(1)
-    ax1.plot(np.sort(Mpeak)[::-1], np.arange(len(Mpeak)) + 1, label="All subhaloes")
-    ax1.set_yscale("log")
-    ax1.set_xscale("log")
-    ax1.set_xlabel(r"$M_{\rm peak} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-    ax1.set_ylabel(r"$N(\geq M_{\rm peak})$")
-    ax1.legend()
-    plt.show()
-    ```
-
-=== "Without running `toolbox/catalogue_cleanup/SortCatalogues.py`"
-
-    ```python
-    import sys
-    sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
-    from HBTReader import HBTReader
-    import matplotlib.pyplot as plt
-
-    # Open catalogue for this HBT-HERONS run
-    catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
-
-    # Load required data
-    Mpeak = catalogue.LoadSubhalos(property_selection=["LastMaxMass"]) * catalogue.GetMassUnits_Msunh()
-
-    # Make the plot
-    fig, ax1 = plt.subplots(1)
-    ax1.plot(np.sort(Mpeak )[::-1], np.arange(len(Mpeak )) + 1, label="All subhaloes")
-    ax1.set_yscale("log")
-    ax1.set_xscale("log")
-    ax1.set_xlabel(r"$M_{\rm peak} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-    ax1.set_ylabel(r"$N(\geq M_{\rm peak})$")
-    ax1.legend()
-    plt.show()
-    ```
+# Make the plot
+fig, ax1 = plt.subplots(1)
+ax1.plot(np.sort(Mpeak )[::-1], np.arange(len(Mpeak )) + 1, label="All subhaloes")
+ax1.set_yscale("log")
+ax1.set_xscale("log")
+ax1.set_xlabel(r"$M_{\rm peak} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
+ax1.set_ylabel(r"$N(\geq M_{\rm peak})$")
+ax1.legend()
+plt.show()
+```
 
 ??? abstract "Bonus: the peak mass function of orphan subhaloes"
 
     A benefit of using the peak bound mass, instead of the instantaneous bound mass, is that we can study the population of orphan subhaloes and how massive they were in the past. Orphan subhaloes can be selected by `Nbound = 0` or `SnapshotOfDeath != -1`, since both are equivalent.
 
-    === "After running `toolbox/catalogue_cleanup/SortCatalogues.py`"
+    ```python
+    import sys
+    sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
+    from HBTReader import HBTReader
+    import matplotlib.pyplot as plt
 
-        ```python
-        import h5py
-        from glob import glob
-        import matplotlib.pyplot as plt
 
-        # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access its paths by output number.
-        catalogue_paths = sorted(glob(f"{SORTED_CATALOGUE_BASE_PATH}/OrderedSubSnap_*.hdf5"))
-        catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
-        max_output_number = list(catalogue_paths)[-1]
+    use_sorted_catalogues = True
+    catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                        sorted_catalogues=use_sorted_catalogues)
 
-        with h5py.File(catalogue_paths[max_output_number]) as catalogue:
-            # Load the maximum-ever bound mass of all subhaloes, in units of Msun/h
-            mass_units = catalogue["Units/MassInMsunh"][0]
-            Mpeak = catalogue["Subhalos/LastMaxMass"][()] * mass_units
+    subhalo_data = catalogue.LoadSubhalos(property_selection=["LastMaxMass", "SnapshotOfDeath"])
+    Mpeak = subhalo_data["LastMaxMass"] * catalogue.GetMassUnits_Msunh()
+    SnapshotOfDeath = subhalo_data["SnapshotOfDeath"]
 
-            # Identify current orphan subhaloes and get their peak bound mass.
-            orphan_subhaloes_mask = catalogue["Subhalos/SnapshotOfDeath"][()] != -1
-            Mpeak_orphans = Mpeak[orphan_subhaloes_mask]
+    # Identify current orphan subhaloes and get their peak bound mass.
+    orphan_subhaloes_mask = SnapshotOfDeath != -1
+    Mpeak_orphans = Mpeak[orphan_subhaloes_mask]
 
-        # Make the plot
-        fig, ax1 = plt.subplots(1)
-        ax1.plot(np.sort(Mpeak)[::-1], np.arange(len(Mpeak)) + 1, label="All subhaloes")
-        ax1.plot(np.sort(Mpeak_orphans)[::-1], np.arange(len(Mpeak_orphans)) + 1, label="Orphan subhaloes")
-        ax1.set_yscale("log")
-        ax1.set_xscale("log")
-        ax1.set_xlabel(r"$M_{\rm peak} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-        ax1.set_ylabel(r"$N(\geq M_{\rm peak})$")
-        ax1.legend()
-        plt.show()
-        ```
-
-    === "Without running `toolbox/catalogue_cleanup/SortCatalogues.py`"
-
-        ```python
-        import sys
-        sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
-        from HBTReader import HBTReader
-        import matplotlib.pyplot as plt
-
-        # Open catalogue for this HBT-HERONS run
-        catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
-
-        # Load required data
-        subhalo_data = catalogue.LoadSubhalos(property_selection=["LastMaxMass", "SnapshotOfDeath"])
-        Mpeak = subhalo_data["LastMaxMass"] * catalogue.GetMassUnits_Msunh()
-        SnapshotOfDeath = subhalo_data["SnapshotOfDeath"]
-
-        # Identify current orphan subhaloes and get their peak bound mass.
-        orphan_subhaloes_mask = SnapshotOfDeath != -1
-        Mpeak_orphans = Mpeak[orphan_subhaloes_mask]
-
-        # Make the plot
-        fig, ax1 = plt.subplots(1)
-        ax1.plot(np.sort(Mpeak )[::-1], np.arange(len(Mpeak )) + 1, label="All subhaloes")
-        ax1.plot(np.sort(Mpeak_orphans )[::-1], np.arange(len(Mpeak_orphans )) + 1, label="Orphan subhaloes")
-        ax1.set_yscale("log")
-        ax1.set_xscale("log")
-        ax1.set_xlabel(r"$M_{\rm peak} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-        ax1.set_ylabel(r"$N(\geq M_{\rm peak})$")
-        ax1.legend()
-        plt.show()
-        ```
+    # Make the plot
+    fig, ax1 = plt.subplots(1)
+    ax1.plot(np.sort(Mpeak )[::-1], np.arange(len(Mpeak )) + 1, label="All subhaloes")
+    ax1.plot(np.sort(Mpeak_orphans )[::-1], np.arange(len(Mpeak_orphans )) + 1, label="Orphan subhaloes")
+    ax1.set_yscale("log")
+    ax1.set_xscale("log")
+    ax1.set_xlabel(r"$M_{\rm peak} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
+    ax1.set_ylabel(r"$N(\geq M_{\rm peak})$")
+    ax1.legend()
+    plt.show()
+    ```
 
 ## Merger rates
 
 Another set of evolutionary milestones that HBT-HERONS saves relates to the time when subhaloes became orphans: `SnapshotOfDeath`. Loading this dataset allows the user to measure the rate at which subhaloes become orphans as a function of time, which is related to the merger rate.
 
-=== "After running `toolbox/catalogue_cleanup/SortCatalogues.py`"
+```python
+import sys
+sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
+from HBTReader import HBTReader
+import matplotlib.pyplot as plt
 
-    ```python
-    import h5py
-    from glob import glob
-    import matplotlib.pyplot as plt
 
-    # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access its paths by output number.
-    catalogue_paths = sorted(glob(f"{SORTED_CATALOGUE_BASE_PATH}/OrderedSubSnap_*.hdf5"))
-    catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
-    max_output_number = list(catalogue_paths)[-1]
+use_sorted_catalogues = True
+catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                      sorted_catalogues=use_sorted_catalogues)
 
-    with h5py.File(catalogue_paths[max_output_number]) as catalogue:
-        # Load when subhaloes became orphans, if they have done so.
-        SnapshotOfDeath = catalogue["Subhalos/SnapshotOfDeath"][()]
+# Load required data
+SnapshotOfDeath = catalogue.LoadSubhalos(property_selection=["SnapshotOfDeath"])["SnapshotOfDeath"]
 
-        # Only keep orphan subhaloes
-        orphan_subhaloes_mask = SnapshotOfDeath != -1
-        SnapshotOfDeath = SnapshotOfDeath[orphan_subhaloes_mask]
+# Only keep orphan subhaloes
+orphan_subhaloes_mask = SnapshotOfDeath != -1
+SnapshotOfDeath = SnapshotOfDeath[orphan_subhaloes_mask]
 
-    # Make the plot
-    fig, ax1 = plt.subplots(1)
-    output_number, number_orphans_created = np.unique(SnapshotOfDeath, return_counts = 1)
-    ax1.plot(output_number, number_orphans_created, label="All orphans")
-    ax1.set_yscale("log")
-    ax1.set_xlabel(r"Output number")
-    ax1.set_ylabel(r"$N_{\rm new \; orphans}$")
-    ax1.legend()
-    plt.show()
-    ```
+# Make the plot
+fig, ax1 = plt.subplots(1)
+output_number, number_orphans_created = np.unique(SnapshotOfDeath, return_counts = 1)
+ax1.plot(output_number, number_orphans_created, label="All orphans")
+ax1.set_yscale("log")
+ax1.set_xlabel(r"Output number")
+ax1.set_ylabel(r"$N_{\rm new \; orphans}$")
+ax1.legend()
+plt.show()
+```
 
-=== "Without running `toolbox/catalogue_cleanup/SortCatalogues.py`"
+??? abstract "Bonus: the merger rate of disrupted and sunken subhaloes"
+
+    Subhaloes become orphans in HBT-HERONS via [two possible mechanisms](../algorithm/subhalo_merger_trees.md#secondary-evolutionary-branch): disruption or sinking. We can subdivide the population of orphan subhaloes according to whether they disrupted or sunk by applying additional masks on both `SnapshotOfDeath` and `SnapshotOfSink`.
 
     ```python
     import sys
@@ -298,99 +177,32 @@ Another set of evolutionary milestones that HBT-HERONS saves relates to the time
     from HBTReader import HBTReader
     import matplotlib.pyplot as plt
 
-    # Open catalogue for this HBT-HERONS run
-    catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
+
+    use_sorted_catalogues = True
+    catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                        sorted_catalogues=use_sorted_catalogues)
 
     # Load required data
-    SnapshotOfDeath = catalogue.LoadSubhalos(property_selection=["SnapshotOfDeath"])
+    subhalo_data = catalogue.LoadSubhalos(property_selection=["SnapshotOfDeath", "SnapshotOfSink"])
+    SnapshotOfDeath = subhalo_data["SnapshotOfDeath"]
+    SnapshotOfSink = subhalo_data["SnapshotOfSink"]
 
-    # Only keep orphan subhaloes
-    orphan_subhaloes_mask = SnapshotOfDeath != -1
-    SnapshotOfDeath = SnapshotOfDeath[orphan_subhaloes_mask]
+    # Only keep orphan subhaloes, but subdivide population into orphans that disrupted and those that sunk.
+    sunk_orphan_subhaloes_mask = (SnapshotOfDeath != -1) & (SnapshotOfSink == SnapshotOfDeath)
+    disrupted_orphan_subhaloes_mask = (SnapshotOfDeath != -1) & (SnapshotOfSink == -1)
+
+    SnapshotOfDeath_sunk_subhaloes      = SnapshotOfDeath[sunk_orphan_subhaloes_mask]
+    SnapshotOfDeath_disrupted_subhaloes = SnapshotOfDeath[disrupted_orphan_subhaloes_mask]
 
     # Make the plot
     fig, ax1 = plt.subplots(1)
-    output_number, number_orphans_created = np.unique(SnapshotOfDeath, return_counts = 1)
-    ax1.plot(output_number, number_orphans_created, label="All orphans")
+    output_number, number_orphans_created = np.unique(SnapshotOfDeath_sunk_subhaloes, return_counts = 1)
+    ax1.plot(output_number, number_orphans_created, label="Sunk orphans")
+    output_number, number_orphans_created = np.unique(SnapshotOfDeath_disrupted_subhaloes, return_counts = 1)
+    ax1.plot(output_number, number_orphans_created, label="Disrupted orphans")
     ax1.set_yscale("log")
     ax1.set_xlabel(r"Output number")
     ax1.set_ylabel(r"$N_{\rm new \; orphans}$")
     ax1.legend()
     plt.show()
     ```
-??? abstract "Bonus: the merger rate of disrupted and sunken subhaloes"
-
-    Subhaloes become orphans in HBT-HERONS via [two possible mechanisms](../algorithm/subhalo_merger_trees.md#secondary-evolutionary-branch): disruption or sinking. We can subdivide the population of orphan subhaloes according to whether they disrupted or sunk by applying additional masks on both `SnapshotOfDeath` and `SnapshotOfSink`.
-
-    === "After running `toolbox/catalogue_cleanup/SortCatalogues.py`"
-
-        ```python
-        import h5py
-        from glob import glob
-        import matplotlib.pyplot as plt
-
-        # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access its paths by output number.
-        catalogue_paths = sorted(glob(f"{SORTED_CATALOGUE_BASE_PATH}/OrderedSubSnap_*.hdf5"))
-        catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
-        max_output_number = list(catalogue_paths)[-1]
-
-        with h5py.File(catalogue_paths[max_output_number]) as catalogue:
-            # Load when subhaloes became orphans and when they sunk, if they have done so.
-            SnapshotOfDeath = catalogue["Subhalos/SnapshotOfDeath"][()]
-            SnapshotOfSink  = catalogue["Subhalos/SnapshotOfSink"][()]
-
-            # Only keep orphan subhaloes, but subdivide population into orphans that disrupted and those that sunk.
-            sunk_orphan_subhaloes_mask = (SnapshotOfDeath != -1) & (SnapshotOfSink == SnapshotOfDeath)
-            disrupted_orphan_subhaloes_mask = (SnapshotOfDeath != -1) & (SnapshotOfSink == -1)
-
-            SnapshotOfDeath_sunk_subhaloes      = SnapshotOfDeath[sunk_orphan_subhaloes_mask]
-            SnapshotOfDeath_disrupted_subhaloes = SnapshotOfDeath[disrupted_orphan_subhaloes_mask]
-
-        # Make the plot
-        fig, ax1 = plt.subplots(1)
-        output_number, number_orphans_created = np.unique(SnapshotOfDeath_sunk_subhaloes, return_counts = 1)
-        ax1.plot(output_number, number_orphans_created, label="Sunk orphans")
-        output_number, number_orphans_created = np.unique(SnapshotOfDeath_disrupted_subhaloes, return_counts = 1)
-        ax1.plot(output_number, number_orphans_created, label="Disrupted orphans")
-        ax1.set_yscale("log")
-        ax1.set_xlabel(r"Output number")
-        ax1.set_ylabel(r"$N_{\rm new \; orphans}$")
-        ax1.legend()
-        plt.show()
-        ```
-
-    === "Without running `toolbox/catalogue_cleanup/SortCatalogues.py`"
-
-        ```python
-        import sys
-        sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
-        from HBTReader import HBTReader
-        import matplotlib.pyplot as plt
-
-        # Open catalogue for this HBT-HERONS run
-        catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
-
-        # Load required data
-        subhalo_data = catalogue.LoadSubhalos(property_selection=["SnapshotOfDeath", "SnapshotOfSink"])
-        SnapshotOfDeath = subhalo_data["SnapshotOfDeath"]
-        SnapshotOfSink = subhalo_data["SnapshotOfSink"]
-
-        # Only keep orphan subhaloes, but subdivide population into orphans that disrupted and those that sunk.
-        sunk_orphan_subhaloes_mask = (SnapshotOfDeath != -1) & (SnapshotOfSink == SnapshotOfDeath)
-        disrupted_orphan_subhaloes_mask = (SnapshotOfDeath != -1) & (SnapshotOfSink == -1)
-
-        SnapshotOfDeath_sunk_subhaloes      = SnapshotOfDeath[sunk_orphan_subhaloes_mask]
-        SnapshotOfDeath_disrupted_subhaloes = SnapshotOfDeath[disrupted_orphan_subhaloes_mask]
-
-        # Make the plot
-        fig, ax1 = plt.subplots(1)
-        output_number, number_orphans_created = np.unique(SnapshotOfDeath_sunk_subhaloes, return_counts = 1)
-        ax1.plot(output_number, number_orphans_created, label="Sunk orphans")
-        output_number, number_orphans_created = np.unique(SnapshotOfDeath_disrupted_subhaloes, return_counts = 1)
-        ax1.plot(output_number, number_orphans_created, label="Disrupted orphans")
-        ax1.set_yscale("log")
-        ax1.set_xlabel(r"Output number")
-        ax1.set_ylabel(r"$N_{\rm new \; orphans}$")
-        ax1.legend()
-        plt.show()
-        ```
