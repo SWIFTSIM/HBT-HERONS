@@ -265,7 +265,7 @@ class HBTReader:
             if not isinstance(TrackId, (np.integer, int)):
                 raise TypeError("Parameter TrackId is not of the required type (int).")
 
-            subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection='TrackId') == TrackId)
+            subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection=['TrackId'])["TrackId"] == TrackId)
             if len(subhalo_index) == 0:
                 raise LookupError("The requested TrackId does not exist in the snapshot of interest.")
             subhalo_index = subhalo_index[0]
@@ -327,7 +327,7 @@ class HBTReader:
         else:
             # Find the index location of the requested TrackId. If we do not find
             # it, it does not exist at this point.
-            subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection='TrackId') == TrackId)
+            subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection=['TrackId'])["TrackId"] == TrackId)
             if len(subhalo_index) == 0:
                 raise LookupError("The requested TrackId does not exist in the snapshot of interest.")
             subhalo_index = subhalo_index[0]
@@ -614,6 +614,7 @@ class HBTReader:
                     if (offset+number_subhaloes > subhalo_index):
                         for property in property_selection:
                             subhaloes_data[property] = subfile['Subhalos'][property][subhalo_index-offset]
+                        subhalos.append(subhaloes_data)
                         break
                     else:
                         offset += number_subhaloes
