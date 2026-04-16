@@ -134,22 +134,6 @@ class HBTReader:
 
         return self.__file_list[index[0]].format(subfile_nr = subfile_nr, filetype = filetype)
 
-    def LoadNestedSubhalos(self, snap_nr=None):
-        """
-        Returns the list of nested subhalo indices for each subhalo.
-
-        Parameters
-        ==========
-        snap_nr : int, opt
-            Snapshot number of the catalogue we are interested in. It defaults
-            to the last snapshot with currently available catalogues.
-        """
-        nests = []
-        for i in range(max(self.nfiles, 1)):
-            with h5py.File(self.GetFileName(snap_nr, i), 'r') as subfile:
-                nests.extend(subfile['NestedSubhalos'][...])
-        return np.array(nests)
-
     def __LoadSubhalos_UnsortedCatalogues(self, snap_nr=None, subhalo_index=None, property_selection=None, show_progress=False):
         """
         Load subhalos from the unsorted HBT-HERONS catalogues, from a single
@@ -488,9 +472,9 @@ class HBTReader:
         # Only load information from when the subhalo was resolved. We try using
         # the old and new dataset name for backwards compatibility.
         try:
-            SnapshotOfBirth = self.GetTrackSnapshot(TrackId)['SnapshotOfBirth']
+            SnapshotOfBirth = self.GetTrackSnapshot(TrackId, self.SnapshotIdList.max())['SnapshotOfBirth']
         except:
-            SnapshotOfBirth = self.GetTrackSnapshot(TrackId)['SnapshotIndexOfBirth']
+            SnapshotOfBirth = self.GetTrackSnapshot(TrackId, self.SnapshotIdList.max())['SnapshotIndexOfBirth']
         snapshots_to_load = self.SnapshotIdList[self.SnapshotIdList >= SnapshotOfBirth]
 
         track = np.array(
