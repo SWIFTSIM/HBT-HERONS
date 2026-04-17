@@ -583,7 +583,7 @@ class HBTReader:
 
         total_number_subhaloes = self.GetNumberOfSubhalos(snap_nr)
         if subhalo_index is not None and subhalo_index.max() >= total_number_subhaloes:
-                raise ValueError(f"Largest requested subhalo_index ({subhalo_index.max()}) is larger than the number of existing subhaloes ({number_subhaloes})")
+                raise ValueError(f"Largest requested subhalo_index ({subhalo_index.max()}) is larger than the number of existing subhaloes ({total_number_subhaloes})")
 
         # Handle defaults, and list inputs
         if property_selection is None:
@@ -599,7 +599,7 @@ class HBTReader:
 
             # Create subhalo array with custom dtypes for the requested properties.
             subhaloes_dtype = generate_custom_array_dtypes(subfile['Subhalos'], property_selection)
-            subhaloes_data  = np.empty(len(subhalo_index) if subhalo_index is not None else number_subhaloes, dtype=subhaloes_dtype)
+            subhaloes_data  = np.empty(len(subhalo_index) if subhalo_index is not None else total_number_subhaloes, dtype=subhaloes_dtype)
 
         # Create counters to keep track where to position loaded subhalo data. array for the subhaloes, and keep on filling it as we load each
         subfile_offset = 0
@@ -628,15 +628,15 @@ class HBTReader:
                     # subfile.
                     present_subhalo_index_mask = (subhalo_index >= subfile_offset) & (subhalo_index < subfile_offset + number_subhaloes)
 
-                    # Load into the entries we want
+                    # Load into the entries we want if we have any to load
                     for property in property_selection:
-                        subhaloes_data[property][present_subhalo_index_mask] = subfile['Subhalos'][property][subhalo_index - subfile_offset]
-
-                    subfile_offset += number_subhaloes
+                        subhaloes_data[property][present_subhalo_index_mask] = subfile['Subhalos'][property][subhalo_index[present_subhalo_index_mask] - subfile_offset]
 
                 else: # Load everything
                     for property in property_selection:
-                        subhaloes_data[property] = subfile['Subhalos'][property]
+                        subhaloes_data[property][subfile_offset : subfile_offset + number_subhaloes] = subfile['Subhalos'][property]
+
+                subfile_offset += number_subhaloes
 
         if show_progress:
             print()
