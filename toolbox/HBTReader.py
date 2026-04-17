@@ -319,8 +319,8 @@ class HBTReader:
 
         Parameters
         ==========
-        TrackId: int
-            The TrackId of the subhalo whose properties we are interested in.
+        TrackId: int or np.ndarray
+            The TrackId of the subhalo(es) whose properties we are interested in.
         snap_nr: int
             The snapshot we are interested in.
         fields: tuple or list of properties, opt
@@ -331,12 +331,16 @@ class HBTReader:
         if self.__sorted_catalogues:
             return self.LoadSubhalos(snap_nr, TrackId, fields)
         else:
-            # Find the index location of the requested TrackId. If we do not find
-            # it, it does not exist at this point.
-            subhalo_index = np.flatnonzero(self.LoadSubhalos(snap_nr, property_selection=['TrackId'])["TrackId"] == TrackId)
-            if len(subhalo_index) == 0:
-                raise LookupError("The requested TrackId does not exist in the snapshot of interest.")
-            subhalo_index = subhalo_index[0]
+
+            # We do not know a priori where the requested TrackId is located, so
+            # we need to first find its index location. Let's be simple and load
+            # all TrackIds, rather than iterate over subfiles until we find it.
+            current_TrackIds = self.LoadSubhalos(snap_nr, property_selection=['TrackId'])["TrackId"]
+
+            # The intersection returns a sorted array of the requested TrackId(s) that are present in the snapshot,
+            # but we want to keep the requested ordering.
+            _s, subhalo_index = np.intersect1d(TrackId, current_TrackIds, assume_unique=True, return_indices=True)[1:]
+            subhalo_index = subhalo_index[np.argsort(_s)]
 
             return self.LoadSubhalos(snap_nr, subhalo_index=subhalo_index, property_selection=fields)
 
