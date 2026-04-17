@@ -194,11 +194,11 @@ class HBTReader:
         snap_nr: int, opt
             The snapshot number we are interested in. It defaults to the
             latest snapshot with available catalogues.
-        subhalo_index: int, opt
-            If specified, only load the subhalo in the specified entry. For
-            unsorted catalogues, this does not correspond to the TrackId of the
-            subhalo, but it does so for the sorted version. If not provided, all
-            subhaloes will be loaded.
+        subhalo_index: int or np.ndarray, opt
+            If specified, only load the subhalo(es) in the specified entries,
+            which should be in ascending value order. For unsorted catalogues,
+            this does not correspond to the TrackId of the subhalo, but it does
+            so for the sorted version. If not provided, all subhaloes will be loaded.
         property_selection: tuple or list of strings, opt
             If specified, only load the specified properties. If not provided,
             all subhalo properties will be loaded.
@@ -551,11 +551,11 @@ class HBTReader:
         snap_nr: int, opt
             The snapshot number we are interested in. It defaults to the
             latest snapshot with available catalogues.
-        subhalo_index: int, opt
-            If specified, only load the subhalo in the specified entry. Note
-            that this does NOT correspond to the TrackId of the subhalo, as
-            the catalogues are not sorted in TrackId. If not provided, all
-            subhaloes will be loaded.
+        subhalo_index: int or np.ndarray, opt
+            Only load the subhalo(es) in the specified entries, which must be
+            in ascending order if multiple are requested. If not provided, all
+            subhaloes will be loaded. Note that this value does NOT correspond
+            to the TrackId of the subhalo.
         property_selection: tuple or list of strings, opt
             If specified, only load the specified properties. If not provided,
             all subhalo properties will be loaded.
@@ -574,13 +574,17 @@ class HBTReader:
 
         if snap_nr is None:
             snap_nr = self.SnapshotIdList.max()
+        total_number_subhaloes = self.GetNumberOfSubhalos(snap_nr)
 
-        load_single_subhalo = subhalo_index is not None
-        if (load_single_subhalo):
-            if not isinstance(subhalo_index, (np.integer, int)):
-                raise TypeError("Parameter subhalo_index is not of the required type (int).")
-            if subhalo_index >= self.GetNumberOfSubhalos(snap_nr):
-                raise ValueError(f"Selected subhalo entry ({subhalo_index}) is larger than the number of existing subhaloes ({self.GetNumberOfSubhalos(snap_nr)})")
+        if subhalo_index is not None:
+            if not isinstance(subhalo_index, (np.integer, int, np.ndarray)):
+                raise TypeError("Parameter TrackId is not of the required type (int or np.ndarray).")
+
+            if isinstance(subhalo_index, (np.integer, int)):
+                subhalo_index = np.array([subhalo_index])
+
+            if subhalo_index.max() >= total_number_subhaloes:
+                raise ValueError(f"Largest requested subhalo index ({subhalo_index.max()}) is larger than the number of existing subhaloes ({total_number_subhaloes})")
 
         # Handle defaults, and list inputs
         if property_selection is None:
@@ -590,15 +594,26 @@ class HBTReader:
             if type(property_selection) is list:
                 property_selection = tuple(property_selection)
 
-        # Determine number of files for requested output
         with h5py.File(self.GetFileName(snap_nr), 'r') as subfile:
+            # Number of subfiles we may need to iterate over.
             number_subfiles = subfile['NumberOfFiles'][0]
 
-        offset = 0
-        subhalos = []
+            # Create subhalo array with custom dtypes for the requested properties.
+            subhaloes_dtype = generate_custom_array_dtypes(subfile['Subhalos'], property_selection)
+            subhaloes_data  = np.empty(len(subhalo_index) if subhalo_index is not None else number_subhaloes, dtype=subhaloes_dtype)
+
+        # Create counters to keep track where to position loaded subhalo data. array for the subhaloes, and keep on filling it as we load each
+        subfile_offset = 0
         for subfile_nr in range(number_subfiles):
+
             if show_progress:
                 print(".", end="")
+
+            # This ensures we only iterate over the subfiles that contain the
+            # requested subhalo entries. If we are loading everything, this will
+            # never trigger.
+            if subfile_offset > subhalo_index.max() if subhalo_index is not None else False:
+                break
 
             with h5py.File(self.GetFileName(snap_nr, subfile_nr), 'r') as subfile:
                 number_subhaloes = subfile['Subhalos'].shape[0]
@@ -607,33 +622,27 @@ class HBTReader:
                 if number_subhaloes == 0:
                     continue
 
-                subhaloes_dtype = generate_custom_array_dtypes(subfile['Subhalos'], property_selection)
-                subhaloes_data  = np.empty(1 if load_single_subhalo else number_subhaloes, dtype=subhaloes_dtype)
+                # Iterate over subfiles until we find our target(s).
+                if subhalo_index is not None:
 
-                if load_single_subhalo: # Iterate over subfiles until we find our target.
-                    if (offset+number_subhaloes > subhalo_index):
-                        for property in property_selection:
-                            subhaloes_data[property] = subfile['Subhalos'][property][subhalo_index-offset]
-                        subhalos.append(subhaloes_data)
-                        break
-                    else:
-                        offset += number_subhaloes
-                        continue
+                    # We find which of the requested entries are located in this
+                    # subfile.
+                    present_subhalo_index_mask = (subhalo_index >= subfile_offset) & (subhalo_index < subfile_offset + number_subhaloes)
+
+                    # Load into the entries we want
+                    for property in property_selection:
+                        subhaloes_data[property][present_subhalo_index_mask] = subfile['Subhalos'][property][subhalo_index - subfile_offset]
+
+                    subfile_offset += number_subhaloes
+
                 else: # Load everything
                     for property in property_selection:
                         subhaloes_data[property] = subfile['Subhalos'][property]
 
-                subhalos.append(subhaloes_data)
-
-        if len(subhalos):
-            subhalos = np.hstack(subhalos)
-        else:
-            subhalos = np.array(subhalos)
-
         if show_progress:
             print()
 
-        return subhalos
+        return subhaloes_data
 
     def __LoadSubhalos_SortedCatalogues(self, snap_nr=None, TrackId=None, property_selection=None):
         """
