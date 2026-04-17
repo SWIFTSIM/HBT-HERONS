@@ -215,6 +215,12 @@ class HBTReader:
             via indexing, e.g. subhalos["PROPERTY_NAME"]
         """
 
+        if subhalo_index is not None:
+            if not isinstance(subhalo_index, (np.integer, int, np.ndarray)):
+                raise TypeError("Parameter subhalo_index is not of the required type (int or np.ndarray).")
+            if isinstance(subhalo_index, (np.integer, int)):
+                subhalo_index = np.array([subhalo_index])
+
         if self.__sorted_catalogues:
             return self.__LoadSubhalos_SortedCatalogues(snap_nr, subhalo_index, property_selection)
         else:
@@ -574,17 +580,10 @@ class HBTReader:
 
         if snap_nr is None:
             snap_nr = self.SnapshotIdList.max()
+
         total_number_subhaloes = self.GetNumberOfSubhalos(snap_nr)
-
-        if subhalo_index is not None:
-            if not isinstance(subhalo_index, (np.integer, int, np.ndarray)):
-                raise TypeError("Parameter TrackId is not of the required type (int or np.ndarray).")
-
-            if isinstance(subhalo_index, (np.integer, int)):
-                subhalo_index = np.array([subhalo_index])
-
-            if subhalo_index.max() >= total_number_subhaloes:
-                raise ValueError(f"Largest requested subhalo index ({subhalo_index.max()}) is larger than the number of existing subhaloes ({total_number_subhaloes})")
+        if subhalo_index is not None and subhalo_index.max() >= total_number_subhaloes:
+                raise ValueError(f"Largest requested subhalo_index ({subhalo_index.max()}) is larger than the number of existing subhaloes ({number_subhaloes})")
 
         # Handle defaults, and list inputs
         if property_selection is None:
@@ -673,17 +672,10 @@ class HBTReader:
 
         if snap_nr is None:
             snap_nr = self.SnapshotIdList.max()
-        number_subhaloes = self.GetNumberOfSubhalos(snap_nr)
 
-        if TrackId is not None:
-            if not isinstance(TrackId, (np.integer, int, np.ndarray)):
-                raise TypeError("Parameter TrackId is not of the required type (int or np.ndarray).")
-
-            if isinstance(TrackId, (np.integer, int)):
-                TrackId = np.array([TrackId])
-
-            if TrackId.max() >= number_subhaloes:
-                raise ValueError(f"Largest requested TrackId ({TrackId.max()}) is larger than the number of existing subhaloes ({number_subhaloes})")
+        total_number_subhaloes = self.GetNumberOfSubhalos(snap_nr)
+        if TrackId is not None and TrackId.max() >= total_number_subhaloes:
+                raise ValueError(f"Largest requested TrackId ({TrackId.max()}) is larger than the number of existing subhaloes ({total_number_subhaloes})")
 
         subhaloes_data  = []
         with h5py.File(self.GetFileName(snap_nr), 'r') as catalogue_file:
@@ -694,7 +686,7 @@ class HBTReader:
                 property_selection = list(catalogue_file['Subhalos'].keys())
 
             subhaloes_dtype = generate_custom_array_dtypes(catalogue_file['Subhalos'], property_selection)
-            subhaloes_data  = np.empty(len(TrackId) if TrackId is not None else number_subhaloes, dtype=subhaloes_dtype)
+            subhaloes_data  = np.empty(len(TrackId) if TrackId is not None else total_number_subhaloes, dtype=subhaloes_dtype)
 
             for property in property_selection:
                 if TrackId is None:
