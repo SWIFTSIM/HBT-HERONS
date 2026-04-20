@@ -72,6 +72,7 @@ disrupted_progenitors  = catalogue.GetDisruptionProgenitors(TrackId_to_follow)
 
 # Load the evolution of all progenitors. Note that loading this in the unsorted catalogue may take a while
 disrupted_progenitors_evolution = catalogue.GetTrackEvolution(disrupted_progenitors)
+
 fig, ax1 = plt.subplots(1)
 for evolution in disrupted_progenitors_evolution:
     ax1.plot(evolution["Snapshot"], evolution["Mbound"] * catalogue.GetMassUnits_Msunh())
@@ -102,7 +103,7 @@ catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues els
 subhaloes = catalogue.LoadSubhalos()
 TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 
-# Select orphan subhaloes that disrupted or underwent unresolved sinking.
+# Select orphan subhaloes that sunk.
 sunk_progenitors  = catalogue.GetSinkProgenitors(TrackId_to_follow)
 
 # Load the evolution of all progenitors. Note that loading this in the unsorted catalogue may take a while
@@ -113,5 +114,88 @@ for evolution in sunk_progenitors_evolution:
 ax1.set_xlabel('Output Number')
 ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
 ax1.set_yscale('log')
+plt.show()
+```
+
+### All progenitors
+
+In the two examples above, we have seen how to identify ***direct*** subhalo progenitors, classified according to whether they underwent disruption or sinking. A combined list of sunken and disrupted progenitors can be obtained by calling `GetAllProgenitors`. Note that when calling this method, it defaults to returning direct and indirect secondary progenitors of the subhalo of interest. The difference between a direct and indirect secondary progenitor is as follows:
+
+*   **Direct secondary progenitor**: the subhalo merges directly with the main progenitor of the subhalo of interest.
+*   **Indirect secondary progenitor**: the subhalo does not merge directly with the main progenitor of the subhalo of interest. Instead, it merges with another subhalo which itself eventually merges with the main progenitor of interest, or with another subhalo that eventually merges with the main branch, etc.
+
+One can always limit the progenitors returned by `GetAllProgenitors` by passing the argument `only_direct_progenitors=True`.
+
+In the code below we show how to identify all direct and indirect secondary progenitors of the subhalo used in the [first example](#main-progenitor).
+
+```python
+import sys
+sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
+from HBTReader import HBTReader
+import matplotlib.pyplot as plt
+
+use_sorted_catalogues = True
+catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                    sorted_catalogues=use_sorted_catalogues)
+
+# Get the TrackId of the most massive subhalo. The reader loads the latest
+# available snapshot by default and all subhalo properties.
+subhaloes = catalogue.LoadSubhalos()
+TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
+
+# Select orphan subhaloes that have a connection to the main progenitor brach.
+all_progenitors  = catalogue.GetAllProgenitors(TrackId_to_follow)
+
+# Load the evolution of all progenitors. Note that loading this in the unsorted catalogue may take a while
+all_progenitor_evolution = catalogue.GetTrackEvolution(all_progenitors)
+
+fig, ax1 = plt.subplots(1)
+for evolution in all_progenitor_evolution:
+    ax1.plot(evolution["Snapshot"], evolution["Mbound"] * catalogue.GetMassUnits_Msunh())
+ax1.set_xlabel('Output Number')
+ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
+ax1.set_yscale('log')
+plt.show()
+```
+
+## Merger mass ratios
+
+As shown above, identifying the progenitors of subhaloes and their evolution is relatively simple. This means that statistics that go beyond the evolution of individual subhaloes are correspondingly straightforward to obtain.
+
+In the example below, we show how to measure the cumulative mass ratio distribution of all subhaloes that directly merged with the subhalo used in the [first example](#main-progenitor).
+
+```python
+import sys
+sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
+from HBTReader import HBTReader
+import matplotlib.pyplot as plt
+
+use_sorted_catalogues = True
+catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                    sorted_catalogues=use_sorted_catalogues)
+
+# Get the TrackId of the most massive subhalo. The reader loads the latest
+# available snapshot by default and all subhalo properties.
+subhaloes = catalogue.LoadSubhalos()
+TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
+
+# Get the evolution of the main progenitor
+evolution_main_progenitor = catalogue.GetTrackEvolution(TrackId_to_follow)[0]
+
+# Select orphan subhaloes that directly merged with our subhalo of interest, and load their peak mass and when it was reached.
+all_direct_progenitors = catalogue.GetAllProgenitors(TrackId_to_follow, only_direct_progenitors=True)
+all_direct_progenitor_properties = catalogue.LoadSubhalos(subhalo_index = all_direct_progenitors, property_selection=["SnapshotOfLastMaxMass", "LastMaxMass"])
+
+# Compute the ratio between peak mass of each progenitor relative to the bound mass of the main progenitor at the same output.
+mass_ratios = - np.ones(len(all_direct_progenitor_properties), float)
+for i, progenitor in enumerate(all_direct_progenitor_properties):
+    mass_ratios[i] = progenitor["LastMaxMass"] / evolution_main_progenitor["Mbound"][evolution_main_progenitor["Snapshot"] == progenitor["SnapshotOfLastMaxMass"]]
+
+fig, ax1 = plt.subplots(1)
+ax1.plot(np.sort(mass_ratios)[::-1], np.arange(len(mass_ratios)) + 1, label="All subhaloes")
+ax1.set_ylabel(r"$N(\geq f_{\rm ratio})$")
+ax1.set_xlabel(r"$f_{\rm ratio}$")
+ax1.set_yscale('log')
+ax1.set_xscale('log')
 plt.show()
 ```
