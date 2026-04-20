@@ -447,7 +447,7 @@ class HBTReader:
         """
 
         if only_direct_progenitors:
-            return np.hstack([self.GetDisruptionProgenitors(TrackId), self.GetSinkProgenitors(TrackId)])
+            return np.sort(np.hstack([self.GetDisruptionProgenitors(TrackId), self.GetSinkProgenitors(TrackId)]))
         else:
             all_progenitors = [] # To keep track of all progenitors we found
 
