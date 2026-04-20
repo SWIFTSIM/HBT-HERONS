@@ -352,21 +352,25 @@ class HBTReader:
         return append_fields(
             track, ['Snapshot', 'ScaleFactor'], [snapshots_to_load, scales], usemask=False)
 
-    # TODO: determine what the best way to merge GetMultipleTrackEvolution and
-    # GetTrackEvolution, since they return different data...
     def GetMultipleTrackEvolution(self, TrackId, fields=None):
         """
-        Load the entire evolution of a given TrackId, from when it was first
-        resolved until the latest snapshot with available catalogues (even if it
-        the subhalo is unresolved by that time).
+        Load the entire evolution of one or more TrackId, from when they were first
+        resolved until the latest snapshot with available catalogues.
 
         Parameters
         ==========
-        TrackId: int
-            The TrackId of the subhalo whose evolution we are interested in.
+        TrackId: int or np.ndarray
+            The TrackId of the subhalo(es) whose evolution we are interested in.
+            If multiple values are given, they should be in ascending order.
         fields: tuple or list of properties, opt
             The properties we are interested in loading. If not defined, we load
             everything.
+
+        Returns
+        =======
+        subhalo_evolution: list of np.ndarray
+            A list of custom dtype arrays, each containing the evolution of a subhalo
+            after it was first resolved. It has the same order as the input TrackId.
         """
 
         # Only load information from when the subhalo was resolved. We try using
@@ -379,19 +383,22 @@ class HBTReader:
         # We iterate from the earliest forming subhalo of the provided set.
         snapshots_to_load = self.SnapshotIdList[self.SnapshotIdList >= SnapshotOfBirth.min()]
 
-        # Load subhalo information for all snapshots, but do not error if a subhalo
-        # is missing in a given snapshot. Instead, return a dummy -9999 value for
-        # the missing entries.
-        track = np.array(
+        # Load "unprocessed" subhalo information. It is unprocessed because we may
+        # have dummy values of -9999 for subhaloes that were not resolved
+        # from the minimum simulation output we have loaded (which is determined
+        # from the earliest forming subhalo in our requested set).
+        subhalo_evolution_unprocessed = np.array(
             [self.__internal_GetTrackSnapshot(TrackId, snap_nr, fields=fields, error_on_missing_subhalo=False)
              for snap_nr in snapshots_to_load]).T
 
-        expansion_factors = np.array([self.GetScaleFactor(snap_nr) for snap_nr in snapshots_to_load])
-        snapshots_to_load = np.broadcast_to(snapshots_to_load, track.shape).ravel()
-        expansion_factors = np.broadcast_to(expansion_factors, track.shape).ravel()
+        # Convert to list of individual subhalo entries, so that we can have variable
+        # length arrays and remove the snapshots before each subhalo was first resolved.
+        subhalo_evolution = []
+        for birth_snapshot, track in zip(SnapshotOfBirth, subhalo_evolution_unprocessed):
+            subhalo_evolution.append(append_fields(track[snapshots_to_load >= birth_snapshot],
+            ['Snapshot'], [snapshots_to_load[snapshots_to_load >= birth_snapshot]], usemask=False))
 
-        return append_fields(
-            track, ['Snapshot', 'ScaleFactor'], [snapshots_to_load, expansion_factors], usemask=False).reshape(track.shape)
+        return subhalo_evolution
 
     #===========================================================================
     # Functions to identify progenitor subhaloes.
