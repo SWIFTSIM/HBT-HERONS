@@ -613,10 +613,9 @@ class HBTReader:
         """
 
         if subhalo_index is not None:
-            if not isinstance(subhalo_index, (np.integer, int, np.ndarray)):
+            if not isinstance(subhalo_index, (np.integer, int, np.ndarray, list)):
                 raise TypeError("Parameter subhalo_index is not of the required type (int or np.ndarray).")
-            if isinstance(subhalo_index, (np.integer, int)):
-                subhalo_index = np.array([subhalo_index])
+            subhalo_index = np.array(subhalo_index, ndmin=1)
 
         if self.__sorted_catalogues:
             return self.__LoadSubhalos_SortedCatalogues(snap_nr, subhalo_index, property_selection, error_on_missing_subhalo=error_on_missing_subhalo)
@@ -814,7 +813,7 @@ class HBTReader:
 
             # We fill entries with a dummy value, which will be used if the requested TrackId does
             # not exist in the current output.
-            subhalo_index = np.full(len(TrackId), current_TrackIds.max() + 1, dtype=int)
+            subhalo_index = np.full(len(np.array(TrackId, ndmin=1)), current_TrackIds.max() + 1, dtype=int)
 
             # The intersection returns a sorted array of the requested TrackId(s) that are present in the snapshot,
             # but we want to keep the requested ordering.
