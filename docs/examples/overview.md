@@ -4,9 +4,27 @@ In this section we provide several example scripts of how to interface with the 
 
 * [Population-level properties](./population_level_statistics.md): bound mass function, peak bound mass function and merger rates.
 * [Halo substructure and hierarchy](./internal_halo_population.md): satellite peak mass function, spatial distribution and subhalo hierarchy.
-* [Merger tree traversal](./merger_trees.md): evolution of subhaloes and obtaining secondary progenitors.
+* [Merger tree traversal](./merger_trees.md): evolution of subhaloes, obtaining secondary progenitors and merger mass ratios.
 
 We have written the code so that you can apply it to any HBT-HERONS catalogue, including your own. However, if you do not have any such catalogue available yet, we provide an example that you can download following the steps below.
+
+## HBTReader
+
+The HBT-HERONS repository comes with a Python file (`/toolbox/HBTReader.py`) that contains functions to interface with the catalogues. To import, add the directory containing `HBTReader.py` to your path:
+
+```python
+import sys
+sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
+from HBTReader import HBTReader
+```
+Opening the catalogue for a given simulation can be done using:
+
+``` python
+catalogue = HBTReader(f"{CATALOGUE_PATH}", sorted_catalogues=False)
+```
+Opening the catalogue will automatically read which simulation outputs have a saved HBT-HERONS catalogue. The boolean parameter `sorted_catalogues` indicates whether the catalogues have been post-processed with [`toolbox/catalogue_cleanup/SortCatalogues.py`](https://github.com/SWIFTSIM/HBT-HERONS/blob/master/toolbox/catalogue_cleanup/SortCatalogues.py). We strongly recommend doing executing that script, as it will speed up operations.
+
+The code examples we provide in this section always use the class `HBTReader` to load data. However, it can be preferrable to read the HDF5 files directly once you become more familiar with the catalogue formatting and the way in which different datasets can be used.
 
 ## Example catalogue
 
