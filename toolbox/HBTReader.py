@@ -322,38 +322,6 @@ class HBTReader:
 
     def GetTrackEvolution(self, TrackId, fields=None):
         """
-        Load the entire evolution of a given TrackId, from when it was first
-        resolved until the latest snapshot with available catalogues (even if it
-        the subhalo is unresolved by that time).
-
-        Parameters
-        ==========
-        TrackId: int
-            The TrackId of the subhalo whose evolution we are interested in.
-        fields: tuple or list of properties, opt
-            The properties we are interested in loading. If not defined, we load
-            everything.
-        """
-
-        # Only load information from when the subhalo was resolved. We try using
-        # the old and new dataset name for backwards compatibility.
-        try:
-            SnapshotOfBirth = self.GetTrackSnapshot(TrackId, self.SnapshotIdList.max())['SnapshotOfBirth']
-        except:
-            SnapshotOfBirth = self.GetTrackSnapshot(TrackId, self.SnapshotIdList.max())['SnapshotIndexOfBirth']
-        snapshots_to_load = self.SnapshotIdList[self.SnapshotIdList >= SnapshotOfBirth]
-
-        track = np.array(
-            [self.GetTrackSnapshot(TrackId, snap_nr, fields=fields)
-             for snap_nr in snapshots_to_load])
-
-        scales = np.array([self.GetScaleFactor(snap_nr) for snap_nr in snapshots_to_load])
-
-        return append_fields(
-            track, ['Snapshot', 'ScaleFactor'], [snapshots_to_load, scales], usemask=False)
-
-    def GetMultipleTrackEvolution(self, TrackId, fields=None):
-        """
         Load the entire evolution of one or more TrackId, from when they were first
         resolved until the latest snapshot with available catalogues.
 
