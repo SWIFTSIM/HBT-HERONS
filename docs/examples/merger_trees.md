@@ -184,7 +184,9 @@ evolution_main_progenitor = catalogue.GetTrackEvolution(TrackId_to_follow)[0]
 
 # Select orphan subhaloes that directly merged with our subhalo of interest, and load their peak mass and when it was reached.
 all_direct_progenitors = catalogue.GetAllProgenitors(TrackId_to_follow, only_direct_progenitors=True)
-all_direct_progenitor_properties = catalogue.LoadSubhalos(subhalo_index = all_direct_progenitors, property_selection=["SnapshotOfLastMaxMass", "LastMaxMass"])
+all_direct_progenitor_properties = catalogue.GetTrackSnapshot(all_direct_progenitors,
+                                                              catalogue.SnapshotIdList.max(),
+                                                              ["SnapshotOfLastMaxMass", "LastMaxMass"])
 
 # Compute the ratio between peak mass of each progenitor relative to the bound mass of the main progenitor at the same output.
 mass_ratios = - np.ones(len(all_direct_progenitor_properties), float)
