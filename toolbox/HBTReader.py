@@ -621,9 +621,9 @@ class HBTReader:
         if self.__sorted_catalogues:
             return self.__LoadSubhalos_SortedCatalogues(snap_nr, subhalo_index, property_selection, error_on_missing_subhalo=error_on_missing_subhalo)
         else:
-            return self.__LoadSubhalos_UnsortedCatalogues(snap_nr, subhalo_index, property_selection, show_progress)
+            return self.__LoadSubhalos_UnsortedCatalogues(snap_nr, subhalo_index, property_selection, show_progress, error_on_missing_subhalo=error_on_missing_subhalo)
 
-    def __LoadSubhalos_UnsortedCatalogues(self, snap_nr=None, subhalo_index=None, property_selection=None, show_progress=False):
+    def __LoadSubhalos_UnsortedCatalogues(self, snap_nr=None, subhalo_index=None, property_selection=None, show_progress=False, error_on_missing_subhalo=True):
         """
         Load subhalos from the unsorted HBT-HERONS catalogues, from a single
         simulation output.
@@ -644,6 +644,9 @@ class HBTReader:
         show_progess: bool, opt
             Prints progress bar indicating how many subfiles have been loaded.
             Defaults to false.
+        error_on_missing_subhalo: bool, opt
+            Whether to raise an error if any of the requested entries do not
+            exist in the snapshot of interest. Defaults to True.
 
         Returns
         =======
@@ -658,7 +661,7 @@ class HBTReader:
             snap_nr = self.SnapshotIdList.max()
 
         total_number_subhaloes = self.GetNumberOfSubhalos(snap_nr)
-        if subhalo_index is not None and subhalo_index.max() >= total_number_subhaloes:
+        if subhalo_index is not None and error_on_missing_subhalo and subhalo_index.max() >= total_number_subhaloes:
                 raise ValueError(f"Largest requested subhalo_index ({subhalo_index.max()}) is larger than the number of existing subhaloes ({total_number_subhaloes})")
 
         # Handle defaults, and list inputs
@@ -675,7 +678,7 @@ class HBTReader:
 
             # Create subhalo array with custom dtypes for the requested properties.
             subhaloes_dtype = generate_custom_array_dtypes(subfile['Subhalos'], property_selection)
-            subhaloes_data  = np.empty(len(subhalo_index) if subhalo_index is not None else total_number_subhaloes, dtype=subhaloes_dtype)
+            subhaloes_data  = np.full(len(subhalo_index) if subhalo_index is not None else total_number_subhaloes, -9999, dtype=subhaloes_dtype)
 
         # Create counters to keep track where to position loaded subhalo data. array for the subhaloes, and keep on filling it as we load each
         subfile_offset = 0
@@ -809,10 +812,14 @@ class HBTReader:
             # all TrackIds, rather than iterate over subfiles until we find it.
             current_TrackIds = self.LoadSubhalos(snap_nr, property_selection=['TrackId'])["TrackId"]
 
+            # We fill entries with a dummy value, which will be used if the requested TrackId does
+            # not exist in the current output.
+            subhalo_index = np.full(len(TrackId), current_TrackIds.max() + 1, dtype=int)
+
             # The intersection returns a sorted array of the requested TrackId(s) that are present in the snapshot,
             # but we want to keep the requested ordering.
-            _s, subhalo_index = np.intersect1d(TrackId, current_TrackIds, assume_unique=True, return_indices=True)[1:]
-            subhalo_index = subhalo_index[np.argsort(_s)]
+            _s, found_subhalo_index = np.intersect1d(TrackId, current_TrackIds, assume_unique=True, return_indices=True)[1:]
+            subhalo_index[np.sort(_s)] = found_subhalo_index[np.argsort(_s)]
 
             return self.__internal_LoadSubhalos(snap_nr, subhalo_index=subhalo_index, property_selection=fields, error_on_missing_subhalo=error_on_missing_subhalo)
 
