@@ -25,7 +25,7 @@ TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 
 # Get its bound mass evolution, which returns by default all properties and
 # the associated scale factors and snashot output numbers.
-subhalo_evolution  = catalogue.GetTrackEvolution(TrackId_to_follow)
+subhalo_evolution  = catalogue.GetTrackEvolution(TrackId_to_follow)[0]
 Mbound_evolution   = subhalo_evolution["Mbound"] * catalogue.GetMassUnits_Msunh()
 
 fig, ax1 = plt.subplots(1)
@@ -70,14 +70,11 @@ TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 # Select orphan subhaloes that disrupted or underwent unresolved sinking.
 disrupted_progenitors  = catalogue.GetDisruptionProgenitors(TrackId_to_follow)
 
-# Plot the evolution of a random subset of progenitors
-Mbound_evolution = - np.ones((len(disrupted_progenitors), len(catalogue.SnapshotIdList)))
-for i, disrupted_progenitor in enumerate(disrupted_progenitors):
-    subhalo_evolution = catalogue.GetTrackEvolution(disrupted_progenitor)
-    Mbound_evolution[i,subhalo_evolution["Snapshot"]] = subhalo_evolution["Mbound"] * catalogue.GetMassUnits_Msunh()
-
+# Load the evolution of all progenitors. Note that loading this in the unsorted catalogue may take a while
+disrupted_progenitors_evolution = catalogue.GetTrackEvolution(disrupted_progenitors)
 fig, ax1 = plt.subplots(1)
-ax1.plot(Mbound_evolution.T)
+for evolution in disrupted_progenitors_evolution:
+    ax1.plot(evolution["Snapshot"], evolution["Mbound"] * catalogue.GetMassUnits_Msunh())
 ax1.set_xlabel('Output Number')
 ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
 ax1.set_yscale('log')
@@ -106,16 +103,13 @@ subhaloes = catalogue.LoadSubhalos()
 TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 
 # Select orphan subhaloes that disrupted or underwent unresolved sinking.
-disrupted_progenitors  = catalogue.GetSinkProgenitors(TrackId_to_follow)
+sunk_progenitors  = catalogue.GetSinkProgenitors(TrackId_to_follow)
 
-# Plot the evolution of a random subset of progenitors
-Mbound_evolution = - np.ones((len(disrupted_progenitors), len(catalogue.SnapshotIdList)))
-for i, disrupted_progenitor in enumerate(disrupted_progenitors):
-    subhalo_evolution = catalogue.GetTrackEvolution(disrupted_progenitor)
-    Mbound_evolution[i,subhalo_evolution["Snapshot"]] = subhalo_evolution["Mbound"] * catalogue.GetMassUnits_Msunh()
-
+# Load the evolution of all progenitors. Note that loading this in the unsorted catalogue may take a while
+sunk_progenitors_evolution = catalogue.GetTrackEvolution(sunk_progenitors)
 fig, ax1 = plt.subplots(1)
-ax1.plot(Mbound_evolution.T)
+for evolution in sunk_progenitors_evolution:
+    ax1.plot(evolution["Snapshot"], evolution["Mbound"] * catalogue.GetMassUnits_Msunh())
 ax1.set_xlabel('Output Number')
 ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
 ax1.set_yscale('log')
