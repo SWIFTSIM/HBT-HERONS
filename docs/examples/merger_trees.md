@@ -20,12 +20,12 @@ catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues els
 
 # Get the TrackId of the most massive subhalo. The reader loads the latest
 # available snapshot by default and all subhalo properties.
-subhaloes = catalogue.LoadSubhalos()
+subhaloes = catalogue.LoadSubhaloProperties()
 TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 
 # Get its bound mass evolution, which returns by default all properties and
 # the associated scale factors and snashot output numbers.
-subhalo_evolution  = catalogue.GetTrackEvolution(TrackId_to_follow)[0]
+subhalo_evolution  = catalogue.LoadSubhaloEvolution(TrackId_to_follow)[0]
 Mbound_evolution   = subhalo_evolution["Mbound"] * catalogue.GetMassUnits_Msunh()
 
 fig, ax1 = plt.subplots(1)
@@ -64,14 +64,14 @@ catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues els
 
 # Get the TrackId of the most massive subhalo. The reader loads the latest
 # available snapshot by default and all subhalo properties.
-subhaloes = catalogue.LoadSubhalos()
+subhaloes = catalogue.LoadSubhaloProperties()
 TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 
 # Select orphan subhaloes that disrupted or underwent unresolved sinking.
 disrupted_progenitors  = catalogue.GetDisruptionProgenitors(TrackId_to_follow)
 
 # Load the evolution of all progenitors. Note that loading this in the unsorted catalogue may take a while
-disrupted_progenitors_evolution = catalogue.GetTrackEvolution(disrupted_progenitors)
+disrupted_progenitors_evolution = catalogue.LoadSubhaloEvolution(disrupted_progenitors)
 
 fig, ax1 = plt.subplots(1)
 for evolution in disrupted_progenitors_evolution:
@@ -100,14 +100,14 @@ catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues els
 
 # Get the TrackId of the most massive subhalo. The reader loads the latest
 # available snapshot by default and all subhalo properties.
-subhaloes = catalogue.LoadSubhalos()
+subhaloes = catalogue.LoadSubhaloProperties()
 TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 
 # Select orphan subhaloes that sunk.
 sunk_progenitors  = catalogue.GetSinkProgenitors(TrackId_to_follow)
 
 # Load the evolution of all progenitors. Note that loading this in the unsorted catalogue may take a while
-sunk_progenitors_evolution = catalogue.GetTrackEvolution(sunk_progenitors)
+sunk_progenitors_evolution = catalogue.LoadSubhaloEvolution(sunk_progenitors)
 fig, ax1 = plt.subplots(1)
 for evolution in sunk_progenitors_evolution:
     ax1.plot(evolution["Snapshot"], evolution["Mbound"] * catalogue.GetMassUnits_Msunh())
@@ -140,14 +140,14 @@ catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues els
 
 # Get the TrackId of the most massive subhalo. The reader loads the latest
 # available snapshot by default and all subhalo properties.
-subhaloes = catalogue.LoadSubhalos()
+subhaloes = catalogue.LoadSubhaloProperties()
 TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 
 # Select orphan subhaloes that have a connection to the main progenitor brach.
 all_progenitors  = catalogue.GetAllProgenitors(TrackId_to_follow)
 
 # Load the evolution of all progenitors. Note that loading this in the unsorted catalogue may take a while
-all_progenitor_evolution = catalogue.GetTrackEvolution(all_progenitors)
+all_progenitor_evolution = catalogue.LoadSubhaloEvolution(all_progenitors)
 
 fig, ax1 = plt.subplots(1)
 for evolution in all_progenitor_evolution:
@@ -176,17 +176,17 @@ catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues els
 
 # Get the TrackId of the most massive subhalo. The reader loads the latest
 # available snapshot by default and all subhalo properties.
-subhaloes = catalogue.LoadSubhalos()
+subhaloes = catalogue.LoadSubhaloProperties()
 TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 
 # Get the evolution of the main progenitor
-evolution_main_progenitor = catalogue.GetTrackEvolution(TrackId_to_follow)[0]
+evolution_main_progenitor = catalogue.LoadSubhaloEvolution(TrackId_to_follow)[0]
 
 # Select orphan subhaloes that directly merged with our subhalo of interest, and load their peak mass and when it was reached.
 all_direct_progenitors = catalogue.GetAllProgenitors(TrackId_to_follow, only_direct_progenitors=True)
-all_direct_progenitor_properties = catalogue.GetTrackSnapshot(all_direct_progenitors,
-                                                              catalogue.SnapshotIdList.max(),
-                                                              ["SnapshotOfLastMaxMass", "LastMaxMass"])
+all_direct_progenitor_properties = catalogue.LoadSubhaloProperties(catalogue.SnapshotIdList.max(),
+                                                          all_direct_progenitors,
+                                                          ["SnapshotOfLastMaxMass", "LastMaxMass"])
 
 # Compute the ratio between peak mass of each progenitor relative to the bound mass of the main progenitor at the same output.
 mass_ratios = - np.ones(len(all_direct_progenitor_properties), float)

@@ -18,7 +18,7 @@ use_sorted_catalogues = True
 catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
                       sorted_catalogues=use_sorted_catalogues)
 
-Mbound = catalogue.LoadSubhalos(property_selection=["Mbound"])["Mbound"] * catalogue.GetMassUnits_Msunh()
+Mbound = catalogue.LoadSubhaloProperties(property_selection=["Mbound"])["Mbound"] * catalogue.GetMassUnits_Msunh()
 
 # Make the plot
 fig, ax1 = plt.subplots(1)
@@ -47,7 +47,7 @@ plt.show()
                         sorted_catalogues=use_sorted_catalogues)
 
     # Load required data
-    subhalo_data = catalogue.LoadSubhalos(property_selection=["Mbound", "HostHaloId"])
+    subhalo_data = catalogue.LoadSubhaloProperties(property_selection=["Mbound", "HostHaloId"])
     Mbound     = subhalo_data["Mbound"] * catalogue.GetMassUnits_Msunh()
     HostHaloId = subhalo_data["HostHaloId"]
 
@@ -86,7 +86,7 @@ catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues els
 
 
 # Load required data
-Mpeak = catalogue.LoadSubhalos(property_selection=["LastMaxMass"])["LastMaxMass"] * catalogue.GetMassUnits_Msunh()
+Mpeak = catalogue.LoadSubhaloProperties(property_selection=["LastMaxMass"])["LastMaxMass"] * catalogue.GetMassUnits_Msunh()
 
 # Make the plot
 fig, ax1 = plt.subplots(1)
@@ -114,7 +114,7 @@ plt.show()
     catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
                         sorted_catalogues=use_sorted_catalogues)
 
-    subhalo_data = catalogue.LoadSubhalos(property_selection=["LastMaxMass", "SnapshotOfDeath"])
+    subhalo_data = catalogue.LoadSubhaloProperties(property_selection=["LastMaxMass", "SnapshotOfDeath"])
     Mpeak = subhalo_data["LastMaxMass"] * catalogue.GetMassUnits_Msunh()
     SnapshotOfDeath = subhalo_data["SnapshotOfDeath"]
 
@@ -150,7 +150,7 @@ catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues els
                       sorted_catalogues=use_sorted_catalogues)
 
 # Load required data
-SnapshotOfDeath = catalogue.LoadSubhalos(property_selection=["SnapshotOfDeath"])["SnapshotOfDeath"]
+SnapshotOfDeath = catalogue.LoadSubhaloProperties(property_selection=["SnapshotOfDeath"])["SnapshotOfDeath"]
 
 # Only keep orphan subhaloes
 orphan_subhaloes_mask = SnapshotOfDeath != -1
@@ -183,7 +183,7 @@ plt.show()
                         sorted_catalogues=use_sorted_catalogues)
 
     # Load required data
-    subhalo_data = catalogue.LoadSubhalos(property_selection=["SnapshotOfDeath", "SnapshotOfSink"])
+    subhalo_data = catalogue.LoadSubhaloProperties(property_selection=["SnapshotOfDeath", "SnapshotOfSink"])
     SnapshotOfDeath = subhalo_data["SnapshotOfDeath"]
     SnapshotOfSink = subhalo_data["SnapshotOfSink"]
 

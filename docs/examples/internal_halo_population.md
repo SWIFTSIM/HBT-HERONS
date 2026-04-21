@@ -20,7 +20,7 @@ catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues els
 
 # Get the TrackId of the most massive subhalo. The reader loads the latest
 # available snapshot by default and all subhalo properties.
-subhaloes = catalogue.LoadSubhalos()
+subhaloes = catalogue.LoadSubhaloProperties()
 TrackId_to_follow, HostHaloId = subhaloes["TrackId"][subhaloes["Mbound"].argmax()], subhaloes["HostHaloId"][subhaloes["Mbound"].argmax()]
 
 # Select subhaloes in the halo, and remove the central (depth = 0)
@@ -72,7 +72,7 @@ mass_units = catalogue.GetMassUnits_Msunh()
 length_units = catalogue.GetLengthUnits_Mpch()
 
 # The reader loads the latest available snapshot by default and all subhalo properties.
-subhaloes = catalogue.LoadSubhalos()
+subhaloes = catalogue.LoadSubhaloProperties()
 
 # Load current and peak bound masses of all subhaloes in the simulation
 Mbound = subhaloes["Mbound"] * mass_units
