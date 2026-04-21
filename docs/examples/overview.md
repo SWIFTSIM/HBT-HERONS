@@ -30,9 +30,8 @@ The code examples we provide in this section always use the class `HBTReader` to
 
 The methods implemented in `HBTReader` are designed to be used for the following common tasks:
 
-*   `LoadSubhaloProperties`: load one or more properties of all subhaloes at a specific output number.
-*   `LoadSubhaloEvolution`: load one or more properties of specific subhaloes at a specific output number.
-*   `LoadSubhaloEvolution`: load the evolution of one ore more properties of specific subhaloes. It returns the evolution from the time when they were first resolved until the last available HBT-HERONS output, even if the subhaloes have become an orphan.
+*   `LoadSubhaloProperties`: load one or more properties of all or specific subhaloes at a specific output number.
+*   `LoadSubhaloEvolution`: load the evolution of one or more properties of specific subhaloes. It returns the evolution from the time when they were first resolved until the last available HBT-HERONS output, even if the subhaloes have become an orphan.
 *   `GetAllProgenitors`: identify the direct and indirect secondary progenitors of a subhalo. The direct and indirect classification reflects whether the subhalo progenitor merged directly with the specified subhalo or not.
 *   `GetSinkProgenitors`: identify the direct secondary progenitors of a subhalo that became orphans by sinking.
 *   `GetDisruptedProgenitors`:  identify the direct secondary progenitors of a subhalo that became orphans by disruption.
