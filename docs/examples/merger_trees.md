@@ -8,74 +8,33 @@ The `TrackId` of a subhalo is a unique identifier that persists in time througho
 
 In the code below we follow the bound mass evolution of the most massive subhalo, identified at the last output of the simulation.
 
-=== "After running `toolbox/catalogue_cleanup/SortCatalogues.py`"
+```python
+import sys
+sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
+from HBTReader import HBTReader
+import matplotlib.pyplot as plt
 
-    ```python
-    import h5py
-    from glob import glob
-    import matplotlib.pyplot as plt
+use_sorted_catalogues = True
+catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                    sorted_catalogues=use_sorted_catalogues)
 
-    # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access its paths by output number.
-    catalogue_paths = sorted(glob(f"{SORTED_CATALOGUE_BASE_PATH}/OrderedSubSnap_*.hdf5"))
-    catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
-    max_output_number = list(catalogue_paths)[-1]
+# Get the TrackId of the most massive subhalo. The reader loads the latest
+# available snapshot by default and all subhalo properties.
+subhaloes = catalogue.LoadSubhaloProperties()
+TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 
-    # Get the TrackId of the most massive subhalo at the last available output,
-    # when it was first identified and when it disrupted/merged.
-    with h5py.File(catalogue_paths[max_output_number]) as catalogue:
-        TrackId_to_follow = catalogue["Subhalos/Mbound"][()].argmax()
-        output_start = catalogue["Subhalos/SnapshotOfBirth"][TrackId_to_follow]
-        output_end   = catalogue["Subhalos/SnapshotOfDeath"][TrackId_to_follow]
+# Get its bound mass evolution, which returns by default all properties and
+# the associated scale factors and snashot output numbers.
+subhalo_evolution  = catalogue.LoadSubhaloEvolution(TrackId_to_follow)[0]
+Mbound_evolution   = subhalo_evolution["Mbound"] * catalogue.GetMassUnits_Msunh()
 
-    # If output_end is equal to -1, that means it is still resolved at the time when the output was saved.
-    output_end = output_end if output_end != -1 else max_output_number
-
-    # Create an array to hold values we are interested in tracking.
-    Mbound_evolution   = - np.ones(max_output_number)
-
-    # Iterate over catalogues to obtain Nbound value of the entry with the TrackId we want to follow.
-    for output_number in range(output_start, output_end):
-        with h5py.File(catalogue_paths[output_number]) as catalogue:
-            mass_units = catalogue["Units/MassInMsunh"][0]
-            Mbound_evolution[output_number] = catalogue["Subhalos/Mbound"][TrackId_to_follow] * mass_units
-
-    fig, ax1 = plt.subplots(1)
-    ax1.plot(Mbound_evolution)
-    ax1.set_xlabel('Output Number')
-    ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-    ax1.set_yscale('log')
-    plt.show()
-    ```
-
-=== "Without running `toolbox/catalogue_cleanup/SortCatalogues.py`"
-
-    ```python
-    import sys
-    sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
-    from HBTReader import HBTReader
-    import matplotlib.pyplot as plt
-
-    # The reader will parse the base folder and parameter file to identify number
-    # of outputs and if any are missing.
-    catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
-
-    # Get the TrackId of the most massive subhalo. The reader loads the latest
-    # available snapshot by default and all subhalo properties.
-    subhaloes = catalogue.LoadSubhalos()
-    TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
-
-    # Get its bound mass evolution, which returns by default all properties and
-    # the associated scale factors and snashot output numbers.
-    subhalo_evolution  = catalogue.GetTrackEvolution(TrackId_to_follow)
-    Mbound_evolution   = subhalo_evolution["Mbound"] * catalogue.GetMassUnits_Msunh()
-
-    fig, ax1 = plt.subplots(1)
-    ax1.plot(Mbound_evolution)
-    ax1.set_xlabel('Output Number')
-    ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-    ax1.set_yscale('log')
-    plt.show()
-    ```
+fig, ax1 = plt.subplots(1)
+ax1.plot(Mbound_evolution)
+ax1.set_xlabel('Output Number')
+ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
+ax1.set_yscale('log')
+plt.show()
+```
 
 ## Secondary progenitors
 
@@ -93,88 +52,35 @@ Disruption occurs when the subhalo is no longer considered to be self-bound. To 
 
 Here we show how to identify all subhaloes that disrupted and merged with the subhalo used in the [first example](#main-progenitor).
 
-=== "After running `toolbox/catalogue_cleanup/SortCatalogues.py`"
+```python
+import sys
+sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
+from HBTReader import HBTReader
+import matplotlib.pyplot as plt
 
-    ```python
-    import h5py
-    from glob import glob
-    import matplotlib.pyplot as plt
+use_sorted_catalogues = True
+catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                    sorted_catalogues=use_sorted_catalogues)
 
-    # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access its paths by output number.
-    catalogue_paths = sorted(glob(f"{SORTED_CATALOGUE_BASE_PATH}/OrderedSubSnap_*.hdf5"))
-    catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
-    max_output_number = list(catalogue_paths)[-1]
+# Get the TrackId of the most massive subhalo. The reader loads the latest
+# available snapshot by default and all subhalo properties.
+subhaloes = catalogue.LoadSubhaloProperties()
+TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 
-    # Get the TrackId of the most massive subhalo at the last available output,
-    # when it was first identified and when it disrupted/merged.
-    with h5py.File(catalogue_paths[max_output_number]) as catalogue:
-        TrackId_to_follow = catalogue["Subhalos/Mbound"][()].argmax()
+# Select orphan subhaloes that disrupted or underwent unresolved sinking.
+disrupted_progenitors  = catalogue.GetDisruptionProgenitors(TrackId_to_follow)
 
-        # Select orphan subhaloes that disrupted or underwent unresolved sinking.
-        orphaned_subhalo_mask  = catalogue["Subhalos/SnapshotOfDeath"][()] != -1
-        disrupted_subhalo_mask = (catalogue["Subhalos/SnapshotOfSink"][()] == -1) | (catalogue["Subhalos/SnapshotOfDeath"][()] < catalogue["Subhalos/SnapshotOfSink"][()])
+# Load the evolution of all progenitors. Note that loading this in the unsorted catalogue may take a while
+disrupted_progenitors_evolution = catalogue.LoadSubhaloEvolution(disrupted_progenitors)
 
-        # For these cases, we always use the DescendantTrackId to find the secondary progenitors of the object of interest.
-        disrupted_subhalo_progenitors = np.flatnonzero((catalogue["Subhalos/DescendantTrackId"][()] ==  TrackId_to_follow) & orphaned_subhalo_mask & disrupted_subhalo_mask)
-
-    # Plot the evolution of a random subset of progenitors
-    Mbound_evolution = - np.ones((len(disrupted_subhalo_progenitors), max_output_number))
-
-    # Iterate over catalogues to obtain bound mass evolution of all disrupted progenitors.
-    for output_number in range(max_output_number):
-        with h5py.File(catalogue_paths[output_number]) as catalogue:
-
-            # Identify which progenitors exist in the current snapshot
-            number_subhaloes = catalogue["NumberOfSubhalosInAllFiles"][0]
-            progenitors_in_current_snapshot = disrupted_subhalo_progenitors < number_subhaloes
-
-            # Load the mass of existing progenitors
-            mass_units = catalogue["Units/MassInMsunh"][0]
-            Mbound_evolution[progenitors_in_current_snapshot, output_number] = catalogue["Subhalos/Mbound"][()][disrupted_subhalo_progenitors[progenitors_in_current_snapshot]] * mass_units
-
-    fig, ax1 = plt.subplots(1)
-    ax1.plot(Mbound_evolution.T)
-    ax1.set_xlabel('Output Number')
-    ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-    ax1.set_yscale('log')
-    plt.show()
-    ```
-
-=== "Without running `toolbox/catalogue_cleanup/SortCatalogues.py`"
-
-    ``` python
-    import sys
-    sys.path.append("<HBT-HERONS_PATH>/toolbox")
-    from HBTReader import HBTReader
-    import matplotlib.pyplot as plt
-
-    # The reader will parse the base folder and parameter file to identify number
-    # of outputs and if any are missing.
-    catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
-
-    # Get the TrackId of the most massive subhalo. The reader loads the latest
-    # available snapshot by default and all subhalo properties.
-    subhaloes = catalogue.LoadSubhalos()
-    TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
-
-    # Select orphan subhaloes that disrupted or underwent unresolved sinking.
-    orphaned_subhalo_mask  = subhaloes["SnapshotOfDeath"] != -1
-    disrupted_subhalo_mask = (subhaloes["SnapshotOfSink"][()] == -1) | (subhaloes["SnapshotOfDeath"][()] < subhaloes["SnapshotOfSink"][()])
-    disrupted_progenitors  = subhaloes["TrackId"][(subhaloes["DescendantTrackId"] == TrackId_to_follow) & orphaned_subhalo_mask & disrupted_subhalo_mask]
-
-    # Plot the evolution of a random subset of progenitors
-    Mbound_evolution = - np.ones((len(disrupted_progenitors),catalogue.MaximumSnapshotIndex + 1))
-    for i, disrupted_progenitor in enumerate(disrupted_progenitors):
-        subhalo_evolution = catalogue.GetTrackEvolution(disrupted_progenitor)
-        Mbound_evolution[i,subhalo_evolution["Snapshot"]] = subhalo_evolution["Mbound"] * catalogue.GetMassUnits_Msunh()
-
-    fig, ax1 = plt.subplots(1)
-    ax1.plot(Mbound_evolution.T)
-    ax1.set_xlabel('Output Number')
-    ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-    ax1.set_yscale('log')
-    plt.show()
-    ```
+fig, ax1 = plt.subplots(1)
+for evolution in disrupted_progenitors_evolution:
+    ax1.plot(evolution["Snapshot"], evolution["Mbound"] * catalogue.GetMassUnits_Msunh())
+ax1.set_xlabel('Output Number')
+ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
+ax1.set_yscale('log')
+plt.show()
+```
 
 ### Sunk progenitors
 
@@ -182,95 +88,116 @@ The sinking of a subhalo refers to process of its core becoming indistinguishabl
 
 Here we show how to identify all subhaloes that sunk and merged with the subhalo used in the [first example](#main-progenitor).
 
-=== "After running `toolbox/catalogue_cleanup/SortCatalogues.py`"
+```python
+import sys
+sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
+from HBTReader import HBTReader
+import matplotlib.pyplot as plt
 
-    ```python
-    import h5py
-    from glob import glob
-    import matplotlib.pyplot as plt
+use_sorted_catalogues = True
+catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                    sorted_catalogues=use_sorted_catalogues)
 
-    # Get ordered list to the sorted subhalo catalogues. Create a dictionary to access its paths by output number.
-    catalogue_paths = sorted(glob(f"{SORTED_CATALOGUE_BASE_PATH}/OrderedSubSnap_*.hdf5"))
-    catalogue_paths = dict([(int(path[-8:-8+3]),path) for path in catalogue_paths])
-    max_output_number = list(catalogue_paths)[-1]
+# Get the TrackId of the most massive subhalo. The reader loads the latest
+# available snapshot by default and all subhalo properties.
+subhaloes = catalogue.LoadSubhaloProperties()
+TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 
-    # Get the TrackId of the most massive subhalo at the last available output,
-    # when it was first identified and when it disrupted/merged.
-    with h5py.File(catalogue_paths[max_output_number]) as catalogue:
-        TrackId_to_follow = catalogue["Subhalos/Mbound"][()].argmax()
+# Select orphan subhaloes that sunk.
+sunk_progenitors  = catalogue.GetSinkProgenitors(TrackId_to_follow)
 
-        # Select orphan subhaloes that disrupted or underwent unresolved sinking.
-        orphaned_subhalo_mask  = catalogue["Subhalos/SnapshotOfDeath"][()] != -1
-        sunk_subhalo_mask = catalogue["Subhalos/SnapshotOfSink"][()] == catalogue["Subhalos/SnapshotOfDeath"][()]
+# Load the evolution of all progenitors. Note that loading this in the unsorted catalogue may take a while
+sunk_progenitors_evolution = catalogue.LoadSubhaloEvolution(sunk_progenitors)
+fig, ax1 = plt.subplots(1)
+for evolution in sunk_progenitors_evolution:
+    ax1.plot(evolution["Snapshot"], evolution["Mbound"] * catalogue.GetMassUnits_Msunh())
+ax1.set_xlabel('Output Number')
+ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
+ax1.set_yscale('log')
+plt.show()
+```
 
-        # For these cases, we always use the SinkTrackId to find the secondary progenitors of the object of interest.
-        sunk_subhalo_progenitors = np.flatnonzero((catalogue["Subhalos/SinkTrackId"][()] ==  TrackId_to_follow) & orphaned_subhalo_mask & sunk_subhalo_mask)
+### All progenitors
 
-    # Plot the evolution of a random subset of progenitors
-    Mbound_evolution = - np.ones((len(sunk_subhalo_progenitors), max_output_number))
+In the two examples above, we have seen how to identify ***direct*** subhalo progenitors, classified according to whether they underwent disruption or sinking. A combined list of sunken and disrupted progenitors can be obtained by calling `GetAllProgenitors`. Note that when calling this method, it defaults to returning direct and indirect secondary progenitors of the subhalo of interest. The difference between a direct and indirect secondary progenitor is as follows:
 
-    # Iterate over catalogues to obtain bound mass evolution of all disrupted progenitors.
-    for output_number in range(max_output_number):
-        with h5py.File(catalogue_paths[output_number]) as catalogue:
+*   **Direct secondary progenitor**: the subhalo merges directly with the main progenitor of the subhalo of interest.
+*   **Indirect secondary progenitor**: the subhalo does not merge directly with the main progenitor of the subhalo of interest. Instead, it merges with another subhalo which itself eventually merges with the main progenitor of interest, or with another subhalo that eventually merges with the main branch, etc.
 
-            # Identify which progenitors exist in the current snapshot
-            number_subhaloes = catalogue["NumberOfdisrupted_subhalo_progenitors_in_current_snapshotSubhalosInAllFiles"][0]
-            progenitors_in_current_snapshot = sunk_subhalo_progenitors < number_subhaloes
+One can always limit the progenitors returned by `GetAllProgenitors` by passing the argument `only_direct_progenitors=True`.
 
-            # Load the mass of existing progenitors
-            mass_units = catalogue["Units/MassInMsunh"][0]
-            Mbound_evolution[progenitors_in_current_snapshot, output_number] = catalogue["Subhalos/Mbound"][()][sunk_subhalo_progenitors[progenitors_in_current_snapshot]] * mass_units
+In the code below we show how to identify all direct and indirect secondary progenitors of the subhalo used in the [first example](#main-progenitor).
 
-    fig, ax1 = plt.subplots(1)
-    ax1.plot(Mbound_evolution.T)
-    ax1.set_xlabel('Output Number')
-    ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-    ax1.set_yscale('log')
-    plt.show()
-    ```
+```python
+import sys
+sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
+from HBTReader import HBTReader
+import matplotlib.pyplot as plt
 
-=== "Without running `toolbox/catalogue_cleanup/SortCatalogues.py`"
+use_sorted_catalogues = True
+catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                    sorted_catalogues=use_sorted_catalogues)
 
-    ``` python
-    import sys
-    sys.path.append("<HBT-HERONS_PATH>/toolbox")
-    from HBTReader import HBTReader
-    import matplotlib.pyplot as plt
+# Get the TrackId of the most massive subhalo. The reader loads the latest
+# available snapshot by default and all subhalo properties.
+subhaloes = catalogue.LoadSubhaloProperties()
+TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
 
-    # The reader will parse the base folder and parameter file to identify number
-    # of outputs and if any are missing.
-    catalogue = HBTReader(f"{RAW_CATALOGUE_BASE_PATH}")
+# Select orphan subhaloes that have a connection to the main progenitor brach.
+all_progenitors  = catalogue.GetAllProgenitors(TrackId_to_follow)
 
-    # Get the TrackId of the most massive subhalo. The reader loads the latest
-    # available snapshot by default and all subhalo properties.
-    subhaloes = catalogue.LoadSubhalos()
-    TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
+# Load the evolution of all progenitors. Note that loading this in the unsorted catalogue may take a while
+all_progenitor_evolution = catalogue.LoadSubhaloEvolution(all_progenitors)
 
-    # Select orphan subhaloes that underwent resolved sinking
-    orphaned_subhalo_mask  = subhaloes["SnapshotOfDeath"] != -1
-    sunk_subhalo_mask = (subhaloes["SnapshotOfSink"][()] == subhaloes["SnapshotOfDeath"] )
-    sunk_progenitors  = subhaloes["TrackId"][(subhaloes["DescendantTrackId"] == TrackId_to_follow) & orphaned_subhalo_mask & sunk_subhalo_mask]
+fig, ax1 = plt.subplots(1)
+for evolution in all_progenitor_evolution:
+    ax1.plot(evolution["Snapshot"], evolution["Mbound"] * catalogue.GetMassUnits_Msunh())
+ax1.set_xlabel('Output Number')
+ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
+ax1.set_yscale('log')
+plt.show()
+```
 
-    # Plot the evolution of a random subset of progenitors
-    Mbound_evolution = - np.ones((len(sunk_progenitors),catalogue.MaximumSnapshotIndex + 1))
-    for i, sunk_progenitor in enumerate(sunk_progenitors):
-        subhalo_evolution = catalogue.GetTrackEvolution(sunk_progenitor)
-        Mbound_evolution[i,subhalo_evolution["Snapshot"]] = subhalo_evolution["Mbound"] * catalogue.GetMassUnits_Msunh()
+## Merger mass ratios
 
-    fig, ax1 = plt.subplots(1)
-    ax1.plot(Mbound_evolution.T)
-    ax1.set_xlabel('Output Number')
-    ax1.set_ylabel(r"$M_{\rm bound} \; [\mathrm{M}_{\rm \odot}h^{-1}]$")
-    ax1.set_yscale('log')
-    plt.show()
-    ```
+As shown above, identifying the progenitors of subhaloes and their evolution is relatively simple. This means that statistics that go beyond the evolution of individual subhaloes are correspondingly straightforward to obtain.
 
-<!-- ## Complete merger tree -->
-<!--
-The examples provided above only give, but the full merger tree of a subhalo includes subhaloes that merged, e.g. second level progenitors. To obtain them, one needs to apply the same methodology, but for the progenitors of the progenitors. -->
+In the example below, we show how to measure the cumulative mass ratio distribution of all subhaloes that directly merged with the subhalo used in the [first example](#main-progenitor).
 
+```python
+import sys
+sys.path.append(f"{HBT_HERONS_PATH}/toolbox")
+from HBTReader import HBTReader
+import matplotlib.pyplot as plt
 
-<!-- The `disrupted_progenitors` array contains a `TrackId` for each subhalo that disrupted and whose core ended bound to the example subhalo (`TrackId_to_follow`). If you want to find *every* subhalo that is connected to the example subhalo through disruption, e.g. to build its full merger tree, you will need to repeat the above code for each of the `disrupted_progenitors` until a complete list is built. The evolution of each subhalo prior to disrupting can be followed in the same way as for an [individual subhalo](#evolution-of-a-single-subhalo). -->
+use_sorted_catalogues = True
+catalogue = HBTReader(f"{SORTED_CATALOGUE_BASE_PATH if use_sorted_catalogues else RAW_CATALOGUE_BASE_PATH}",
+                    sorted_catalogues=use_sorted_catalogues)
 
-<!--
-The `sink_progenitors` array contains a `TrackId` for each subhalo that sunk with the example subhalo (`TrackId_to_follow`). If you want to find *every* subhalo that is connected to the example subhalo through sinking, e.g. to build its full merger tree, you will need to repeat the above code for each of the `sink_progenitors` until a complete list is built. The evolution of each subhalo prior to sinking can be followed in the same way as for an [individual subhalo](#evolution-of-a-single-subhalo). -->
+# Get the TrackId of the most massive subhalo. The reader loads the latest
+# available snapshot by default and all subhalo properties.
+subhaloes = catalogue.LoadSubhaloProperties()
+TrackId_to_follow = subhaloes["TrackId"][subhaloes["Mbound"].argmax()]
+
+# Get the evolution of the main progenitor
+evolution_main_progenitor = catalogue.LoadSubhaloEvolution(TrackId_to_follow)[0]
+
+# Select orphan subhaloes that directly merged with our subhalo of interest, and load their peak mass and when it was reached.
+all_direct_progenitors = catalogue.GetAllProgenitors(TrackId_to_follow, only_direct_progenitors=True)
+all_direct_progenitor_properties = catalogue.LoadSubhaloProperties(catalogue.SnapshotIdList.max(),
+                                                          all_direct_progenitors,
+                                                          ["SnapshotOfLastMaxMass", "LastMaxMass"])
+
+# Compute the ratio between peak mass of each progenitor relative to the bound mass of the main progenitor at the same output.
+mass_ratios = - np.ones(len(all_direct_progenitor_properties), float)
+for i, progenitor in enumerate(all_direct_progenitor_properties):
+    mass_ratios[i] = progenitor["LastMaxMass"] / evolution_main_progenitor["Mbound"][evolution_main_progenitor["Snapshot"] == progenitor["SnapshotOfLastMaxMass"]][0]
+
+fig, ax1 = plt.subplots(1)
+ax1.plot(np.sort(mass_ratios)[::-1], np.arange(len(mass_ratios)) + 1, label="All subhaloes")
+ax1.set_ylabel(r"$N(\geq f_{\rm ratio})$")
+ax1.set_xlabel(r"$f_{\rm ratio}$")
+ax1.set_yscale('log')
+ax1.set_xscale('log')
+plt.show()
+```
