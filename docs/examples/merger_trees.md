@@ -191,7 +191,7 @@ all_direct_progenitor_properties = catalogue.GetTrackSnapshot(all_direct_progeni
 # Compute the ratio between peak mass of each progenitor relative to the bound mass of the main progenitor at the same output.
 mass_ratios = - np.ones(len(all_direct_progenitor_properties), float)
 for i, progenitor in enumerate(all_direct_progenitor_properties):
-    mass_ratios[i] = progenitor["LastMaxMass"] / evolution_main_progenitor["Mbound"][evolution_main_progenitor["Snapshot"] == progenitor["SnapshotOfLastMaxMass"]]
+    mass_ratios[i] = progenitor["LastMaxMass"] / evolution_main_progenitor["Mbound"][evolution_main_progenitor["Snapshot"] == progenitor["SnapshotOfLastMaxMass"]][0]
 
 fig, ax1 = plt.subplots(1)
 ax1.plot(np.sort(mass_ratios)[::-1], np.arange(len(mass_ratios)) + 1, label="All subhaloes")
