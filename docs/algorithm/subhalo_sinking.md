@@ -10,13 +10,13 @@ In this page, we define how the phase-space location of subhaloes is defined, th
 
 To determine if subhaloes overlap with each other, we need to assign each of them a phase-space position. There are different choices available, like using the position and velocity of the most bound particle or of the centre of mass of all bound particles. Using a single particle is a noisy estimate, but using the centre of mass of all bound particles may result in a systematically offset position for disturbed subhaloes (as one would expect for those involved in a sinking event).
 
-HBT-HERONS thus defines the phase-space location of a subhalo using the centre of mass position and velocity of the $N_{\rm core}$ most bound tracer particles:
+HBT-HERONS thus defines the phase-space location of a subhalo using the comoving centre-of-mass position and peculiar centre-of-mass velocity of the $N_{\rm core}$ most bound tracer particles:
 
 $$
 \vec{x}_{\rm core} = \dfrac{\sum \vec{x}_{i}m_{i}}{\sum m_{i}} \; \;\; \;\mathrm{and}  \; \;\; \; \vec{v}_{\rm core} = \dfrac{\sum \vec{v}_{i}m_{i}}{\sum m_{i}}.
 $$
 
-The idea is that this estimate represents the phase-space position of the *subhalo core*. However, since we want to evaluate whether two subhaloes overlap in phase-space, we need to associate an "uncertainty" to the measured position and velocity of the subhalo core. Possible values could be the gravitational softening length or a multiple of the half-mass radius, but HBT-HERONS uses the position and velocity dispersion of the $N_{\rm core}$ most bound tracer particles as "uncertainty", i.e.
+The idea is that this estimate represents the phase-space position of the *subhalo core*. However, since we want to evaluate whether two subhaloes overlap in phase-space, we need to associate an "uncertainty" to the measured comoving position and peculiar velocity of the subhalo core. Possible values could be the gravitational softening length or a multiple of the half-mass radius, but HBT-HERONS uses the comoving position and peculiar velocity dispersion of the $N_{\rm core}$ most bound tracer particles as "uncertainty", i.e.
 
 $$
 \sigma_{x} = \sqrt{ \dfrac{\sum m_{i}|\vec{x}_{i} - \vec{x}_{\rm core} |^{2}}{\sum m_{i}}} \; \;\; \;\mathrm{and}  \; \;\; \; \sigma_{v} = \sqrt{ \dfrac{\sum m_{i}|\vec{v}_{i} - \vec{v}_{\rm core} |^{2}}{\sum m_{i}}} .
@@ -32,7 +32,7 @@ For the reasons provided at the beginning of this section, making $N_{\rm core} 
 
 <h4>Orphan subhaloes</h4>
 
-For an orphan subhalo, we use as its phase-space coordinates the position and velocity of its tracer particle, which is the most bound tracer particle when the orphan subhalo were last resolved. We do not associate a phase-space dispersion to orphan subhaloes like for resolved subhaloes, because it is undefined for a single particle.
+For an orphan subhalo, we use as its phase-space coordinates the comoving position and peculiar velocity of its tracer particle, which is the most bound tracer particle when the orphan subhalo were last resolved. We do not associate a phase-space dispersion to orphan subhaloes like for resolved subhaloes, because it is undefined for a single particle.
 
 ## Flagging overlaps
 
