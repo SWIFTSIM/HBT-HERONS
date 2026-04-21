@@ -25,7 +25,7 @@ We outline the centre of mass, kinetic energy and potential energy definitions u
 The comoving centre-of mass-position and peculiar centre-of-mass velocity of the subhalo is defined as:
 
 $$
-\vec{x}_{\rm com} = \dfrac{\sum \vec{x}_{i}m_{i}\theta_{\rm H}(- E_{\mathrm{bind},i})}{\sum m_{i}\theta_{\rm H}(- E_{\mathrm{bind},i})} \; \;\; \;\mathrm{and}  \; \vec{v}_{\rm com} = \dfrac{\sum \vec{v}_{i}m_{i}\theta_{\rm H}(- E_{\mathrm{bind},i})}{\sum m_{i}\theta_{\rm H}(- E_{\mathrm{bind},i})}\;\; \; .
+\vec{x}_{\rm com} = \dfrac{\sum \vec{x}_{i}m_{i}\theta_{\rm H}(- E_{\mathrm{bind},i})}{\sum m_{i}\theta_{\rm H}(- E_{\mathrm{bind},i})} \; \;\mathrm{and}  \;\; \vec{v}_{\rm com} = \dfrac{\sum \vec{v}_{i}m_{i}\theta_{\rm H}(- E_{\mathrm{bind},i})}{\sum m_{i}\theta_{\rm H}(- E_{\mathrm{bind},i})}\; .
 $$
 
 The Heaviside step function ($\theta_{\rm H}$) ensures that only bound particles contribute to the sum.
