@@ -47,10 +47,10 @@ Different ways to quantify the size of a subhalo.
 
 | <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------  | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|             `RmaxComoving`              | The radius at which the circularised rotation curve of the subhalo reaches its maximum value (`VmaxPhysical`). The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.                                                                             |
-|             `RHalfComoving`             | The smallest radius that encloses 50% of the total bound mass. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.                                                                                                     |
-|           `REncloseComoving`            | The smallest radius that encloses 100% of the total bound mass. Useful when interested in doing spatial masking. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.                                                                |
-|         `BoundR200CritComoving`         | The radius of a sphere enclosing a mean density that is 200 times the critical density of the Universe. Only bound mass is included and it is only computed for centrals. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.  |
+|             `RmaxComoving`              | The comoving radius at which the circularised rotation curve of the subhalo reaches its maximum value (`VmaxPhysical`). The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.                                                                             |
+|             `RHalfComoving`             | The smallest comoving radius that encloses 50% of the total bound mass. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.                                                                                                     |
+|           `REncloseComoving`            | The smallest comoving radius that encloses 100% of the total bound mass. Useful when interested in doing spatial masking. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.                                                                |
+|         `BoundR200CritComoving`         | The comoving radius of a sphere enclosing a mean density that is 200 times the critical density of the Universe. Only bound mass is included and it is only computed for centrals. The centre of the aperture used to compute this quantity corresponds to `ComovingMostBoundPosition`.  |
 
 #### Position metrics
 
@@ -58,10 +58,10 @@ Different ways to locate the subhalo in 6D phase-space.
 
 | <div style="width:210px">Property</div> | <div style="width:750px">Description</div>                             |
 | :-------------------------------------  | :----------------------------------------------------- |
-|        `ComovingAveragePosition`        | Mass-weighted average position of all bound particles. |
-|        `PhysicalAverageVelocity`        | Mass-weighted average velocity of all bound particles. |
-|       `ComovingMostBoundPosition`       | Position of the most bound particle.                   |
-|       `PhysicalMostBoundVelocity`       | Velocity of the most bound particle.                   |
+|        `ComovingAveragePosition`        | Mass-weighted average comoving position of all bound particles. |
+|        `PhysicalAverageVelocity`        | Mass-weighted average peculiar velocity of all bound particles. |
+|       `ComovingMostBoundPosition`       | Comoving position of the most bound particle.                   |
+|       `PhysicalMostBoundVelocity`       | Peculiar velocity of the most bound particle.                   |
 
 #### Shape metrics
 
