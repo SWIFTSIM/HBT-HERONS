@@ -419,9 +419,13 @@ void GadgetReader_t::ReadGadgetFile(int iFile)
 #ifndef DM_ONLY
 #ifdef HAS_THERMAL_ENERGY
   if (RealTypeSize == 4)
+  {
     ReadEnergyBlock(float);
+  }
   else
+  {
     ReadEnergyBlock(double);
+  }
 #endif
 
   for (int itype = 0; itype < TypeMax; ++itype)
