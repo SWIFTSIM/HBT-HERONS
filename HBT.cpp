@@ -18,18 +18,20 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
+
   MPI_Init(&argc, &argv);
   MpiWorker_t world(MPI_COMM_WORLD);
+
 #ifdef _OPENMP
   // omp_set_nested(0);
   omp_set_max_active_levels(1); // max_active_level 0: no para; 1: single layer; >1: nest enabled
 #endif
 
   int snapshot_start, snapshot_end;
-  if (0 == world.rank())
+  if (world.rank() == 0)
   {
     // Print information about the version being run.
-    cout << "HBT compiled using git branch: " << branch_name << " and commit: " << commit_hash;
+    cout << "HBT-HERONS compiled using git branch: " << branch_name << " and commit: " << commit_hash;
     if (uncommitted_changes)
       cout << " (with uncommitted changes)";
     else
@@ -44,6 +46,7 @@ int main(int argc, char **argv)
 #pragma omp parallel
 #pragma omp master
     cout << ", each with " << omp_get_num_threads() << " threads";
+    cout << endl;
 #endif
     cout << endl;
     cout << "Configured with the following data type sizes (bytes):" << endl;
@@ -56,50 +59,40 @@ int main(int argc, char **argv)
   HBTConfig.BroadCast(world, 0, snapshot_start, snapshot_end);
 
   SubhaloSnapshot_t subsnap;
-
   subsnap.Load(world, snapshot_start - 1, SubReaderDepth_t::SrcParticles);
 
   if (world.rank() == 0)
     cout << endl;
 
-  /* Create the timing log file */
-  ofstream time_log;
-  if (world.rank() == 0)
-  {
-    time_log.open(HBTConfig.SubhaloPath + "/timing.log", fstream::out | fstream::app);
-    time_log << fixed << setprecision(3);
-  }
-
   /* Main loop, iterate over chosen data outputs */
   for (int isnap = snapshot_start; isnap <= snapshot_end; isnap++)
   {
+    /* We start the timer for the current output, and store the time to use as a
+     * reference if we want to compute fine-grained timings. */
     global_timer.Tick("start", world.Communicator);
+    ReferenceTime() = global_timer.tickers[0];
 
     /* Load particle information */
-    ParticleSnapshot_t partsnap;
-    partsnap.Load(world, isnap);
-    global_timer.Tick("read_snap", world.Communicator);
-
-    subsnap.SetSnapshotIndex(isnap);
+    ParticleSnapshot_t partsnap(world, isnap);
 
     /* Load FOF group information */
     HaloSnapshot_t halosnap;
-    // NOTE: We should handle this in a better way. 
     if(HBTConfig.GroupFileFormat == "gadget4_hdf")
       halosnap.Load(world, partsnap);
     else
       halosnap.Load(world, isnap);
-    
-      global_timer.Tick("read_halo", world.Communicator);
 
-    /* For SWIFT-based outputs we load some parameters directly from the snapshots,
-       so we delay writing Parameters.log until the values are known. */
+    global_timer.Tick("read_halo", world.Communicator);
+
+    /* For some input formats we load parameters directly from the snapshots,
+     * so we delay writing Parameters.log until the values are known. */
     if ((isnap == snapshot_start) && (world.rank() == 0))
       HBTConfig.DumpParameters();
 
     halosnap.UpdateParticles(world, partsnap);
     global_timer.Tick("update_halo", world.Communicator);
 
+    subsnap.SetSnapshotIndex(isnap);
     subsnap.UpdateParticles(world, partsnap);
     subsnap.UpdateMostBoundPosition(world, partsnap);
     global_timer.Tick("update_subhalo", world.Communicator);
@@ -142,14 +135,21 @@ int main(int argc, char **argv)
     subsnap.PrepareCentrals(world, halosnap);
     global_timer.Tick("prepare_centrals", world.Communicator);
 
+    /* Assign gas particles to the same subhalo as their nearest neighbour
+       tracer type particle in the same FoF group */
+    if (world.rank() == 0)
+      cout << "Reassigning particles...\n";
+    subsnap.ReassignParticles(world, halosnap);
+    global_timer.Tick("reassign_particles", world.Communicator);
+
     /* We recursively unbind subhaloes in a depth-first approach, defined
      * by hierarchical relationships. After unbinding a given object, we check
      * wheteher any of its deeper subhaloes overlap in phase-space (if so, this
      * triggers re-unbinding). We also truncate the source of each
      * subhalo based on its number of bound particles.  */
     if (world.rank() == 0)
-      cout << "Unbinding...\n";
-    subsnap.RefineParticles();
+      std::cout << "Unbinding... ";
+    subsnap.RefineParticles(world);
     global_timer.Tick("unbind", world.Communicator);
 
     /* Assign a unique TrackId to newly created subgroups. Update depth values,
@@ -163,26 +163,17 @@ int main(int argc, char **argv)
     merger_tree.FindDescendants(subsnap.Subhalos, world);
     global_timer.Tick("merger_tree", world.Communicator);
 
-    /* Save */
+    /* Save subhaloes */
     subsnap.Save(world);
     global_timer.Tick("write_subhalos", world.Communicator);
 
-    /* Output timing information */
+    /* Save timing information with root rank and reset timer for all ranks. */
     if (world.rank() == 0)
     {
-      // To report on how long the snapshot took to analyse in total
-      double total_time = 0;
+      double TotalTime = global_timer.SaveSnapshotTiming(HBTConfig.SubhaloPath, subsnap.GetSnapshotIndex(), subsnap.GetSnapshotId());
 
-      time_log << isnap << " \t" << subsnap.GetSnapshotId();
-      for (int i = 1; i < global_timer.Size(); i++)
-      {
-        time_log << "\t" << global_timer.names[i] << "=" << global_timer.GetSeconds(i);
-        total_time += global_timer.GetSeconds(i);
-      }
-      time_log << endl;
-
-      cout << "SnapshotIndex " << isnap << " done. It took " << total_time << " seconds." << endl;
-      cout << endl;
+      std::cout << "Snapshot " << subsnap.GetSnapshotId() << " (SnapshotIndex = " << isnap << ")" << " done. It took " << TotalTime << " seconds." << std::endl;
+      std::cout << std::endl;
     }
     global_timer.Reset();
   }

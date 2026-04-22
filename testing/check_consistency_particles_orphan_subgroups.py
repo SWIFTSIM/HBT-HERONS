@@ -36,7 +36,7 @@ def check_consistency_orphan_tracers(basedir, hbt_nr):
 
     # Read in the input subhalos
     if comm_rank == 0:
-        print(f"Testing HBTplus consistency of MostBoundParticleId between snapshot index {hbt_nr} and {hbt_nr + 1}.")
+        print(f"Testing HBT-HERONS consistency of MostBoundParticleId between snapshot index {hbt_nr} and {hbt_nr + 1}.")
 
     #===========================================================================
     # Load catalogues for snapshot N 
@@ -79,7 +79,7 @@ def check_consistency_orphan_tracers(basedir, hbt_nr):
     # snapshot N + 1, and hence their MostBoundParticleId would change to reflect 
     # this
     subhalos_after = np.array([sub for sub in subhalos_after \
-                               if (sub['Nbound'] <= 1) & (sub['SnapshotIndexOfSink'] != (hbt_nr+1))]) 
+                               if (sub['Nbound'] <= 1) & (sub['SnapshotOfSink'] != (hbt_nr+1))]) 
 
     field_names = list(subhalos_after.dtype.fields)
 
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     from virgo.mpi.util import MPIArgumentParser
     
     parser = MPIArgumentParser(comm, description="Check that the tracer ID of orphans does not change across consecutive outputs.")
-    parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
+    parser.add_argument("basedir", type=str, help="Location of the HBT-HERONS output")
     parser.add_argument("hbt_nr", type=int, help="Index of the HBT output to process")
 
     args = parser.parse_args()

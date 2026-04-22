@@ -42,7 +42,7 @@ def check_interhost_subhaloes(basedir, hbt_nr, snap_nr, snapshot_file):
     """
     
     if comm_rank == 0:
-        print(f"Testing whether HBTplus subgroups are contained within their assigned FOF at snapshot index {hbt_nr}")
+        print(f"Testing whether HBT-HERONS subgroups are contained within their assigned FOF at snapshot index {hbt_nr}")
         
     #===========================================================================
     # Load catalogues for snapshot N 
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     from virgo.mpi.util import MPIArgumentParser
     
     parser = MPIArgumentParser(comm, description="Check for the presence of particles not in the same FOF as the subhalo they are bound to.")
-    parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
+    parser.add_argument("basedir", type=str, help="Location of the HBT-HERONS output")
     parser.add_argument("hbt_nr", type=int, help="Index of the HBT output to process")
     parser.add_argument("snap_nr", type=int, help="Index of the snapshot to process")
     parser.add_argument("--snapshot-file", type=str, help="Format string for snapshot files (f-string using {snap_nr}, {file_nr})")

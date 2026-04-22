@@ -155,30 +155,23 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(Rank, MPI_HBT_INT, 1);
   RegisterAttr(Depth, MPI_INT, 1);
   RegisterAttr(LastMaxMass, MPI_FLOAT, 1);
-  RegisterAttr(SnapshotIndexOfLastMaxMass, MPI_INT, 1);
-  RegisterAttr(SnapshotIndexOfLastIsolation, MPI_INT, 1);
-  RegisterAttr(SnapshotIndexOfBirth, MPI_INT, 1);
-  RegisterAttr(SnapshotIndexOfDeath, MPI_INT, 1);
-  RegisterAttr(SnapshotIndexOfSink, MPI_INT, 1);
+  RegisterAttr(SnapshotOfLastMaxMass, MPI_INT, 1);
+  RegisterAttr(SnapshotOfLastIsolation, MPI_INT, 1);
+  RegisterAttr(SnapshotOfBirth, MPI_INT, 1);
+  RegisterAttr(SnapshotOfDeath, MPI_INT, 1);
+  RegisterAttr(SnapshotOfSink, MPI_INT, 1);
   RegisterAttr(RmaxComoving, MPI_FLOAT, 1);
+  RegisterAttr(RmaxComovingOfLastMaxVmax, MPI_FLOAT, 1);
   RegisterAttr(VmaxPhysical, MPI_FLOAT, 1);
   RegisterAttr(LastMaxVmaxPhysical, MPI_FLOAT, 1);
-  RegisterAttr(SnapshotIndexOfLastMaxVmax, MPI_INT, 1);
+  RegisterAttr(SnapshotOfLastMaxVmax, MPI_INT, 1);
   RegisterAttr(REncloseComoving, MPI_FLOAT, 1);
   RegisterAttr(RHalfComoving, MPI_FLOAT, 1);
   RegisterAttr(BoundR200CritComoving, MPI_FLOAT, 1);
-  // RegisterAttr(R200MeanComoving, MPI_FLOAT, 1);
-  // RegisterAttr(RVirComoving, MPI_FLOAT, 1);
   RegisterAttr(BoundM200Crit, MPI_FLOAT, 1);
-  // RegisterAttr(M200Mean, MPI_FLOAT, 1);
-  // RegisterAttr(MVir, MPI_FLOAT, 1);
   RegisterAttr(SpecificSelfPotentialEnergy, MPI_FLOAT, 1);
   RegisterAttr(SpecificSelfKineticEnergy, MPI_FLOAT, 1);
   RegisterAttr(SpecificAngularMomentum[0], MPI_FLOAT, 3);
-#ifdef HAS_GSL
-  RegisterAttr(InertialEigenVector[0], MPI_FLOAT, 9);
-  RegisterAttr(InertialEigenVectorWeighted[0], MPI_FLOAT, 9);
-#endif
   RegisterAttr(InertialTensor[0], MPI_FLOAT, 6);
   RegisterAttr(InertialTensorWeighted[0], MPI_FLOAT, 6);
   RegisterAttr(ComovingAveragePosition[0], MPI_HBT_REAL, 3);
@@ -192,6 +185,7 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(SinkTrackId, MPI_HBT_INT, 1);
   RegisterAttr(DescendantTrackId, MPI_HBT_INT, 1);
   RegisterAttr(NestedParentTrackId, MPI_HBT_INT, 1);
+
 #undef RegisterAttr
   assert(NumAttr <= MaxNumAttr);
 
@@ -271,19 +265,16 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   /* to calculate the following density-profile related properties
    *
   HBTReal RmaxComoving;
+  HBTReal RmaxComovingOfLastMaxVmax;
   HBTReal VmaxPhysical;
-  HBTReal LastMaxVmax;
-  HBTInt SnapshotIndexOfLastMaxVmax; //the snapshot when it has the maximum Vmax, only considering past snapshots.
+  HBTReal LastMaxVmaxPhysical;
+  HBTInt SnapshotOfLastMaxVmax; // The snapshot when it reached its maximum Vmax, only considering past snapshots.
 
   HBTReal REncloseComoving;
   HBTReal RHalfComoving;
 
   HBTReal R200CritComoving;
-  HBTReal R200MeanComoving;
-  HBTReal RVirComoving;
   HBTReal M200Crit;
-  HBTReal M200Mean;
-  HBTReal MVir;
    */
   if (Nbound <= 1)
   {
@@ -292,11 +283,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
     REncloseComoving = 0.;
     RHalfComoving = 0.;
     BoundR200CritComoving = 0.;
-    // 	R200MeanComoving=0.;
-    // 	RVirComoving=0.;
     BoundM200Crit = 0.;
-    // 	M200Mean=0.;
-    // 	MVir=0.;
     return;
   }
   HBTReal VelocityUnit = PhysicalConst::G / epoch.Cosmology.ScaleFactor;
@@ -333,16 +320,13 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   RHalfComoving = prof[Nbound / 2].r;
   REncloseComoving = prof[Nbound - 1].r;
 
-  HBTReal virialF_tophat, virialF_b200, virialF_c200;
-  epoch.HaloVirialFactors(virialF_tophat, virialF_b200, virialF_c200);
-  //   epoch.SphericalOverdensitySize(MVir, RVirComoving, virialF_tophat, prof);
-  epoch.SphericalOverdensitySize(BoundM200Crit, BoundR200CritComoving, virialF_c200, prof);
-  //   epoch.SphericalOverdensitySize(M200Mean, R200MeanComoving, virialF_b200, prof);
+  epoch.SphericalOverdensitySize(BoundM200Crit, BoundR200CritComoving, 200., prof);
 
   if (VmaxPhysical >= LastMaxVmaxPhysical)
   {
-    SnapshotIndexOfLastMaxVmax = epoch.GetSnapshotIndex();
+    SnapshotOfLastMaxVmax = epoch.GetSnapshotId();
     LastMaxVmaxPhysical = VmaxPhysical;
+    RmaxComovingOfLastMaxVmax = RmaxComoving;
   }
 }
 
@@ -350,14 +334,6 @@ void Subhalo_t::CalculateShape()
 {
   if (Nbound <= 1)
   {
-#ifdef HAS_GSL
-    for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 3; j++)
-      {
-        InertialEigenVector[i][j] = 0.;
-        InertialEigenVectorWeighted[i][j] = 0.;
-      }
-#endif
     for (auto &&I : InertialTensor)
       I = 0.;
     for (auto &&I : InertialTensorWeighted)
@@ -418,10 +394,6 @@ void Subhalo_t::CalculateShape()
     I /= Mbound;
   for (auto &&I : InertialTensorWeighted)
     I /= Mbound;
-#ifdef HAS_GSL
-  EigenAxis(Ixx, Ixy, Ixz, Iyy, Iyz, Izz, InertialEigenVector);
-  EigenAxis(Ixxw, Ixyw, Ixzw, Iyyw, Iyzw, Izzw, InertialEigenVectorWeighted);
-#endif
 }
 
 void Subhalo_t::CountParticleTypes()
@@ -600,4 +572,12 @@ vector<HBTInt> Subhalo_t::GetMostBoundTracerIds(HBTInt n)
   assert(Ids.size() == n);
 
   return Ids;
+}
+
+/* Returns number of tracer particles that are used to estimate the phase-space
+ * position of a given subhalo. Relevant for determininig if two more subhaloes
+ * overlap in phase space. */
+HBTInt Subhalo_t::GetCoreSize()
+{
+  return std::max(static_cast<HBTInt>(Nbound * HBTConfig.SubCoreSizeFactor), HBTConfig.SubCoreSizeMin);
 }

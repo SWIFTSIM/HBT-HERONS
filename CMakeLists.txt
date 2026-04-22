@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 #
 # Set project name and language
 #
-project(hbtplus)
+project(hbt-herons)
 enable_language(C)
 enable_language(CXX)
 include(CTest)
@@ -74,25 +74,10 @@ find_package(HDF5 COMPONENTS C HL REQUIRED)
 include_directories(${HDF5_C_INCLUDE_DIRS})
 
 #
-# Find GSL library (optional)
-#
-option(HBT_USE_GSL "Enable to use GSL for eigenvalue decomposition of inertial tensors" OFF)
-if(HBT_USE_GSL)
-  find_package(GSL)
-  if(GSL_FOUND)
-    include_directories(${GSL_INCLUDE_DIRS})
-    link_directories(${GSL_LIBRARY_DIRS})
-    add_definitions(-DHAS_GSL)
-  else(GSL_FOUND)
-    error("Unable to find GSL library")
-  endif(GSL_FOUND)
-endif(HBT_USE_GSL)
-
-#
 # List of HBT source files.
 # Headers are found automatically by cmake.
 #
-set(HBT_SRC 
+set(HBT_SRC
   src/config_parser.cpp
   src/geometric_tree.cpp
   src/gravity_tree.cpp
@@ -108,19 +93,20 @@ set(HBT_SRC
   src/snapshot_exchanger.cpp
   src/subhalo.cpp
   src/subhalo_merge.cpp
+  src/subhalo_reassign_gas.cpp
   src/subhalo_tracking.cpp
   src/subhalo_unbind.cpp
   src/subhalo_update_mostbound.cpp
-  src/io/apostle_io.cpp
-  src/io/gadget_group_io.cpp
-  src/io/gadget_io.cpp
-  src/io/gadget4_io.cpp
-  src/io/swiftsim_io.cpp
+  src/io/apostle_io/apostle_io.cpp
+  src/io/gadget_io/gadget_group_io.cpp
+  src/io/gadget_io/gadget_io.cpp
+  src/io/gadget_io/gadget4_io.cpp
+  src/io/swiftsim_io/swiftsim_io.cpp
   src/io/halo_io.cpp
   src/io/snapshot_io.cpp
   src/io/subhalo_io.cpp
-  src/io/exchange_and_merge.cpp
-  src/io/halo_patch_exchanger.cpp
+  src/io/comms/halo_patch_exchanger.cpp
+  src/io/comms/exchange_and_merge.cpp
   )
 
 #
@@ -146,6 +132,13 @@ hbt_option(HBT_REAL4_VEL               HBT_REAL4_VEL           "Enable to store 
 hbt_option(HBT_REAL4_MASS              HBT_REAL4_MASS          "Enable to store particle masses as 4 byte reals" OFF)
 hbt_option(HBT_UNBIND_WITH_THERMAL_ENERGY UNBIND_WITH_THERMAL_ENERGY "Enable use of thermal energy when unbinding" OFF)
 hbt_option(HBT_CHECK_TRACER_INDEX      CHECK_TRACER_INDEX      "For debugging: check that tracer particle has the expected ID" OFF)
+hbt_option(HBT_MEASURE_UNBINDING_TIME  MEASURE_UNBINDING_TIME  "Measure the time it takes for each subhalo to analyse within the unbinding routine." OFF)
+hbt_option(HBT_DISABLE_STRIPPING       NO_STRIPPING            "Prevents subhaloes from passing unbound particles to their parents." OFF)
+
+#
+# Allow passing in extra mpiexec flags for unit tests. Needed for github workflow.
+#
+set(HBT_MPI_TEST_FLAGS "" CACHE STRING "Extra mpiexec flags to use for unit tests")
 
 #
 # Determine if we're going to output git revision info
@@ -169,7 +162,7 @@ if(STORE_REVISION_INFO)
   add_custom_command(
     OUTPUT ${GIT_VERSION_INFO_FILE}
     COMMAND /bin/sh ${CMAKE_BINARY_DIR}/git_version_info.sh > ${GIT_VERSION_INFO_FILE}
-    DEPENDS HBT.cpp ${HBT_SRC} ${CMAKE_BINARY_DIR}/git_version_info.sh CMakeLists.txt 
+    DEPENDS HBT.cpp ${HBT_SRC} ${CMAKE_BINARY_DIR}/git_version_info.sh CMakeLists.txt
             ${CMAKE_SOURCE_DIR}/.git/HEAD ${CMAKE_SOURCE_DIR}/.git/index
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   )
@@ -187,7 +180,7 @@ add_library(hbtfuncs OBJECT ${HBT_SRC} ${GIT_VERSION_INFO_FILE})
 # HBT executable
 #
 add_executable(HBT HBT.cpp $<TARGET_OBJECTS:hbtfuncs>)
-target_link_libraries(HBT ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES})
+target_link_libraries(HBT ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
 
 #
 # Hide some variables we usually don't need from the default view in the cmake GUI

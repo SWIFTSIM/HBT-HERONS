@@ -1,0 +1,42 @@
+name: HBT-HERONS
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+        dm_only:    [HBT_DM_ONLY=ON, HBT_DM_ONLY=OFF]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build libhdf5-mpi-dev
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DHBT_MPI_TEST_FLAGS="--oversubscribe"
+          -D${{ matrix.dm_only }}
+          -DHBT_INT8=ON
+          -DHBT_REAL8=ON
+          -DHBT_REAL4_MASS=ON
+          -DHBT_REAL4_VEL=ON
+          -DHBT_CHECK_TRACER_INDEX=ON
+          -DHBT_UNBIND_WITH_THERMAL_ENERGY=ON
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Run Tests
+        run: cd build && ctest --output-on-failure

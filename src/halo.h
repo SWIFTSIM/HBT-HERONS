@@ -53,6 +53,17 @@ public:
   {
     BuildMPIDataType();
   }
+
+  HaloSnapshot_t(MpiWorker_t &world, int snapshot_index) : HaloSnapshot_t()
+  {
+    Load(world, snapshot_index);
+  }
+
+  HaloSnapshot_t(MpiWorker_t &world, const ParticleSnapshot_t &partsnap) : HaloSnapshot_t()
+  {
+    Load(world, partsnap);
+  }
+
   ~HaloSnapshot_t()
   {
     // 	Clear();

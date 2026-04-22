@@ -16,19 +16,21 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   hsize_t dims[2] = {3, 3};
   hid_t H5T_HBTxyz = H5Tarray_create2(H5T_HBTReal, 1, dims);
   hid_t H5T_FloatVec3 = H5Tarray_create2(H5T_NATIVE_FLOAT, 1, dims);
-#define InsertMember(x, t)                                                                                             \
-  H5Tinsert(H5T_SubhaloInMem, #x, HOFFSET(Subhalo_t, x), t) //;cout<<#x<<": "<<HOFFSET(Subhalo_t, x)<<endl
+
+#define InsertMember(x, t) H5Tinsert(H5T_SubhaloInMem, #x, HOFFSET(Subhalo_t, x), t)
+
   InsertMember(TrackId, H5T_HBTInt);
   InsertMember(Nbound, H5T_HBTInt);
   InsertMember(Mbound, H5T_NATIVE_FLOAT);
 
+  /* Array-like properties */
   dims[0] = TypeMax;
   hid_t H5T_HBTIntArray_TypeMax = H5Tarray_create2(H5T_HBTInt, 1, dims);
   hid_t H5T_FloatArray_TypeMax = H5Tarray_create2(H5T_NATIVE_FLOAT, 1, dims);
 #ifndef DM_ONLY
   InsertMember(NboundType, H5T_HBTIntArray_TypeMax);
   InsertMember(MboundType, H5T_FloatArray_TypeMax);
-#endif
+#endif // of DM_ONLY
   H5Tclose(H5T_HBTIntArray_TypeMax);
   H5Tclose(H5T_FloatArray_TypeMax);
   InsertMember(TracerIndex, H5T_HBTInt);
@@ -39,40 +41,31 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(Rank, H5T_HBTInt);
   InsertMember(Depth, H5T_NATIVE_INT);
   InsertMember(LastMaxMass, H5T_NATIVE_FLOAT);
-  InsertMember(SnapshotIndexOfLastMaxMass, H5T_NATIVE_INT);
-  InsertMember(SnapshotIndexOfLastIsolation, H5T_NATIVE_INT);
-  InsertMember(SnapshotIndexOfBirth, H5T_NATIVE_INT);
-  InsertMember(SnapshotIndexOfDeath, H5T_NATIVE_INT);
-  InsertMember(SnapshotIndexOfSink, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfLastMaxMass, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfLastIsolation, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfBirth, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfDeath, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfSink, H5T_NATIVE_INT);
   InsertMember(RmaxComoving, H5T_NATIVE_FLOAT);
+  InsertMember(RmaxComovingOfLastMaxVmax, H5T_NATIVE_FLOAT);
   InsertMember(VmaxPhysical, H5T_NATIVE_FLOAT);
   InsertMember(LastMaxVmaxPhysical, H5T_NATIVE_FLOAT);
-  InsertMember(SnapshotIndexOfLastMaxVmax, H5T_NATIVE_INT);
+  InsertMember(SnapshotOfLastMaxVmax, H5T_NATIVE_INT);
   InsertMember(REncloseComoving, H5T_NATIVE_FLOAT);
   InsertMember(RHalfComoving, H5T_NATIVE_FLOAT);
   InsertMember(BoundR200CritComoving, H5T_NATIVE_FLOAT);
-  //   InsertMember(R200MeanComoving, H5T_NATIVE_FLOAT);
-  //   InsertMember(RVirComoving, H5T_NATIVE_FLOAT);
   InsertMember(BoundM200Crit, H5T_NATIVE_FLOAT);
-  //   InsertMember(M200Mean, H5T_NATIVE_FLOAT);
-  //   InsertMember(MVir, H5T_NATIVE_FLOAT);
   InsertMember(SpecificSelfPotentialEnergy, H5T_NATIVE_FLOAT);
   InsertMember(SpecificSelfKineticEnergy, H5T_NATIVE_FLOAT);
   InsertMember(SpecificAngularMomentum, H5T_FloatVec3);
-#ifdef HAS_GSL
-  dims[0] = 3;
-  dims[1] = 3;
-  hid_t H5T_FloatVec33 = H5Tarray_create2(H5T_NATIVE_FLOAT, 2, dims);
-  InsertMember(InertialEigenVector, H5T_FloatVec33);
-  InsertMember(InertialEigenVectorWeighted, H5T_FloatVec33);
-  H5Tclose(H5T_FloatVec33);
-#endif
+
   dims[0] = 6;
   hid_t H5T_FloatVec6 = H5Tarray_create2(H5T_NATIVE_FLOAT, 1, dims);
   InsertMember(InertialTensor, H5T_FloatVec6);
   InsertMember(InertialTensorWeighted, H5T_FloatVec6);
   H5Tclose(H5T_FloatVec6);
 
+  /* Phase-space coordinates */
   InsertMember(ComovingAveragePosition, H5T_HBTxyz);
   InsertMember(PhysicalAverageVelocity, H5T_HBTxyz);
   InsertMember(ComovingMostBoundPosition, H5T_HBTxyz);
@@ -82,39 +75,44 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(SinkTrackId, H5T_HBTInt);
   InsertMember(DescendantTrackId, H5T_HBTInt);
   InsertMember(NestedParentTrackId, H5T_HBTInt);
+
+  /* Timing information */
+#ifdef MEASURE_UNBINDING_TIME
+  InsertMember(MPIRank, H5T_NATIVE_INT);
+  InsertMember(NumberUnbindingIterations, H5T_NATIVE_INT);
+
+  InsertMember(StartSubhalo, H5T_NATIVE_FLOAT);
+  InsertMember(EndSubhalo, H5T_NATIVE_FLOAT);
+  InsertMember(StartUnbinding, H5T_NATIVE_FLOAT);
+  InsertMember(EndUnbinding, H5T_NATIVE_FLOAT);
+  InsertMember(StartCentreRefinement, H5T_NATIVE_FLOAT);
+  InsertMember(EndCentreRefinement, H5T_NATIVE_FLOAT);
+  InsertMember(StartPhaseSpace, H5T_NATIVE_FLOAT);
+  InsertMember(EndPhaseSpace, H5T_NATIVE_FLOAT);
+#endif // MEASURE_UNBINDING_TIME
+
 #undef InsertMember
   H5T_SubhaloInDisk = H5Tcopy(H5T_SubhaloInMem);
   H5Tpack(H5T_SubhaloInDisk); // clear fields not added.
-  //   Subhalo_t s;
-  //   cout<<(char *)&s.TrackId-(char *)&s<<","<<(char *)&s.Nbound-(char *)&s<<","<<(char *)&s.ComovingPosition-(char
-  //   *)&s<<","<<(char *)&s.Particles-(char *)&s<<endl;
-
-  /*
-  #define InsertMember(x,t) H5T_ParticleInMem.insertMember(#x, HOFFSET(Subhalo_t, x), t)//;cout<<#x<<":
-"<<HOFFSET(Subhalo_t, x)<<endl InsertMember(Id, H5T_HBTInt);
-//   InsertMember(Mass, H5T_HBTReal);
-//   InsertMember(ComovingPosition, H5T_HBTxyz);
-//   InsertMember(PhysicalVelocity, H5T_HBTxyz);
-  #undef InsertMember
-  H5T_ParticleInDisk.copy(H5T_ParticleInMem);
-  H5T_ParticleInDisk.pack(); //clear fields not added.
-*/
   H5Tclose(H5T_FloatVec3);
   H5Tclose(H5T_HBTxyz);
 }
+
 string SubhaloSnapshot_t::GetSubDir()
 {
   stringstream formater;
-  formater << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << SnapshotIndex;
+  formater << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << SnapshotId;
   return formater.str();
 }
+
 void SubhaloSnapshot_t::GetSubFileName(string &filename, int iFile, const string &ftype)
 {
   stringstream formater;
-  formater << GetSubDir() << "/" + ftype + "Snap_" << setw(3) << setfill('0') << SnapshotIndex << "." << iFile
+  formater << GetSubDir() << "/" + ftype + "Snap_" << setw(3) << setfill('0') << SnapshotId << "." << iFile
            << ".hdf5"; // or use snapshotid
   filename = formater.str();
 }
+
 void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubReaderDepth_t depth)
 {
   if (snapshot_index < HBTConfig.MinSnapshotIndex)
@@ -156,8 +154,6 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
     }
   }
 
-  //   cout<<Subhalos.size()<<" subhaloes loaded at snapshot "<<SnapshotIndex<<"("<<SnapshotId<<")\n";
-
   HBTInt NumSubs = Subhalos.size(), NumSubsAll_loaded = 0;
   MPI_Reduce(&NumSubs, &NumSubsAll_loaded, 1, MPI_HBT_INT, MPI_SUM, 0, world.Communicator);
   if (world.rank() == 0)
@@ -169,7 +165,8 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
           << ", loaded=" << NumSubsAll_loaded << endl;
       throw runtime_error(msg.str().c_str());
     }
-    cout << TotNumberOfSubs << " subhalos loaded at snapshot " << SnapshotIndex << "(" << SnapshotId << ")\n";
+    std::cout << TotNumberOfSubs << " subhalos loaded from snapshot " << SnapshotId << " (SnapshotIndex = " \
+              << snapshot_index << ")" << std::endl;
   }
 
 #ifndef NDEBUG
@@ -187,6 +184,7 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
 #endif
 #endif
 }
+
 void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
 { // Read iFile for current snapshot.
 
@@ -296,7 +294,7 @@ void SubhaloSnapshot_t::WriteBoundFiles(MpiWorker_t &world, const int &number_ra
   MPI_Allreduce(&NumSubs, &NumSubsAll, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
 
   if (world.rank() == 0)
-    cout << "saving " << NumSubsAll << " subhalos to " << GetSubDir() << endl;
+    std::cout << "Saving " << NumSubsAll << " subhalos to " << GetSubDir() << std::endl;
 
   /* Allow a limited number of ranks per node to write simultaneously */
   int writes_done = 0;
@@ -366,8 +364,8 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
 
   /* Version information */
   hid_t header = H5Gcreate2(file, "/Header", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  writeStringAttribute(header, "Git_branch", branch_name);
-  writeStringAttribute(header, "Git_commit", commit_hash);
+  writeStringAttribute(header, branch_name, "Git_branch");
+  writeStringAttribute(header, commit_hash, "Git_commit");
   H5Gclose(header);
 
   vector<hvl_t> vl(Subhalos.size());
@@ -436,6 +434,21 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
       Subhalos[i].ParticleBindingEnergies.clear();
     }
     writeHDFmatrix(file, vl.data(), "BindingEnergies", ndim, dim_sub, H5T_FloatArr);
+    H5Tclose(H5T_FloatArr);
+  }
+
+  if (HBTConfig.SaveBoundParticlePotentialEnergies)
+  {
+    hid_t H5T_FloatArr = H5Tvlen_create(H5T_NATIVE_FLOAT);
+    for (HBTInt i = 0; i < vl.size(); i++)
+    {
+      vl[i].len = Subhalos[i].Nbound;
+      vl[i].p = Subhalos[i].ParticlePotentialEnergies.data();
+
+      /* Clear the vector to reduce memory footprint and because it will be overwritten anyway. */
+      Subhalos[i].ParticlePotentialEnergies.clear();
+    }
+    writeHDFmatrix(file, vl.data(), "PotentialEnergies", ndim, dim_sub, H5T_FloatArr);
     H5Tclose(H5T_FloatArr);
   }
 

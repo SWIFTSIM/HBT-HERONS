@@ -43,30 +43,27 @@ public:
   HBTInt Rank; // 0 for central and field subs, >0 for satellites
   int Depth;   // depth of the subhalo: central=0, sub=1, sub-sub=2, ...
   float LastMaxMass;
-  int SnapshotIndexOfLastMaxMass; // the snapshot when it has the maximum subhalo mass, only considering past snapshots.
-  int SnapshotIndexOfLastIsolation; // the last snapshot when it was a central, only considering past snapshots.
+  int SnapshotOfLastMaxMass; // the snapshot when it has the maximum subhalo mass, only considering past snapshots.
+  int SnapshotOfLastIsolation; // The last snapshot when it was a central, only considering past snapshots. -1 if
+                               // the subhalo has always been a central
 
-  int SnapshotIndexOfBirth; // when the subhalo first becomes resolved
-  int SnapshotIndexOfDeath; // when the subhalo first becomes un-resolved; only set if
-                            // currentsnapshot>=SnapshotIndexOfDeath.
-  int SnapshotIndexOfSink;  // when the subhalo sinks
+  int SnapshotOfBirth; // Snapshot when the subhalo was first resolved.
+  int SnapshotOfDeath; // Snapshot when the subhalo became unresolved, or -1 if it is still resolved.
+  int SnapshotOfSink;  // Snapshot when the subhalo overlapped in phase-space with another one.
 
   // profile properties
   float RmaxComoving;
+  float RmaxComovingOfLastMaxVmax;
   float VmaxPhysical;
   float LastMaxVmaxPhysical;
-  int SnapshotIndexOfLastMaxVmax; // the snapshot when it has the maximum Vmax, only considering past snapshots.
+  int SnapshotOfLastMaxVmax; // the snapshot when it has the maximum Vmax, only considering past snapshots.
 
   float REncloseComoving; // Radius of minimum sphere which contains all bound particles
   float RHalfComoving;
 
-  // SO properties using subhalo particles alone, meant for quick and dirty calculations
+  // SO properties using **BOUND** subhalo particles alone, meant for quick and dirty calculations
   float BoundR200CritComoving;
-  //   float R200MeanComoving;
-  //   float RVirComoving;
   float BoundM200Crit;
-  //   float M200Mean;
-  //   float MVir;
 
   // kinetic properties
   float SpecificSelfPotentialEnergy; // average specific potential energy of each particle, <phi/m>. the total potential
@@ -76,10 +73,6 @@ public:
   float SpecificAngularMomentum[3];  //<Rphysical x Vphysical>
 
   // shapes
-#ifdef HAS_GSL
-  float InertialEigenVector[3][3]; // three float[3] vectors, with amplitude equal to eigenvalue.
-  float InertialEigenVectorWeighted[3][3];
-#endif
   float InertialTensor[6]; //{Ixx, Ixy, Ixz, Iyy, Iyz, Izz}
   float InertialTensorWeighted[6];
 
@@ -97,9 +90,10 @@ public:
 
   ParticleList_t Particles;
 
-  /* Binding energies of the particles bound to the subhalo. It is a separate instance from ParticleList_t
-   * because it does not need communicating before unbinding. */
+  /* Binding/potential energies of the particles bound to the subhalo. They are a separate instance from ParticleList_t
+   * because they do not need communicating before unbinding. */
   vector<float> ParticleBindingEnergies;
+  vector<float> ParticlePotentialEnergies;
 
   SubIdList_t NestedSubhalos; // list of sub-in-subs.
 
@@ -108,13 +102,30 @@ public:
   bool AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo);
   float PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo);
   void GetCorePhaseSpaceProperties();
-  void SetMergerInformation(const HBTInt &ReferenceTrackId, const int &SnapshotIndex);
+  void SetMergerInformation(const HBTInt &ReferenceTrackId, const int &SnapshotId);
 
   /* Properties relating to the new merging approach */
   HBTxyz CoreComovingPosition;
   HBTxyz CorePhysicalVelocity;
   float CoreComovingSigmaR;
   float CorePhysicalSigmaV;
+
+#ifdef MEASURE_UNBINDING_TIME
+  int MPIRank; // The rank which analysed this subhalo
+  int AnalysisOrder; // How many subhaloes of the same halo were analysed before
+  int NumberUnbindingIterations; // How many iterations were done in unbinding
+
+  /* Timing related methods and members */
+  Timer_t AnalysisTimer;
+  void StartTimer();
+  void FinishTimer();
+  void LogTime(std::string name);
+
+  float StartSubhalo, EndSubhalo;
+  float StartUnbinding, EndUnbinding;
+  float StartCentreRefinement, EndCentreRefinement;
+  float StartPhaseSpace, EndPhaseSpace;
+#endif // MEASURE_UNBINDING_TIME
 
   Subhalo_t()
     : Nbound(0), Rank(0), Mbound(0), Depth(0)
@@ -124,14 +135,15 @@ public:
 #endif
   {
     TrackId = SpecialConst::NullTrackId;
-    SnapshotIndexOfLastIsolation = SpecialConst::NullSnapshotId;
-    SnapshotIndexOfLastMaxMass = SpecialConst::NullSnapshotId;
+    SnapshotOfLastIsolation = SpecialConst::NullSnapshotId;
+    SnapshotOfLastMaxMass = SpecialConst::NullSnapshotId;
     LastMaxMass = 0.;
+    RmaxComovingOfLastMaxVmax = 0.;
     LastMaxVmaxPhysical = 0.;
-    SnapshotIndexOfLastMaxVmax = SpecialConst::NullSnapshotId;
-    SnapshotIndexOfBirth = SpecialConst::NullSnapshotId;
-    SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
-    SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
+    SnapshotOfLastMaxVmax = SpecialConst::NullSnapshotId;
+    SnapshotOfBirth = SpecialConst::NullSnapshotId;
+    SnapshotOfDeath = SpecialConst::NullSnapshotId;
+    SnapshotOfSink = SpecialConst::NullSnapshotId;
     SinkTrackId = SpecialConst::NullTrackId;
     DescendantTrackId = SpecialConst::NullTrackId;
     MostBoundParticleId = SpecialConst::NullParticleId;
@@ -166,11 +178,7 @@ public:
   }
   bool IsAlive()
   {
-    return SnapshotIndexOfDeath == SpecialConst::NullSnapshotId;
-  }
-  bool JustTrapped(int currentsnapshotindex)
-  {
-    return SnapshotIndexOfSink == currentsnapshotindex;
+    return SnapshotOfDeath == SpecialConst::NullSnapshotId;
   }
   HBTInt GetTracerIndex()
   {
@@ -199,6 +207,12 @@ public:
 #endif
   }
   vector<HBTInt> GetMostBoundTracerIds(HBTInt n);
+
+private:
+  /* To determine number of most bound tracer particles used to estimate the
+   * position and velocity of the subhalo.*/
+   HBTInt GetCoreSize();
+
 };
 
 class MemberShipTable_t
@@ -247,6 +261,7 @@ public:
   void SubIdToTrackId(const SubhaloList_t &Subhalos);
   void TrackIdToSubId(SubhaloList_t &Subhalos);
 };
+
 class SubhaloSnapshot_t : public Snapshot_t
 {
 private:
@@ -254,7 +269,11 @@ private:
   hid_t H5T_SubhaloInMem, H5T_SubhaloInDisk;
   MPI_Datatype MPI_HBT_SubhaloShell_t; // MPI datatype ignoring the particle list
 
-  void RegisterNewTracks(MpiWorker_t &world);
+  /* Handle creation of new subhaloes. */
+  void RemoveFakeTracks();
+  void AssignNewTrackIds(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
+  void RegisterNewTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
+
   void DecideCentrals(const HaloSnapshot_t &halo_snap);
   void FeedCentrals(HaloSnapshot_t &halo_snap);
   void BuildHDFDataType();
@@ -280,6 +299,11 @@ private:
   void SetNestedParentIds();
 
   void HandleTracerlessSubhalos(MpiWorker_t &world, vector<Subhalo_t> &LocalSubhalos);
+
+  /* Methods to print information of how the analysis of each output is going. */
+  void PrintHostStatistics(MpiWorker_t &world);
+  void PrintSubhaloStatistics(MpiWorker_t &world);
+  void PrintTimeImbalanceStatistics(MpiWorker_t &world, Timer_t Timer);
 
 public:
   SubhaloList_t Subhalos;
@@ -309,19 +333,15 @@ public:
   void GetSubFileName(string &filename, int iFile, const string &ftype = "Sub");
   void Load(MpiWorker_t &world, int snapshot_index, const SubReaderDepth_t depth = SubReaderDepth_t::SubParticles);
   void Save(MpiWorker_t &world);
-  void Clear()
-  {
-    // TODO
-    cout << "Clean() not implemented yet\n";
-  }
+
   void UpdateParticles(MpiWorker_t &world, const ParticleSnapshot_t &snapshot);
   void UpdateSplitParticles(const ParticleSnapshot_t &snapshot);
-  //   void ParticleIndexToId();
   void UpdateMostBoundPosition(MpiWorker_t &world, const ParticleSnapshot_t &part_snap);
   void AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap);
   void ConstrainToSingleHost(const HaloSnapshot_t &halo_snap);
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
-  void RefineParticles();
+  void RefineParticles(MpiWorker_t &world);
+  void ReassignParticles(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
 
   /* To remove duplicate particles from the source subgroup. */
@@ -348,21 +368,6 @@ public:
     return Subhalos[index].GetMass();
   }
 };
-
-inline HBTInt GetCoreSize(HBTInt nbound)
-/* get the size of the core that determines the position of the subhalo.
- * coresize controlled by SubCoreSizeFactor and SubCoreSizeMin.
- * if you do not want a cored center, then
- * set SubCoreSizeFactor=0 and SubCoreSizeMin=1 to use most-bound particle;
- * set SubCoreSizeFactor=1 to use all the particles*/
-{
-  int coresize = nbound * HBTConfig.SubCoreSizeFactor;
-  if (coresize < HBTConfig.SubCoreSizeMin)
-    coresize = HBTConfig.SubCoreSizeMin;
-  if (coresize > nbound)
-    coresize = nbound;
-  return coresize;
-}
 
 class TrackKeyList_t : public KeyList_t<HBTInt, HBTInt>
 {

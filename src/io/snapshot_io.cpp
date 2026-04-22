@@ -13,12 +13,12 @@ using namespace std;
 #include "../mpi_wrapper.h"
 #include "../mymath.h"
 #include "../snapshot.h"
-#include "apostle_io.h"
-#include "gadget_io.h"
-#include "swiftsim_io.h"
-#include "gadget4_io.h"
+#include "./apostle_io/apostle_io.h"
+#include "./gadget_io/gadget_io.h"
+#include "./gadget_io/gadget4_io.h"
+#include "./swiftsim_io/swiftsim_io.h"
 
-void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_particle_hash)
+void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
 {
   Clear();
   SetSnapshotIndex(snapshot_index);
@@ -48,34 +48,27 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_
     Gadget4Reader::Gadget4Reader_t().LoadSnapshot(world, SnapshotId, Particles, Cosmology);
   }
   else if (HBTConfig.SnapshotFormat == "mysnapshot")
-  { /*insert your snapshot reader here, and include relevant header in the header if necessary
-     you need to fill up Particles vector, and set the cosmology, e.g.,
-
-     LoadMySnapshot(SnapshotId, Particles, Cosmology);
-
-     */
+  {
+    /* Insert your snapshot reader here, and include relevant information in the header
+     * if necessary. Essential things are to set cosmology and fill up Particle vector.
+     * LoadMySnapshot(SnapshotId, Particles, Cosmology); */
   }
   else
     throw(runtime_error("unknown SnapshotFormat " + HBTConfig.SnapshotFormat));
 
-#ifdef DM_ONLY
-//   assert(Cosmology.ParticleMass>0);
-#endif
+  global_timer.Tick("snap_io", world.Communicator);
 
-  /* NOTE: This function call does not communicate particles when using GADGET4, 
+  /* NOTE: This function call does not communicate particles when using GADGET4,
    * as it only calculates NumberOfParticlesOnAllNodes */
   ExchangeParticles(world);
-
   global_timer.Tick("snap_exchange", world.Communicator);
 
-  if (fill_particle_hash)
-    FillParticleHash();
-
+  FillParticleHash();
   global_timer.Tick("snap_hash", world.Communicator);
 
   if (world.rank() == 0)
-    cout << NumberOfParticlesOnAllNodes << " particles loaded at Snapshot " << snapshot_index << "(" << SnapshotId
-         << ")" << endl;
+    std::cout << NumberOfParticlesOnAllNodes << " particles loaded from snapshot " << SnapshotId << " (SnapshotIndex = " \
+              << snapshot_index << ")" << std::endl;
 }
 
 #ifdef TEST_snapshot_io

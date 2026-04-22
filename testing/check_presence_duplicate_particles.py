@@ -36,7 +36,7 @@ def check_duplicate_particles(basedir, hbt_nr):
     """
 
     if comm_rank == 0:
-        print(f"Testing presence of duplicate particles in HBTplus at snapshot index {hbt_nr}.")
+        print(f"Testing presence of duplicate particles in HBT-HERONS at snapshot index {hbt_nr}.")
 
     #===========================================================================
     # Load catalogues for snapshot N 
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     from virgo.mpi.util import MPIArgumentParser
     
     parser = MPIArgumentParser(comm, description="Check for the presence of particles bound to more than one subgroup.")
-    parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
+    parser.add_argument("basedir", type=str, help="Location of the HBT-HERONS output")
     parser.add_argument("hbt_nr", type=int, help="Index of the HBT output to process")
 
     args = parser.parse_args()

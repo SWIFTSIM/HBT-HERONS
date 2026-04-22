@@ -1,27 +1,7 @@
 #!/bin/bash
+
+. ../helper_functions.sh
 set -e
-
-# Parses a YAML file and returns each option as its own string. The levels of each
-# option are reflected by concatenating underscores between names.
-function parse_yaml {
-   local prefix=$2
-   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-   sed -ne "s|^\($s\):|\1|" \
-        -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
-        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
-   awk -F$fs '{
-      indent = length($1)/2;
-      vname[indent] = $2;
-      for (i in vname) {if (i > indent) {delete vname[i]}}
-      if (length($3) > 0) {
-         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
-      }
-   }'
-}
-
-# Identifies whether a string contains a substring.
-stringContain() { case $2 in *$1* ) return 0;; *) return 1;; esac ;}
 
 # This is where the outputs should be placed
 BASE_PATH=$1
@@ -29,7 +9,7 @@ HBT_FOLDER=$2
 
 # Parse the SWIFT config file
 if [ ! -f $BASE_PATH/used_parameters.yml ]; then
-   echo "Cannot find used_parameters.yml in $1"
+   echo "Cannot find used_parameters.yml in $BASE_PATH"
 fi
 parameters=($(parse_yaml $BASE_PATH/used_parameters.yml))
 
@@ -53,10 +33,10 @@ do
    fi
 done
 
-# Snapshots are distributed. Each snapshot subfile is contained in its own directory,
-# which has the same base name.
+# Snapshots are, in principle, distributed. Each snapshot subfile is contained in its own directory,
+# which has the same base name as the snapshot.
 if [ $SNAPSHOTS_ARE_DISTRIBUTED == 1 ] ; then
-      SNAPSHOT_BASEDIR=$SNAPSHOT_BASENAME
+   SNAPSHOT_BASEDIR=$SNAPSHOT_BASENAME
 else
    $SNAPSHOT_BASEDIR=""
 fi
@@ -71,6 +51,15 @@ if [ $SNAPSHOT_DIRECTORY == "." ]; then
    # parameter file option
    if [ -d $BASE_PATH/snapshots ]; then
       SNAPSHOT_DIRECTORY="snapshots"
+   fi
+fi
+
+# Snapshots that should be distributed are not, if one MPI rank was used. We defer this correction
+# to be done here since we first needed to set SNAPSHOT_DIRECTORY
+if [ $SNAPSHOTS_ARE_DISTRIBUTED == 1 ] ; then
+   NUMBER_SUBDIR=$(find $BASE_PATH/$SNAPSHOT_DIRECTORY -maxdepth 1 -name "${SNAPSHOT_BASEDIR}_????" | wc -l)
+   if [ $NUMBER_SUBDIR -eq 0 ]; then
+      SNAPSHOT_BASEDIR=""
    fi
 fi
 

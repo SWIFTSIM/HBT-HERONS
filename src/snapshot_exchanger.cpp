@@ -57,7 +57,7 @@ void ParticleSnapshot_t::ExchangeParticles(MpiWorker_t &world)
   }
 
   /* We should not communicate particles for GADGET-4 just yet, as the groups
-   * are defined based on particle offsets. Communicating will therefore 
+   * are defined based on particle offsets. Communicating will therefore
    * mix up the order of particles and give bogus results. */
   if(HBTConfig.GroupFileFormat == "gadget4_hdf")
     return;

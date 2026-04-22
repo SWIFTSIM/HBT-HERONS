@@ -3,7 +3,8 @@
 
 #include <iostream>
 #include <iterator>
-
+#include <fstream>
+#include <iomanip>
 #include <algorithm>
 #include <assert.h>
 #include <chrono>
@@ -61,49 +62,63 @@ inline void RemoveFromVector(vector<T> &v, UnaryPredicate p)
   v.erase(remove_if(v.begin(), v.end(), p), v.end());
 }
 
+/* Will be used to measure internal timings against the time at which the current
+ * snapshot begun being analysed. */
+inline std::chrono::high_resolution_clock::time_point &ReferenceTime() {
+  static std::chrono::high_resolution_clock::time_point ReferenceTime;
+  return ReferenceTime;
+}
+
 class Timer_t
 {
+private:
+  int FixTickNum(int itick)
+  {
+    return itick < 0 ? itick + Size() : itick;
+  }
 public:
   vector<chrono::high_resolution_clock::time_point> tickers;
   vector<string> names;
-  Timer_t()
-  {
-    tickers.reserve(20);
-  }
+  Timer_t() {tickers.reserve(20);}
+
+  /* Every rank store the time without waiting for other ranks to finish. */
   void Tick(string name)
   {
     tickers.push_back(chrono::high_resolution_clock::now());
     names.push_back(name);
   }
+
+  /* We only store the time once all ranks reach the barrier, i.e. synchronised
+   * ticking. */
   void Tick(string name, MPI_Comm comm)
-  // synchronized tick. wait for all processes to tick together.
   {
     MPI_Barrier(comm);
     Tick(name);
   }
+
+  /* Clear all time information */
   void Reset()
   {
     tickers.clear();
     names.clear();
   }
+
+  /* Number of entries in the ticker vector. */
   size_t Size()
   {
     return tickers.size();
   }
-  int FixTickNum(int itick)
-  {
-    return itick < 0 ? itick + Size() : itick;
-  }
+
+  /* Returns the seconds spent from two consecutive tick entries. If unspecified,
+   * it returns the interval between the last two ticks. */
   double GetSeconds(int itick = -1)
-  /*get the time spent from the previous tick to the current tick
-   * if itick not specified, return the current interval
-   * if itick<0, it will be interpreted as end()+itick */
   {
     itick = FixTickNum(itick);
     return GetSeconds(itick, itick - 1);
   }
+
+  /* Returns the seconds spent from two arbitrary timer entries. */
   double GetSeconds(int itick, int itick0)
-  /*get the time spent from itick0 to itick*/
   {
     itick = FixTickNum(itick);
     itick0 = FixTickNum(itick0);
@@ -111,6 +126,30 @@ public:
       swap(itick, itick0);
 
     return chrono::duration_cast<chrono::duration<double>>(tickers[itick] - tickers[itick0]).count();
+  }
+
+  double SaveSnapshotTiming(const std::string SubhaloPath, const int SnapshotIndex, const int SnapshotId)
+  {
+    /* Create or open the timing log file */
+    std::ofstream TimeLog;
+    TimeLog.open(SubhaloPath + "/timing.log", std::fstream::out | std::fstream::app);
+    TimeLog << std::fixed << std::setprecision(3);
+
+    /* To report on how long the snapshot took to analyse in total. Only rank 0
+     * will print, so no need to synchronise. */
+    double TotalTime = 0;
+
+    /* Append line */
+    TimeLog << SnapshotIndex << " \t" << SnapshotId;
+    for (int i = 1; i < Size(); i++)
+    {
+      TimeLog << "\t" << names[i] << "=" << GetSeconds(i);
+      TotalTime += GetSeconds(i);
+    }
+    TimeLog << std::endl;
+    TimeLog.close();
+
+    return TotalTime;
   }
 };
 
@@ -278,8 +317,4 @@ extern vector<int> ClosestFactors(int N, int dim);
 extern void AssignTasks(HBTInt worker_id, HBTInt nworkers, HBTInt ntasks, HBTInt &task_begin, HBTInt &task_end);
 extern void logspace(double xmin, double xmax, int N, vector<float> &x);
 
-#ifdef HAS_GSL
-extern void EigenAxis(double Ixx, double Ixy, double Ixz, double Iyy, double Iyz, double Izz, float Axis[3][3]);
-#endif
-
-#endif
+#endif // of MYMATH_HEADER_INCLUDED

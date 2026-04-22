@@ -1,14 +1,14 @@
 #!/bin/bash -l
 #
 # Compute which particles have split between two consecutive snapshot indicies.
-# This script will generate an HDF5 file that is read by HBT+ and is used to split
+# This script will generate an HDF5 file that is read by HBT-HERONS and is used to split
 # particle.
 #
-# Specify the path to the configuration file that will be used for the HBT+ run, and
+# Specify the path to the configuration file that will be used for the HBT-HERONS run, and
 # which snapshot index to do. The latter is specified by the array job index.
 #
 # After specifying where the configuration file is (via CONFIG_FILE_PATH; see below),
-# you can submit it as (for an example that will have 128 HBT+ outputs):
+# you can submit it as (for an example that will have 128 HBT-HERONS outputs):
 #
 # mkdir logs
 # sbatch --array=0-128 generate_splitting_information.sh

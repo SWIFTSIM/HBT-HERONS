@@ -13,10 +13,10 @@
 
 #include "../halo.h"
 #include "../mymath.h"
-#include "apostle_io.h"
-#include "gadget_group_io.h"
-#include "swiftsim_io.h"
-#include "gadget4_io.h"
+#include "./apostle_io/apostle_io.h"
+#include "./gadget_io/gadget_group_io.h"
+#include "./gadget_io/gadget4_io.h"
+#include "./swiftsim_io/swiftsim_io.h"
 
 void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
 { // compatibility interface
@@ -50,11 +50,10 @@ void HaloSnapshot_t::Load(MpiWorker_t &world, const ParticleSnapshot_t &partsnap
   else if (IsSwiftSimGroup(GroupFileFormat))
     SwiftSimReader_t().LoadGroups(world, SnapshotId, Halos);
   else if (GroupFileFormat == "my_group_format")
-  { /*extend your own group reader here, input SnapshotId and output filled Halo list, e.g.:
-
-     MyGroupReader(world, SnapshotId, Halos)
-
-     */
+  {
+    /* Insert your halo reader here. Input SnapshotId and create a filled halo
+     * list.
+     * MyGroupReader(world, SnapshotId, Halos) */
   }
   else
     throw(runtime_error("unknown GroupFileFormat " + GroupFileFormat));
@@ -69,10 +68,12 @@ void HaloSnapshot_t::Load(MpiWorker_t &world, const ParticleSnapshot_t &partsnap
       NumPartOfLargestHalo = np;
   }
 
-  HBTInt NumHalos = Halos.size(), NumHalosAll = 0;
+  HBTInt NumHalos = Halos.size(), NumHalosAll = 0, GlobalNumPartOfLargestHalo =0;
   MPI_Reduce(&NumHalos, &NumHalosAll, 1, MPI_HBT_INT, MPI_SUM, 0, world.Communicator);
+  MPI_Reduce(&NumPartOfLargestHalo, &GlobalNumPartOfLargestHalo, 1, MPI_HBT_INT, MPI_MAX, 0, world.Communicator);
   if (world.rank() == 0)
-    cout << NumHalosAll << " groups loaded at snapshot " << snapshot_index << "(" << SnapshotId << ")" << endl;
+    std::cout << NumHalosAll << " FOF groups loaded from snapshot " << SnapshotId << " (SnapshotIndex = " \
+              << snapshot_index << "). Largest FOF group has " << GlobalNumPartOfLargestHalo << " particles." << std::endl;
 }
 
 #ifdef TEST_halo_io
@@ -84,7 +85,7 @@ int main(int argc, char **argv)
   MpiWorker_t world(MPI_COMM_WORLD);
 
   int snapshot_start, snapshot_end;
-  if (0 == world.rank())
+  if (world.rank() == 0)
     ParseHBTParams(argc, argv, HBTConfig, snapshot_start, snapshot_end);
   HBTConfig.BroadCast(world, 0, snapshot_start, snapshot_end);
 

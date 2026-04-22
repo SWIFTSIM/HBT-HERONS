@@ -1,5 +1,5 @@
-# Configuration file used to run on 16 outputs of a (subsampled) COLIBRE 
-# simulations 
+# Configuration file used to run on 16 outputs of a (subsampled) COLIBRE
+# simulations
 
 [Compulsary Params]
 SnapshotPath /cosma7/data/dp004/dc-foro1/colibre/ 
@@ -23,22 +23,25 @@ MinSnapshotIndex 0
 MaxSnapshotIndex 15
 
 [Units]
-MassInMsunh 6.81e9 # Removes h factors from the final output 
+MassInMsunh 6.81e9 # Removes h factors from the final output
 LengthInMpch 0.681 # Removes h factors from the final output
 VelInKmS 1
 
 MaxConcurrentIO 28 # Number of cores in a cosma7 node
 
-# Slower, but it makes outputs reproducible  
+# Slower, but it makes outputs reproducible
 BoundMassPrecision 1
 MaxSampleSizeOfPotentialEstimate 0
 
 # Test simulation does not provide splitting information
 ParticlesSplit 0
+
+SaveBoundParticlePotentialEnergies 1
 SaveBoundParticleBindingEnergies 1
 
 # Optional parameters; default values are shown here
 #MinNumPartOfSub 20
 #PeriodicBoundaryOn 1
 #SaveBoundParticleProperties 0
-#TracerParticleTypes 1 4 
+#TracerParticleTypes 1 4
+#DoNotSubsampleParticleTypes 5

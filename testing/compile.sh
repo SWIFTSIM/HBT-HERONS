@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Load modules used for compiling
 module purge
 module load gnu_comp/13.1.0 hdf5/1.12.2 openmpi/4.1.4
