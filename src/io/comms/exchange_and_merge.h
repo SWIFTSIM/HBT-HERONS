@@ -12,4 +12,4 @@ using namespace std;
 
 #include "../../mymath.h"
 
-void ExchangeAndMerge(MpiWorker_t &world, vector<Halo_t> &Halos);
+void CollectHaloFragments(MpiWorker_t &world, std::vector<Halo_t> &Halos);
