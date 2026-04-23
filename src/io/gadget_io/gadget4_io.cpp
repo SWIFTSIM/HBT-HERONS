@@ -17,6 +17,7 @@ using namespace std;
 #include "../../hdf_wrapper.h"
 #include "gadget4_io.h"
 #include "../comms/halo_patch_exchanger.h"
+#include "../comms/exchange_and_merge.h"
 
 /* Checks whether a file is accessible. */
 inline bool is_it_valid(const std::string& name) {
@@ -853,32 +854,50 @@ void Gadget4Reader_t::LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &p
 {
   SetSnapshot(partsnap.GetSnapshotId());
 
-  /* We obtain the total length of haloes and how many particles each MPI rank
-   * contains in the root MPI rank. */
-  LoadHaloSizes(world);
-  CollectProcSizes(world, partsnap);
-
-  /* Each processor loads all of the halo segments it contains */
-  LoadLocalGroups(world, partsnap.Particles, Halos);
-
-  /* We merge each halo segment belonging to the same unique halo into a single
-   * segment. */
-  HaloPatchExchanger::ExchangeAndMerge(world, Halos);
-
-  HBTConfig.GroupLoadedFullParticle = true;
-
-  /* Check if we loaded all of the expected halo particles. */
-  HBTInt np_allproc = 0, np = 0;
-#pragma omp parallel for reduction(+ : np)
-  for (HBTInt i = 0; i < Halos.size(); i++)
-    np += Halos[i].Particles.size();
-  MPI_Reduce(&np, &np_allproc, 1, MPI_HBT_INT, MPI_SUM, root_node, world.Communicator);
-
-  if (world.rank() == root_node)
+  /* Particles have host information already, so we create halo segments. */
+  struct HaloLen_t
   {
-    assert(np_allproc == TotNumPartInGroups);
-    std::cout << TotNumPartInGroups << " total group particles loaded" << std::endl;
+    HBTInt haloid;
+    HBTInt np;
+    HaloLen_t(){};
+    HaloLen_t(HBTInt haloid, HBTInt np) : haloid(haloid), np(np)
+    {
+    }
+  };
+  vector<HaloLen_t> HaloLen;
+
+  HBTInt curr_host_id = -1;
+  for (auto &&p : partsnap.Particles)
+  {
+    if (p.HostId == -1)
+      break; // NullGroupId comes last
+    if (p.HostId != curr_host_id)
+    {
+      curr_host_id = p.HostId;
+      HaloLen.emplace_back(curr_host_id, 1);
+    }
+    else
+      HaloLen.back().np++;
   }
+  Halos.resize(HaloLen.size());
+  for (HBTInt i = 0; i < Halos.size(); i++)
+  {
+    Halos[i].HaloId = HaloLen[i].haloid;
+    Halos[i].Particles.resize(HaloLen[i].np);
+  }
+  auto p_in = partsnap.Particles.begin();
+  for (auto &&h : Halos)
+  {
+    for (auto &&p : h.Particles)
+    {
+      p = *p_in;
+      ++p_in;
+    }
+  }
+
+  ExchangeAndMerge(world, Halos);
+  global_timer.Tick("halo_comms", world.Communicator);
+  HBTConfig.GroupLoadedFullParticle = true;
 }
 
 bool IsGadget4Group(const string &GroupFileFormat)
