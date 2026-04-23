@@ -58,8 +58,6 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
 
   global_timer.Tick("snap_io", world.Communicator);
 
-  /* NOTE: This function call does not communicate particles when using GADGET4,
-   * as it only calculates NumberOfParticlesOnAllNodes */
   ExchangeParticles(world);
   global_timer.Tick("snap_exchange", world.Communicator);
 

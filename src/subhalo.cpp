@@ -29,7 +29,6 @@ void ExchangeSubHalos(MpiWorker_t &world, vector<Subhalo_t> &InHalos, vector<Sub
   typedef HaloParticleIterator_t<HaloIterator_t> ParticleIterator_t;
   typedef HaloNestIterator_t<HaloIterator_t> NestIterator_t;
 
-  //   cout<<"Query particle..."<<flush;
   { // query particles
     ParticleExchanger_t<Subhalo_t> Exchanger(world, snap, InHalos);
     Exchanger.Exchange();

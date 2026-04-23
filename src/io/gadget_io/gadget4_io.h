@@ -51,6 +51,7 @@ class Gadget4Reader_t
 {
   string SnapshotName;
   int SnapshotId;
+  const HBTInt NullGroupId = std::numeric_limits<HBTInt>::max();
 
   const int root_node = 0;
   // snap tab:

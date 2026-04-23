@@ -24,6 +24,11 @@ inline bool is_it_valid(const std::string& name) {
   return (stat (name.c_str(), &buffer) == 0);
 }
 
+inline bool CompParticleHost(const Particle_t &a, const Particle_t &b)
+{
+  return a.HostId < b.HostId;
+}
+
 namespace Gadget4Reader
 {
 
@@ -455,7 +460,6 @@ void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Pa
     43.0071 * (HBTConfig.MassInMsunh / 1e10) / HBTConfig.VelInKmS / HBTConfig.VelInKmS / HBTConfig.LengthInMpch;
   PhysicalConst::H0 = 100. * (1. / HBTConfig.VelInKmS) / (1. / HBTConfig.LengthInMpch);
 
-
   /* Read physical properties of particles and their particle type. */
   LoadParticleProperties(world, Particles);
 
@@ -758,9 +762,9 @@ void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &
       particle_it->HostId = i + first_halo;
   }
 
-  /* The rest of the particles have no host, so initialise them to -1 */
+  /* The rest of the particles have no host, so initialise them to NullGroupId */
   for (auto particle_it = Particles.begin() + local_halo_offsets[local_halo_sizes.size()]; particle_it != Particles.end(); ++particle_it)
-    particle_it->HostId = -1;
+    particle_it->HostId = NullGroupId;
 
   /* Sanity check */
   HBTInt np_tot = 0;
@@ -849,11 +853,24 @@ HBTInt Gadget4Reader_t::LoadLocalGroups(MpiWorker_t &world, const vector<Particl
   return np;
 }
 
+/* Creates and populates the Halos of the current snapshot, which for GADGET4 is
+ * done using the snapshot particles. */
 void Gadget4Reader_t::LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &partsnap, vector<Halo_t> &Halos)
 {
   SetSnapshot(partsnap.GetSnapshotId());
 
-  /* Particles have host information already, so we create halo segments. */
+  /* Create a copy of the Particle snapshot, from which we will create the halo
+   * segments. */
+  std::vector<Particle_t> ParticleHosts(partsnap.Particles);
+
+  // Sort particles by host
+  sort(ParticleHosts.begin(), ParticleHosts.end(), CompParticleHost);
+  if (!ParticleHosts.empty())
+  {
+    assert(ParticleHosts.back().HostId <= NullGroupId);
+    assert(ParticleHosts.front().HostId >= 0);
+  }
+
   struct HaloLen_t
   {
     HBTInt haloid;
@@ -866,9 +883,9 @@ void Gadget4Reader_t::LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &p
   vector<HaloLen_t> HaloLen;
 
   HBTInt curr_host_id = -1;
-  for (auto &&p : partsnap.Particles)
+  for (auto &&p : ParticleHosts)
   {
-    if (p.HostId == -1)
+    if (p.HostId == NullGroupId)
       break; // NullGroupId comes last
     if (p.HostId != curr_host_id)
     {
