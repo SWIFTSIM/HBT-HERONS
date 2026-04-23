@@ -75,12 +75,9 @@ int main(int argc, char **argv)
     /* Load particle information */
     ParticleSnapshot_t partsnap(world, isnap);
 
-    /* Load FOF group information */
-    HaloSnapshot_t halosnap;
-    if(HBTConfig.GroupFileFormat == "gadget4_hdf")
-      halosnap.Load(world, partsnap);
-    else
-      halosnap.Load(world, isnap);
+    /* Load FOF group information. We pass partsnap because some simulation
+     * formats use snapshot particles to create halo objects (e.g. GADGET4). */
+    HaloSnapshot_t halosnap(world, partsnap);
 
     global_timer.Tick("read_halo", world.Communicator);
 
