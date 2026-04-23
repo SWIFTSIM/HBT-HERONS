@@ -58,6 +58,8 @@ class Gadget4Reader_t
   vector<HBTInt> offset_file;
   vector<HBTInt> ProcLen;
   void CollectProcSizes(MpiWorker_t &world, const ParticleSnapshot_t &PartSnap);
+  void CollectProcSizes(MpiWorker_t &world, const std::vector<Particle_t> &Particles);
+
   // group tab:
   HBTInt TotNumPartInGroups;
   vector<HBTInt> HaloSizesAll; // only significant on root proc
@@ -75,8 +77,8 @@ class Gadget4Reader_t
   void GetGroupFileName(int ifile, string &filename);
   void SetSnapshot(int snapshotId);
   void GetParticleCountInFile(hid_t file, int np[]);
-
-  void LoadLeadingGroups(MpiWorker_t &world, const vector<Particle_t> &Particles, vector<Halo_t> &Halos);
+  void LoadParticleProperties(MpiWorker_t &world, vector<Particle_t> &Particles);
+  void LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &Particles);
   HBTInt LoadLocalGroups(MpiWorker_t &world, const vector<Particle_t> &Particles, vector<Halo_t> &Halos);
 
   MPI_Datatype MPI_Gadget4Header_t;
