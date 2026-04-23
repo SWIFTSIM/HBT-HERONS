@@ -304,7 +304,6 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
   GetParticleCountInFile(file, np_this.data());
   CompileOffsets(np_this, offset_this);
 
-  HBTReal vunit = sqrt(Header.ScaleFactor);
   HBTReal boxsize = Header.BoxSize;
   for (int itype = 0; itype < TypeMax; itype++)
   {
@@ -336,16 +335,18 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
         copyHBTxyz(ParticlesThisType[i].ComovingPosition, x[i]);
     }
 
-    { // velocity
+    {
+      /* Get the a-scale factor dependence on velocity. */
+      HBTReal aexp;
+      ReadAttribute(particle_data, "Velocities", "a_scaling", H5T_HBTReal, &aexp);
+
       vector<HBTxyz> v(np);
-      if (H5Lexists(particle_data, "Velocities", H5P_DEFAULT))
-        ReadDataset(particle_data, "Velocities", H5T_HBTReal, v.data());
-      else
-        ReadDataset(particle_data, "Velocity", H5T_HBTReal, v.data());
+      ReadDataset(particle_data, "Velocities", H5T_HBTReal, v.data());
+
 #pragma omp parallel for
       for (int i = 0; i < np; i++)
         for (int j = 0; j < 3; j++)
-          ParticlesThisType[i].PhysicalVelocity[j] = v[i][j] * vunit;
+          ParticlesThisType[i].PhysicalVelocity[j] = v[i][j] * pow(Header.ScaleFactor, aexp);
     }
 
     { // id
@@ -360,10 +361,7 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
     if (Header.mass[itype] == 0)
     {
       vector<HBTReal> m(np);
-      if (H5Lexists(particle_data, "Masses", H5P_DEFAULT))
-        ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
-      else
-        ReadDataset(particle_data, "Mass", H5T_HBTReal, m.data());
+      ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
 #pragma omp parallel for
       for (int i = 0; i < np; i++)
         ParticlesThisType[i].Mass = m[i];
@@ -386,11 +384,12 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
       for (int i = 0; i < np; i++)
         ParticlesThisType[i].InternalEnergy = u[i];
     }
-/*	else
+    else // Zero out internal energy for non-gas particles
     {
-      for(int i=0;i<np;i++)
-        ParticlesThisType[i].InternalEnergy=0; //necessary? maybe default initialized?
-    }*/
+#pragma omp parallel for
+      for (int i = 0; i < np; i++)
+        ParticlesThisType[i].InternalEnergy = 0.0;
+    }
 #endif
 
     { // type

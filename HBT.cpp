@@ -78,7 +78,6 @@ int main(int argc, char **argv)
     /* Load FOF group information. We pass partsnap because some simulation
      * formats use snapshot particles to create halo objects (e.g. GADGET4). */
     HaloSnapshot_t halosnap(world, partsnap);
-
     global_timer.Tick("read_halo", world.Communicator);
 
     /* For some input formats we load parameters directly from the snapshots,
