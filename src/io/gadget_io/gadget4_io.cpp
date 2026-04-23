@@ -231,8 +231,9 @@ void Gadget4Reader_t::GetParticleCountInFile(hid_t file, int np[])
   for (int i = 0; i < TypeMax; i++)
     if (i != TypeDM)
       np[i] = 0;
-#endif
+#endif // DM_ONLY
 }
+
 HBTInt Gadget4Reader_t::CompileFileOffsets(int nfiles)
 {
   HBTInt offset = 0;
@@ -390,7 +391,7 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
       for (int i = 0; i < np; i++)
         ParticlesThisType[i].InternalEnergy = 0.0;
     }
-#endif
+#endif // HAS_THERMAL_ENERGY
 
     { // type
       ParticleType_t t = static_cast<ParticleType_t>(itype);
@@ -398,7 +399,7 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
       for (int i = 0; i < np; i++)
         ParticlesThisType[i].Type = t;
     }
-#endif
+#endif // DM_ONLY
 
     H5Gclose(particle_data);
   }
