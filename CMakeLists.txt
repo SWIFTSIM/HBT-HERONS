@@ -105,7 +105,6 @@ set(HBT_SRC
   src/io/halo_io.cpp
   src/io/snapshot_io.cpp
   src/io/subhalo_io.cpp
-  src/io/comms/halo_patch_exchanger.cpp
   src/io/comms/exchange_and_merge.cpp
   )
 

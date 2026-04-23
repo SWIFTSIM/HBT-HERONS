@@ -16,7 +16,6 @@ using namespace std;
 #include "../../mymath.h"
 #include "../../hdf_wrapper.h"
 #include "gadget4_io.h"
-#include "../comms/halo_patch_exchanger.h"
 #include "../comms/exchange_and_merge.h"
 
 /* Checks whether a file is accessible. */
