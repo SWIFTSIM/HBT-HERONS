@@ -459,6 +459,11 @@ void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Pa
     43.0071 * (HBTConfig.MassInMsunh / 1e10) / HBTConfig.VelInKmS / HBTConfig.VelInKmS / HBTConfig.LengthInMpch;
   PhysicalConst::H0 = 100. * (1. / HBTConfig.VelInKmS) / (1. / HBTConfig.LengthInMpch);
 
+  /* This will be used to determine which particles are hostless when
+   * constraining subhaloes to their assigned hosts. The value of NullGroupId
+   * is fixed to be the maximum positive representation of HBTInt. */
+  HBTConfig.ParticleNullGroupId = NullGroupId;
+
   /* Read physical properties of particles and their particle type. */
   LoadParticleProperties(world, Particles);
 
