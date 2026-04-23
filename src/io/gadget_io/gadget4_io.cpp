@@ -178,7 +178,6 @@ void Gadget4Reader_t::ReadHeader(int ifile, Gadget4Header_t &header)
   ReadAttribute(file, "Parameters", "UnitMass_in_g", H5T_NATIVE_DOUBLE, &mass_cgs);
   double velocity_cgs;
   ReadAttribute(file, "Parameters", "UnitVelocity_in_cm_per_s", H5T_NATIVE_DOUBLE, &velocity_cgs);
-  cout << length_cgs << " " << mass_cgs << " " << velocity_cgs << " " << endl;
 
   /* To later tell HBT-HERONS the units of the snapshot */
   Header.MassInMsunh  = mass_cgs / 1.98841e33;
@@ -710,12 +709,6 @@ void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &
   MPI_Scatter(HaloPartitioner.ProcLastHalo.data(), 1, MPI_HBT_INT, &last_halo, 1, MPI_HBT_INT, root_node,
               world.Communicator);
 
-  if (world.rank() == root_node)
-  {
-    cout << "First halo for each rank is: " <<  HaloPartitioner.ProcFirstHalo <<  endl;
-    cout << "Last halo for each rank is: " <<  HaloPartitioner.ProcLastHalo <<  endl;
-  }
-
   /* The root rank will send the size of each halo segment contained in non-root
    * MPI ranks. */
   vector<HBTInt> local_halo_sizes;
@@ -901,7 +894,7 @@ void Gadget4Reader_t::LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &p
     Halos[i].HaloId = HaloLen[i].haloid;
     Halos[i].Particles.resize(HaloLen[i].np);
   }
-  auto p_in = partsnap.Particles.begin();
+  auto p_in = ParticleHosts.begin();
   for (auto &&h : Halos)
   {
     for (auto &&p : h.Particles)
@@ -911,6 +904,11 @@ void Gadget4Reader_t::LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &p
     }
   }
 
+  /* NOTE: by communicating GADGET4 particles before creating halo segments, I
+   * have indirectly created many more halo segments than what would be required
+   * if I had not communicated them. This is because particles in GADGET4
+   * outputs are grouped by FoF, but communicating particles groups them by a
+   * hash function intended to balance particle load. */
   ExchangeAndMerge(world, Halos);
   global_timer.Tick("halo_comms", world.Communicator);
   HBTConfig.GroupLoadedFullParticle = true;
