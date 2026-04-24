@@ -1,17 +1,13 @@
-/* IO for Gadget4 hdf data.
+/* IO for GADGET4 hdf data.
  *
- * Currently only designed/tested for Jiutian data which is DM-only;
- * support for multiple particle types to be added.
+ * Currently only designed and tested for DM-only simulations; support for
+ * multiple particle types to be added.
  *
- * To specify a list of snapshot, list the snapshot directories (one per line) in snapshotlist.txt and place it under
- * your subhalo output directory.
+ * To use this IO, in the config file, set SnapshotFormat and GroupFileFormat to
+ * gadget4.
  *
- * To use this IO, in the config file, set SnapshotFormat to gadget4_hdf,  and set GroupFileFormat to gadget4_hdf (or
- * gadget4_hdf2, which is equivalent but uses a different algorithm for reading groups internally, and may be slower).
- *
- * The groups loaded are already filled with particle properties, and the halos are distributed to processors according
- * to the CoM of each halo.
- */
+ * The groups loaded are already filled with particle properties, and the halos
+ * are distributed to processors according to the CoM of each halo. */
 
 #ifndef GADGET4_IO_INCLUDED
 #define GADGET4_IO_INCLUDED
@@ -42,15 +38,10 @@ struct Gadget4Header_t
 
 void create_Gadget4Header_MPI_type(MPI_Datatype &dtype);
 
-struct ParticleHost_t : public Particle_t
-{
-  HBTInt HostId;
-};
-
 class Gadget4Reader_t
 {
-  string SnapshotName;
   int SnapshotId;
+  string SnapshotName;
   const HBTInt NullGroupId = std::numeric_limits<HBTInt>::max();
 
   const int root_node = 0;
@@ -85,6 +76,7 @@ class Gadget4Reader_t
   MPI_Datatype MPI_Gadget4Header_t;
 
 public:
+
   Gadget4Reader_t()
   {
     create_Gadget4Header_MPI_type(MPI_Gadget4Header_t);
@@ -100,4 +92,5 @@ public:
 
 extern bool IsGadget4Group(const string &GroupFileFormat);
 } // namespace Gadget4Reader
-#endif
+
+#endif // GADGET4_IO_INCLUDED

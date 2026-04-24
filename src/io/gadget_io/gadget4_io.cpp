@@ -921,6 +921,6 @@ void Gadget4Reader_t::LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &p
 
 bool IsGadget4Group(const string &GroupFileFormat)
 {
-  return GroupFileFormat.substr(0, 11) == "gadget4_hdf";
+  return GroupFileFormat.substr(0, 7) == "gadget4";
 }
 } // namespace Gadget4Reader

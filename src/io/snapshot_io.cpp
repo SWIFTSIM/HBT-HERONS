@@ -43,7 +43,7 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
     }
 #endif
   }
-  else if (HBTConfig.SnapshotFormat == "gadget4_hdf")
+  else if (HBTConfig.SnapshotFormat == "gadget4")
   {
     Gadget4Reader::Gadget4Reader_t().LoadSnapshot(world, SnapshotId, Particles, Cosmology);
   }
