@@ -11,3 +11,5 @@ openmpi-5.0.3-hdf5-1.12.3-env
 site/
 settings.json
 !.github/workflows/*
+*SrcSnap*.hdf5
+*SubSnap*.hdf5

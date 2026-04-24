@@ -14,9 +14,9 @@
 
 namespace PhysicalConst
 { // initialized after reading parameter file.
-extern HBTReal G;
-extern HBTReal H0;
-} // namespace PhysicalConst
+  extern HBTReal G;
+  extern HBTReal H0;
+}
 
 #define NumberOfCompulsaryConfigEntries 7
 class Parameter_t
