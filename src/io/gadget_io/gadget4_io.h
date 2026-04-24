@@ -43,34 +43,36 @@ class Gadget4Reader_t
   int SnapshotId;
   string SnapshotName;
   const HBTInt NullGroupId = std::numeric_limits<HBTInt>::max();
-
   const int root_node = 0;
-  // snap tab:
+
+  /* Header and misc */
+  Gadget4Header_t Header;
+  void ReadHeader(int ifile, Gadget4Header_t &header);
+
+  /* Particle information. */
+  vector<HBTInt> ProcLen;
   vector<HBTInt> np_file;
   vector<HBTInt> offset_file;
-  vector<HBTInt> ProcLen;
-  void CollectProcSizes(MpiWorker_t &world, const ParticleSnapshot_t &PartSnap);
-  void CollectProcSizes(MpiWorker_t &world, const std::vector<Particle_t> &Particles);
-
-  // group tab:
-  HBTInt TotNumPartInGroups;
-  vector<HBTInt> HaloSizesAll; // only significant on root proc
-  void LoadHaloSizes(MpiWorker_t &world);
-
-  Gadget4Header_t Header; // this is snapshot header, not necessarily filled when loading groups
-  void ReadHeader(int ifile, Gadget4Header_t &header);
-  int ReadGroupFileCounts(int ifile);
-  HBTInt ReadGroupFileTotParticles(int ifile);
   HBTInt CompileFileOffsets(int nfiles);
-  HBTInt CompileGroupFileOffsets(vector<HBTInt> &nhalo_per_groupfile, vector<HBTInt> &offsethalo_per_groupfile);
-  void ReadSnapshot(int ifile, Particle_t *ParticlesInFile);
-  void ReadGroupLen(int ifile, HBTInt *buf);
   void GetFileName(int ifile, string &filename);
-  void GetGroupFileName(int ifile, string &filename);
   void SetSnapshot(int snapshotId);
   void GetParticleCountInFile(hid_t file, int np[]);
+  void ReadSnapshot(int ifile, Particle_t *ParticlesInFile);
   void LoadParticleProperties(MpiWorker_t &world, vector<Particle_t> &Particles);
+
+  /* FoF group information. */
+  HBTInt TotNumPartInGroups;
+  vector<HBTInt> HaloSizesAll; // only significant on root proc
+  void CollectProcSizes(MpiWorker_t &world, const std::vector<Particle_t> &Particles);
+  void CollectProcSizes(MpiWorker_t &world, const ParticleSnapshot_t &PartSnap);
+  void LoadHaloSizes(MpiWorker_t &world);
+  int ReadGroupFileCounts(int ifile);
+  void GetGroupFileName(int ifile, string &filename);
+  void ReadGroupLen(int ifile, HBTInt *buf);
+  HBTInt ReadGroupFileTotParticles(int ifile);
+  HBTInt CompileGroupFileOffsets(vector<HBTInt> &nhalo_per_groupfile, vector<HBTInt> &offsethalo_per_groupfile);
   void LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &Particles);
+  void ReadGroupLengthPerParticleType(int ifile, HBTInt *buf);
 
   MPI_Datatype MPI_Gadget4Header_t;
 

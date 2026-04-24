@@ -224,6 +224,7 @@ HBTInt Gadget4Reader_t::ReadGroupFileTotParticles(int ifile)
   return np_tot;
 }
 
+/* Gets the number of particles of each type in the current file. */
 void Gadget4Reader_t::GetParticleCountInFile(hid_t file, int np[])
 {
   ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, np);
@@ -297,45 +298,55 @@ static void check_id_size(hid_t loc)
  * halo lengths provided in the GADGET4 group catalogues. */
 void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 {
+  /* Open the simulation output to read */
   string filename;
   GetFileName(ifile, filename);
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-  vector<int> np_this(TypeMax);
-  vector<HBTInt> offset_this(TypeMax);
+
+  /* Get the number of particles per type in this file. */
+  std::vector<int> np_this(TypeMax);
   GetParticleCountInFile(file, np_this.data());
+
+  /* Create an offset vector, used to position particles */
+  std::vector<HBTInt> offset_this(TypeMax);
   CompileOffsets(np_this, offset_this);
 
-  HBTReal boxsize = Header.BoxSize;
+  /* Load each particle type. */
   for (int itype = 0; itype < TypeMax; itype++)
   {
     int np = np_this[itype];
     if (np == 0)
       continue;
+
+    /* Location of the Particle array the upcoming particles will be placed. */
     auto ParticlesThisType = ParticlesInFile + offset_this[itype];
+
     stringstream grpname;
     grpname << "PartType" << itype;
+
     if (!H5Lexists(file, grpname.str().c_str(), H5P_DEFAULT))
       continue;
-    hid_t particle_data = H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
-    // 	if(particle_data<0) continue; //skip non-existing type
 
+    hid_t particle_data = H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
     check_id_size(particle_data);
 
-    { // read position
-      vector<HBTxyz> x(np);
+    /* Particle cordinates */
+    {
+      std::vector<HBTxyz> x(np);
       ReadDataset(particle_data, "Coordinates", H5T_HBTReal, x.data());
       if (HBTConfig.PeriodicBoundaryOn)
       {
 #pragma omp parallel for
         for (int i = 0; i < np; i++)
           for (int j = 0; j < 3; j++)
-            x[i][j] = position_modulus(x[i][j], boxsize);
+            x[i][j] = position_modulus(x[i][j], Header.BoxSize);
       }
 #pragma omp parallel for
       for (int i = 0; i < np; i++)
         copyHBTxyz(ParticlesThisType[i].ComovingPosition, x[i]);
     }
 
+    /* Particle velocities */
     {
       /* Get the a-scale factor dependence on velocity. */
       HBTReal aexp;
@@ -350,7 +361,8 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
           ParticlesThisType[i].PhysicalVelocity[j] = v[i][j] * pow(Header.ScaleFactor, aexp);
     }
 
-    { // id
+    /* Particle IDs */
+    {
       vector<HBTInt> id(np);
       ReadDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data());
 #pragma omp parallel for
@@ -358,7 +370,7 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
         ParticlesThisType[i].Id = id[i];
     }
 
-    // mass
+    /* Particle masses */
     if (Header.mass[itype] == 0)
     {
       vector<HBTReal> m(np);
@@ -374,8 +386,8 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
         ParticlesThisType[i].Mass = Header.mass[itype];
     }
 
+    /* Particle internal energies */
 #ifndef DM_ONLY
-    // internal energy
 #ifdef HAS_THERMAL_ENERGY
     if (itype == 0)
     {
@@ -393,7 +405,8 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
     }
 #endif // HAS_THERMAL_ENERGY
 
-    { // type
+    /* Particle types */
+    {
       ParticleType_t t = static_cast<ParticleType_t>(itype);
 #pragma omp parallel for
       for (int i = 0; i < np; i++)
@@ -403,19 +416,25 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 
     H5Gclose(particle_data);
   }
-
   H5Fclose(file);
 }
 
+/* Reads the total size of the haloes in the current group file. */
 void Gadget4Reader_t::ReadGroupLen(int ifile, HBTInt *buf)
 {
+  /* Open the group file. */
   string filename;
   GetGroupFileName(ifile, filename);
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-  HBTInt ngroups;
-  ReadAttribute(file, "Header", "Ngroups_ThisFile", H5T_HBTInt, &ngroups);
-  if (ngroups > 0)
+
+  /* How many groups are there in this file. */
+  HBTInt NumGroups;
+  ReadAttribute(file, "Header", "Ngroups_ThisFile", H5T_HBTInt, &NumGroups);
+
+  /* Read the dataset. */
+  if (NumGroups > 0)
     ReadDataset(file, "Group/GroupLen", H5T_HBTInt, buf);
+
   H5Fclose(file);
 }
 
@@ -492,6 +511,7 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
     NhaloTotal = CompileGroupFileOffsets(nhalo_per_groupfile, offsethalo_per_groupfile);
     TotNumPartInGroups = ReadGroupFileTotParticles(0);
   }
+
   world.SyncAtom(FileCounts, MPI_INT, root_node);
   world.SyncAtom(NhaloTotal, MPI_HBT_INT, root_node);
   world.SyncContainer(nhalo_per_groupfile, MPI_HBT_INT, root_node);
