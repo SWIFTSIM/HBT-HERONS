@@ -71,7 +71,6 @@ class Gadget4Reader_t
   void GetParticleCountInFile(hid_t file, int np[]);
   void LoadParticleProperties(MpiWorker_t &world, vector<Particle_t> &Particles);
   void LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &Particles);
-  HBTInt LoadLocalGroups(MpiWorker_t &world, const vector<Particle_t> &Particles, vector<Halo_t> &Halos);
 
   MPI_Datatype MPI_Gadget4Header_t;
 
