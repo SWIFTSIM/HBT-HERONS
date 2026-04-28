@@ -1,7 +1,6 @@
 using namespace std;
 #include <iostream>
 #include <numeric>
-// #include <iomanip>
 #include <sstream>
 #include <string>
 #include <typeinfo>
@@ -238,7 +237,7 @@ void Gadget4Reader_t::GetParticleCountInFile(hid_t file, int np[])
 HBTInt Gadget4Reader_t::CompileFileOffsets(int nfiles)
 {
   HBTInt offset = 0;
-  np_file.reserve(nfiles);
+  NumberParticlesPerFile.reserve(nfiles);
   offset_file.reserve(nfiles);
   for (int ifile = 0; ifile < nfiles; ifile++)
   {
@@ -252,7 +251,7 @@ HBTInt Gadget4Reader_t::CompileFileOffsets(int nfiles)
     H5Fclose(file);
     HBTInt np = accumulate(begin(np_this), end(np_this), (HBTInt)0);
 
-    np_file.push_back(np);
+    NumberParticlesPerFile.push_back(np);
     offset += np;
   }
   return offset;
@@ -304,18 +303,20 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
   /* Get the number of particles per type in this file. */
-  std::vector<int> np_this(TypeMax);
-  GetParticleCountInFile(file, np_this.data());
+  std::vector<int> NumberParticlesPerType(TypeMax);
+  GetParticleCountInFile(file, NumberParticlesPerType.data());
 
   /* Create an offset vector, used to position particles */
   std::vector<HBTInt> offset_this(TypeMax);
-  CompileOffsets(np_this, offset_this);
+  CompileOffsets(NumberParticlesPerType, offset_this);
 
   /* Load each particle type. */
   for (int itype = 0; itype < TypeMax; itype++)
   {
-    int np = np_this[itype];
-    if (np == 0)
+    int NumberParticlesThisType = NumberParticlesPerType[itype];
+
+    /* Nothing to read. */
+    if (NumberParticlesThisType == 0)
       continue;
 
     /* Location of the Particle array the upcoming particles will be placed. */
@@ -332,17 +333,17 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 
     /* Particle cordinates */
     {
-      std::vector<HBTxyz> x(np);
+      std::vector<HBTxyz> x(NumberParticlesThisType);
       ReadDataset(particle_data, "Coordinates", H5T_HBTReal, x.data());
       if (HBTConfig.PeriodicBoundaryOn)
       {
 #pragma omp parallel for
-        for (int i = 0; i < np; i++)
+        for (int i = 0; i < NumberParticlesThisType; i++)
           for (int j = 0; j < 3; j++)
             x[i][j] = position_modulus(x[i][j], Header.BoxSize);
       }
 #pragma omp parallel for
-      for (int i = 0; i < np; i++)
+      for (int i = 0; i < NumberParticlesThisType; i++)
         copyHBTxyz(ParticlesThisType[i].ComovingPosition, x[i]);
     }
 
@@ -352,37 +353,37 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
       HBTReal aexp;
       ReadAttribute(particle_data, "Velocities", "a_scaling", H5T_HBTReal, &aexp);
 
-      vector<HBTxyz> v(np);
+      vector<HBTxyz> v(NumberParticlesThisType);
       ReadDataset(particle_data, "Velocities", H5T_HBTReal, v.data());
 
 #pragma omp parallel for
-      for (int i = 0; i < np; i++)
+      for (int i = 0; i < NumberParticlesThisType; i++)
         for (int j = 0; j < 3; j++)
           ParticlesThisType[i].PhysicalVelocity[j] = v[i][j] * pow(Header.ScaleFactor, aexp);
     }
 
     /* Particle IDs */
     {
-      vector<HBTInt> id(np);
+      vector<HBTInt> id(NumberParticlesThisType);
       ReadDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data());
 #pragma omp parallel for
-      for (int i = 0; i < np; i++)
+      for (int i = 0; i < NumberParticlesThisType; i++)
         ParticlesThisType[i].Id = id[i];
     }
 
     /* Particle masses */
     if (Header.mass[itype] == 0)
     {
-      vector<HBTReal> m(np);
+      vector<HBTReal> m(NumberParticlesThisType);
       ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
 #pragma omp parallel for
-      for (int i = 0; i < np; i++)
+      for (int i = 0; i < NumberParticlesThisType; i++)
         ParticlesThisType[i].Mass = m[i];
     }
     else
     {
 #pragma omp parallel for
-      for (int i = 0; i < np; i++)
+      for (int i = 0; i < NumberParticlesThisType; i++)
         ParticlesThisType[i].Mass = Header.mass[itype];
     }
 
@@ -391,16 +392,16 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 #ifdef HAS_THERMAL_ENERGY
     if (itype == 0)
     {
-      vector<HBTReal> u(np);
+      vector<HBTReal> u(NumberParticlesThisType);
       ReadDataset(particle_data, "InternalEnergy", H5T_HBTReal, u.data());
 #pragma omp parallel for
-      for (int i = 0; i < np; i++)
+      for (int i = 0; i < NumberParticlesThisType; i++)
         ParticlesThisType[i].InternalEnergy = u[i];
     }
     else // Zero out internal energy for non-gas particles
     {
 #pragma omp parallel for
-      for (int i = 0; i < np; i++)
+      for (int i = 0; i < NumberParticlesThisType; i++)
         ParticlesThisType[i].InternalEnergy = 0.0;
     }
 #endif // HAS_THERMAL_ENERGY
@@ -409,7 +410,7 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
     {
       ParticleType_t t = static_cast<ParticleType_t>(itype);
 #pragma omp parallel for
-      for (int i = 0; i < np; i++)
+      for (int i = 0; i < NumberParticlesThisType; i++)
         ParticlesThisType[i].Type = t;
     }
 #endif // DM_ONLY
@@ -450,7 +451,7 @@ void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Pa
   }
 
   MPI_Bcast(&Header, 1, MPI_Gadget4Header_t, root_node, world.Communicator);
-  world.SyncContainer(np_file, MPI_HBT_INT, root_node);
+  world.SyncContainer(NumberParticlesPerFile, MPI_HBT_INT, root_node);
   world.SyncContainer(offset_file, MPI_HBT_INT, root_node);
 
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
@@ -519,12 +520,12 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
   world.SyncAtom(TotNumPartInGroups, MPI_HBT_INT, root_node);
 
   /* Read halo sizes in parallel. */
-  HBTInt nfiles_skip, nfiles_end;
-  AssignTasks(world.rank(), world.size(), FileCounts, nfiles_skip, nfiles_end);
+  HBTInt FirstFileIndex, LastFileIndex;
+  AssignTasks(world.rank(), world.size(), FileCounts, FirstFileIndex, LastFileIndex);
   {
     int nhalo_local = 0;
     nhalo_local =
-      accumulate(nhalo_per_groupfile.begin() + nfiles_skip, nhalo_per_groupfile.begin() + nfiles_end, nhalo_local);
+      accumulate(nhalo_per_groupfile.begin() + FirstFileIndex, nhalo_per_groupfile.begin() + LastFileIndex, nhalo_local);
 
     vector<HBTInt> HaloSizesLocal;
     HaloSizesLocal.resize(nhalo_local);
@@ -538,11 +539,11 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
       }
       if (i == world.rank()) // read
       {
-        for (int iFile = nfiles_skip; iFile < nfiles_end; iFile++)
+        for (int iFile = FirstFileIndex; iFile < LastFileIndex; iFile++)
         {
           if (nhalo_per_groupfile[iFile]) // some files do not have groups
             ReadGroupLen(iFile, HaloSizesLocal.data() + offsethalo_per_groupfile[iFile] -
-                                  offsethalo_per_groupfile[nfiles_skip]);
+                                  offsethalo_per_groupfile[FirstFileIndex]);
         }
       }
     }
@@ -569,13 +570,13 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
 }
 
 /* Gathers in the root MPI rank how many particles each MPI rank has. */
-void Gadget4Reader_t::CollectProcSizes(MpiWorker_t &world, const std::vector<Particle_t> &Particles)
+void Gadget4Reader_t::GetNumberParticlesPerRank(MpiWorker_t &world, const std::vector<Particle_t> &Particles)
 {
   if (world.rank() == root_node)
-    ProcLen.resize(world.size());
+    NumberParticlesPerRank.resize(world.size());
 
   HBTInt NumPartThisProc = Particles.size();
-  MPI_Gather(&NumPartThisProc, 1, MPI_HBT_INT, ProcLen.data(), 1, MPI_HBT_INT, root_node, world.Communicator);
+  MPI_Gather(&NumPartThisProc, 1, MPI_HBT_INT, NumberParticlesPerRank.data(), 1, MPI_HBT_INT, root_node, world.Communicator);
 }
 
 /* Identifies how haloes are partitioned into segments across MPI ranks for in
@@ -676,12 +677,14 @@ struct HaloPartitioner_t
 void Gadget4Reader_t::LoadParticleProperties(MpiWorker_t &world, vector<Particle_t> &Particles)
 {
 
-  HBTInt nfiles_skip, nfiles_end;
-  AssignTasks(world.rank(), world.size(), Header.NumberOfFiles, nfiles_skip, nfiles_end);
+  /* Allocate a range of files for each task to read. */
+  HBTInt FirstFileIndex, LastFileIndex;
+  AssignTasks(world.rank(), world.size(), Header.NumberOfFiles, FirstFileIndex, LastFileIndex);
+
+  /* Allocate sufficient space in each task to hold the incoming particle information. */
   {
-    HBTInt np = 0;
-    np = accumulate(np_file.begin() + nfiles_skip, np_file.begin() + nfiles_end, np);
-    Particles.resize(np);
+    HBTInt NumberParticlesInRank = std::accumulate(NumberParticlesPerFile.begin() + FirstFileIndex, NumberParticlesPerFile.begin() + LastFileIndex, 0);
+    Particles.resize(NumberParticlesInRank);
   }
 
   for (int i = 0, ireader = 0; i < world.size(); i++, ireader++)
@@ -691,11 +694,11 @@ void Gadget4Reader_t::LoadParticleProperties(MpiWorker_t &world, vector<Particle
       ireader = 0;                     // reset reader count
       MPI_Barrier(world.Communicator); // wait for every thread to arrive.
     }
-    if (i == world.rank()) // read
+    if (world.rank() == i) // read
     {
-      for (int iFile = nfiles_skip; iFile < nfiles_end; iFile++)
+      for (int FileIndex = FirstFileIndex; FileIndex < LastFileIndex; FileIndex++)
       {
-        ReadSnapshot(iFile, Particles.data() + offset_file[iFile] - offset_file[nfiles_skip]);
+        ReadSnapshot(FileIndex, Particles.data() + offset_file[FileIndex] - offset_file[FirstFileIndex]);
       }
     }
   }
@@ -708,13 +711,13 @@ void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &
   /* We obtain the total length of haloes and how many particles each MPI rank
    * contains in the root MPI rank. */
   LoadHaloSizes(world);
-  CollectProcSizes(world, Particles);
+  GetNumberParticlesPerRank(world, Particles);
 
   /* Identify how haloes are partitioned across MPI ranks. */
   HaloPartitioner_t HaloPartitioner;
   if (world.rank() == root_node)
   {
-    HaloPartitioner.Fill(HaloSizesAll, ProcLen);
+    HaloPartitioner.Fill(HaloSizesAll, NumberParticlesPerRank);
   }
 
   /* Tell each MPI rank what the minimum and maximum halo number they contain */
@@ -781,22 +784,20 @@ void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &
     assert(np_tot == TotNumPartInGroups);
 }
 
-/* Creates and populates the Halos of the current snapshot, which for GADGET4 is
- * done using the snapshot particles. */
-void Gadget4Reader_t::LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &partsnap, vector<Halo_t> &Halos)
+/* Group up particles in the same rank that share the same HostId, and create
+ * a new halo segment within for Halos. */
+void Gadget4Reader_t::CreateHaloSegments(const std::vector<Particle_t> &SnapshotParticles, std::vector<Halo_t> &Halos)
 {
-  SetSnapshot(partsnap.GetSnapshotId());
-
   /* Create a copy of the Particle snapshot, from which we will create the halo
    * segments. */
-  std::vector<Particle_t> ParticleHosts(partsnap.Particles);
+  std::vector<Particle_t> GroupParticles(SnapshotParticles);
 
-  // Sort particles by host
-  sort(ParticleHosts.begin(), ParticleHosts.end(), CompParticleHost);
-  if (!ParticleHosts.empty())
+  /* Sort particles by their FoF membership. */
+  std::sort(GroupParticles.begin(), GroupParticles.end(), CompParticleHost);
+  if (!GroupParticles.empty())
   {
-    assert(ParticleHosts.back().HostId <= NullGroupId);
-    assert(ParticleHosts.front().HostId >= 0);
+    assert(GroupParticles.back().HostId <= NullGroupId);
+    assert(GroupParticles.front().HostId >= 0);
   }
 
   struct HaloLen_t
@@ -808,28 +809,38 @@ void Gadget4Reader_t::LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &p
     {
     }
   };
-  vector<HaloLen_t> HaloLen;
+  std::vector<HaloLen_t> HaloLen;
 
   HBTInt curr_host_id = -1;
-  for (auto &&p : ParticleHosts)
+  for (auto &&p : GroupParticles)
   {
+    /* NullGroupId comes last, so we can break the loop because there are no
+     * particles in FoF groups. */
     if (p.HostId == NullGroupId)
-      break; // NullGroupId comes last
+      break;
+
+    /* We have reached a new FoF group. Create a new segment for it. */
     if (p.HostId != curr_host_id)
     {
       curr_host_id = p.HostId;
       HaloLen.emplace_back(curr_host_id, 1);
     }
+    /* We are still in the same FoF group segment, grow its size. */
     else
       HaloLen.back().np++;
   }
+
+  /* Allocate space for each halo segment we have, including to store its
+   * associated particles. */
   Halos.resize(HaloLen.size());
   for (HBTInt i = 0; i < Halos.size(); i++)
   {
     Halos[i].HaloId = HaloLen[i].haloid;
     Halos[i].Particles.resize(HaloLen[i].np);
   }
-  auto p_in = ParticleHosts.begin();
+
+  /* Copy the particles into the same host. */
+  auto p_in = GroupParticles.begin();
   for (auto &&h : Halos)
   {
     for (auto &&p : h.Particles)
@@ -838,13 +849,28 @@ void Gadget4Reader_t::LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &p
       ++p_in;
     }
   }
+}
+
+/* Creates and populates the Halos of the current snapshot, which for GADGET4 is
+ * done using the snapshot particles. */
+void Gadget4Reader_t::LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &partsnap, std::vector<Halo_t> &Halos)
+{
+  SetSnapshot(partsnap.GetSnapshotId());
+
+  /* We group up particles in the same rank that share the same HostId into
+   * individual halo segments. */
+  CreateHaloSegments(partsnap.Particles, Halos);
 
   /* NOTE: by communicating GADGET4 particles before creating halo segments, I
    * have indirectly created many more halo segments than what would be required
    * if I had not communicated them. This is because particles in GADGET4
    * outputs are grouped by FoF, but communicating particles groups them by a
    * hash function intended to balance particle load. */
+
+  /* We have halo segments of the same FoF group split across MPI ranks. We need
+   * to gather each unique FoF group in the same rank and merge each segment. */
   ExchangeAndMerge(world, Halos);
+
   global_timer.Tick("halo_comms", world.Communicator);
   HBTConfig.GroupLoadedFullParticle = true;
 }

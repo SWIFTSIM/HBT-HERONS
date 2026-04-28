@@ -50,8 +50,8 @@ class Gadget4Reader_t
   void ReadHeader(int ifile, Gadget4Header_t &header);
 
   /* Particle information. */
-  vector<HBTInt> ProcLen;
-  vector<HBTInt> np_file;
+  vector<HBTInt> NumberParticlesPerRank;
+  vector<HBTInt> NumberParticlesPerFile;
   vector<HBTInt> offset_file;
   HBTInt CompileFileOffsets(int nfiles);
   void GetFileName(int ifile, string &filename);
@@ -63,7 +63,7 @@ class Gadget4Reader_t
   /* FoF group information. */
   HBTInt TotNumPartInGroups;
   vector<HBTInt> HaloSizesAll; // only significant on root proc
-  void CollectProcSizes(MpiWorker_t &world, const std::vector<Particle_t> &Particles);
+  void GetNumberParticlesPerRank(MpiWorker_t &world, const std::vector<Particle_t> &Particles);
   void LoadHaloSizes(MpiWorker_t &world);
   int ReadGroupFileCounts(int ifile);
   void GetGroupFileName(int ifile, string &filename);
@@ -72,6 +72,7 @@ class Gadget4Reader_t
   HBTInt CompileGroupFileOffsets(vector<HBTInt> &nhalo_per_groupfile, vector<HBTInt> &offsethalo_per_groupfile);
   void LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &Particles);
   void ReadGroupLengthPerParticleType(int ifile, HBTInt *buf);
+  void CreateHaloSegments(const std::vector<Particle_t> &SnapshotParticles, std::vector<Halo_t> &Halos);
 
   MPI_Datatype MPI_Gadget4Header_t;
 
