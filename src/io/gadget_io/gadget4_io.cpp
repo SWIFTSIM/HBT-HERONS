@@ -578,16 +578,6 @@ void Gadget4Reader_t::CollectProcSizes(MpiWorker_t &world, const std::vector<Par
   MPI_Gather(&NumPartThisProc, 1, MPI_HBT_INT, ProcLen.data(), 1, MPI_HBT_INT, root_node, world.Communicator);
 }
 
-/* Gathers in the root MPI rank how many particles each MPI rank has. */
-void Gadget4Reader_t::CollectProcSizes(MpiWorker_t &world, const ParticleSnapshot_t &partsnap)
-{
-  if (world.rank() == root_node)
-    ProcLen.resize(world.size());
-
-  HBTInt NumPartThisProc = partsnap.Particles.size();
-  MPI_Gather(&NumPartThisProc, 1, MPI_HBT_INT, ProcLen.data(), 1, MPI_HBT_INT, root_node, world.Communicator);
-}
-
 /* Identifies how haloes are partitioned into segments across MPI ranks for in
  * GADGET4 group outputs. */
 struct HaloPartitioner_t

@@ -64,7 +64,6 @@ class Gadget4Reader_t
   HBTInt TotNumPartInGroups;
   vector<HBTInt> HaloSizesAll; // only significant on root proc
   void CollectProcSizes(MpiWorker_t &world, const std::vector<Particle_t> &Particles);
-  void CollectProcSizes(MpiWorker_t &world, const ParticleSnapshot_t &PartSnap);
   void LoadHaloSizes(MpiWorker_t &world);
   int ReadGroupFileCounts(int ifile);
   void GetGroupFileName(int ifile, string &filename);
