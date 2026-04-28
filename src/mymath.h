@@ -312,9 +312,7 @@ public:
   }
 };
 
-extern int LargestRootFactor(int N, int dim);
 extern vector<int> ClosestFactors(int N, int dim);
 extern void AssignTasks(HBTInt worker_id, HBTInt nworkers, HBTInt ntasks, HBTInt &task_begin, HBTInt &task_end);
-extern void logspace(double xmin, double xmax, int N, vector<float> &x);
 
 #endif // of MYMATH_HEADER_INCLUDED
