@@ -238,18 +238,29 @@ vector<int> ClosestFactors(int N, int dim)
   return factors;
 }
 
+/* Distribute a given number of tasks to available workers as equally as possible,
+ * with the leading workers doing one more tasks than others if an equal division
+ * of work is not possible. The tasks are assigned to worker_id as [task_begin, task_end),
+ * where worker_id is in the range [0, nworkers).*/
 void AssignTasks(HBTInt worker_id, HBTInt nworkers, HBTInt ntasks, HBTInt &task_begin, HBTInt &task_end)
-/*distribute ntasks to nworkers approximately fairly (equally if possible, otherwise the leading workers do one more
- * task than others). return the tasks assigned to worker_id as [task_begin, task_end). worker_id is in the range [0,
- * nworkers).*/
+
 {
-  HBTInt ntask_remainder = ntasks % nworkers;
+  /* The (approximate) number of tasks per workers we will have. */
   HBTInt ntask_this = ntasks / nworkers;
-  ;
-  task_begin = ntask_this * worker_id + min(ntask_remainder, worker_id); // distribute remainder to leading nodes
+
+  /* Can tasks be split equally across available workers? */
+  HBTInt ntask_remainder = ntasks % nworkers;
+
+  /* The first task for each worker. */
+  task_begin = ntask_this * worker_id + std::min(ntask_remainder, worker_id);
+
+  /* Leading workers get an extra task. */
   if (worker_id < ntask_remainder)
     ntask_this++;
+
+  /* The last task for each worker. */
   task_end = ntask_this + task_begin;
+
   assert(task_end <= ntasks);
 }
 
