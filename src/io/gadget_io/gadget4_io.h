@@ -41,26 +41,28 @@ void create_Gadget4Header_MPI_type(MPI_Datatype &dtype);
 class Gadget4Reader_t
 {
   int SnapshotId;
-  string SnapshotName;
+  std::string SnapshotName;
   const HBTInt NullGroupId = std::numeric_limits<HBTInt>::max();
   const int root_node = 0;
 
-  /* Header and misc */
+  /* Header and miscellaneous options*/
   Gadget4Header_t Header;
   void ReadHeader(int ifile, Gadget4Header_t &header);
 
-  /* Particle information. */
+  /* Particle count information. */
   std::vector<HBTInt> NumberParticlesPerRank;
   std::vector<HBTInt> NumberParticlesPerFile;
+  std::vector<HBTInt> OffsetParticlesPerFile;
   std::vector<HBTInt> NumberParticlesPerTypeThisRank;
+  std::vector<std::array<int, TypeMax>> NumberParticlesPerTypePerFile;
+  std::vector<std::array<int, TypeMax>> OffsetParticlesPerTypePerFile;
 
-  vector<HBTInt> offset_file;
-  HBTInt CompileFileOffsets(int nfiles);
+  void CompileSnapshotParticleOffsets(int NumberFiles);
   void GetFileName(int ifile, string &filename);
   void SetSnapshot(int snapshotId);
   void GetParticleCountInFile(hid_t file, int np[]);
-  void ReadSnapshot(int ifile, Particle_t *ParticlesInFile);
   void LoadParticleProperties(MpiWorker_t &world, vector<Particle_t> &Particles);
+  void ReadSnapshot(int FirstFileIndex, int CurrentFileIndex, Particle_t *ParticlesOfThisType);
 
   /* FoF group information. */
   HBTInt TotalNumberGroupParticles;
