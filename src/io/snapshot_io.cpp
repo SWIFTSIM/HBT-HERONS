@@ -15,6 +15,7 @@ using namespace std;
 #include "../snapshot.h"
 #include "./apostle_io/apostle_io.h"
 #include "./gadget_io/gadget_io.h"
+#include "./gadget_io/gadget4_io.h"
 #include "./swiftsim_io/swiftsim_io.h"
 
 void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
@@ -41,6 +42,10 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
       SwiftSimReader_t().ReadParticleSplits(ParticleSplitMap, SnapshotId);
     }
 #endif
+  }
+  else if (HBTConfig.SnapshotFormat == "gadget4")
+  {
+    Gadget4Reader::Gadget4Reader_t().LoadSnapshot(world, SnapshotId, Particles, Cosmology);
   }
   else if (HBTConfig.SnapshotFormat == "mysnapshot")
   {

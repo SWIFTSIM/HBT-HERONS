@@ -54,9 +54,9 @@ public:
     BuildMPIDataType();
   }
 
-  HaloSnapshot_t(MpiWorker_t &world, int snapshot_index) : HaloSnapshot_t()
+  HaloSnapshot_t(MpiWorker_t &world, const ParticleSnapshot_t &partsnap) : HaloSnapshot_t()
   {
-    Load(world, snapshot_index);
+    Load(world, partsnap);
   }
 
   ~HaloSnapshot_t()
@@ -64,7 +64,8 @@ public:
     // 	Clear();
     My_Type_free(&MPI_HBT_HaloId_t);
   }
-  void Load(MpiWorker_t &world, int snapshot_index);
+
+  void Load(MpiWorker_t &world, const ParticleSnapshot_t &partsnap);
   void Clear();
   void UpdateParticles(MpiWorker_t &world, const ParticleSnapshot_t &snapshot);
   //   void ParticleIndexToId();
