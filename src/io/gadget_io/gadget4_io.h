@@ -64,7 +64,11 @@ class Gadget4Reader_t
 
   /* FoF group information. */
   HBTInt TotalNumberGroupParticles;
-  vector<HBTInt> HaloSizesAll; // only significant on root proc
+
+  /* These two vectors are only significant in root MPI rank. */
+  std::vector<HBTInt> AllHaloSizes;
+  std::vector<std::array<HBTInt, TypeMax>> AllHaloSizesPerType;
+
   void GetNumberParticlesPerRank(MpiWorker_t &world, const std::vector<Particle_t> &Particles);
   void LoadHaloSizes(MpiWorker_t &world);
   int ReadGroupFileCounts(int ifile);

@@ -547,8 +547,8 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
 
   /* Allocate sufficient memory to hold halo lengths in this rank. */
   HBTInt NumberGroupsInRank = std::accumulate(NumberGroupsPerFile.begin() + FirstFileIndex, NumberGroupsPerFile.begin() + LastFileIndex, 0);
-  std::vector<HBTInt> HaloSizesLocal(NumberGroupsInRank);
-  std::vector<std::array<HBTInt, TypeMax>> HaloSizesPerTypeLocal(NumberGroupsInRank);
+  std::vector<HBTInt> LocalHaloSizes(NumberGroupsInRank);
+  std::vector<std::array<HBTInt, TypeMax>> LocalHaloSizesPerType(NumberGroupsInRank);
 
   for (int i = 0, ireader = 0; i < world.size(); i++, ireader++)
   {
@@ -563,9 +563,9 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
       {
         if (NumberGroupsPerFile[FileIndex]) // some files do not have groups
         {
-          ReadGroupLen(FileIndex, HaloSizesLocal.data() + OffsetGroupsPerFile[FileIndex] -
+          ReadGroupLen(FileIndex, LocalHaloSizes.data() + OffsetGroupsPerFile[FileIndex] -
                                 OffsetGroupsPerFile[FirstFileIndex]);
-          ReadGroupLenPerType(FileIndex, HaloSizesPerTypeLocal.data() + OffsetGroupsPerFile[FileIndex] -
+          ReadGroupLenPerType(FileIndex, LocalHaloSizesPerType.data() + OffsetGroupsPerFile[FileIndex] -
                                 OffsetGroupsPerFile[FirstFileIndex]);
         }
       }
@@ -579,21 +579,22 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
   {
     HBTInt SumParticleTypes = 0;
     for (int PartType = 0; PartType < TypeMax; PartType++)
-      SumParticleTypes += HaloSizesPerTypeLocal[halo_i][PartType];
+      SumParticleTypes += LocalHaloSizesPerType[halo_i][PartType];
 
-    assert(HaloSizesLocal[halo_i] == SumParticleTypes);
+    assert(LocalHaloSizes[halo_i] == SumParticleTypes);
   }
 #endif
 
   /* In this block we will gather the halo sizes loaded by each rank into the
    * root rank. The information will eventually be used to determine particle
-   * offsets. */
+   * offsets. NOTE: this is currently redudant, but it can be useful for
+   * debugging */
   {
     std::vector<int> NumberHalosPerRank, OffsetHaloesPerRank;
 
     if (world.rank() == root_node)
     {
-      HaloSizesAll.resize(TotalNumberGroups);
+      AllHaloSizes.resize(TotalNumberGroups);
       NumberHalosPerRank.resize(world.size());
     }
     MPI_Gather(&NumberGroupsInRank, 1, MPI_INT, NumberHalosPerRank.data(), 1, MPI_INT, root_node, world.Communicator);
@@ -602,18 +603,62 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
     if (world.rank() == root_node)
       CompileOffsets(NumberHalosPerRank, OffsetHaloesPerRank);
 
-    cout << "OffsetHaloesPerRank = " << OffsetHaloesPerRank << endl;
-    MPI_Gatherv(HaloSizesLocal.data(), HaloSizesLocal.size(), MPI_HBT_INT, HaloSizesAll.data(), NumberHalosPerRank.data(),
+    MPI_Gatherv(LocalHaloSizes.data(), LocalHaloSizes.size(), MPI_HBT_INT, AllHaloSizes.data(), NumberHalosPerRank.data(),
                 OffsetHaloesPerRank.data(), MPI_HBT_INT, root_node, world.Communicator);
   }
 
+  /* In this block we will gather the halo sizes (per particle type) loaded by
+   * each rank into the root rank. The information will eventually be used to
+   * determine particle offsets per type. */
+  {
+    std::vector<int> NumberHalosPerRank, OffsetHaloesPerRank;
+    if (world.rank() == root_node)
+    {
+      AllHaloSizesPerType.resize(TotalNumberGroups);
+      NumberHalosPerRank.resize(world.size());
+    }
+    MPI_Gather(&NumberGroupsInRank, 1, MPI_INT, NumberHalosPerRank.data(), 1, MPI_INT, root_node, world.Communicator);
+
+    /* Create an offset value for each halo value. */
+    if (world.rank() == root_node)
+      CompileOffsets(NumberHalosPerRank, OffsetHaloesPerRank);
+
+    /* Gather in the root rank. We create a custom MPI dtype because each vector
+     * element is an array of size MaxType. */
+    MPI_Datatype MPI_HBT_ARRAY;
+    MPI_Type_contiguous(TypeMax, MPI_HBT_INT, &MPI_HBT_ARRAY);
+    MPI_Type_commit(&MPI_HBT_ARRAY);
+    MPI_Gatherv(LocalHaloSizesPerType.data(), LocalHaloSizesPerType.size(), MPI_HBT_ARRAY, AllHaloSizesPerType.data(), NumberHalosPerRank.data(),
+                OffsetHaloesPerRank.data(), MPI_HBT_ARRAY, root_node, world.Communicator);
+    MPI_Type_free(&MPI_HBT_ARRAY);
+  }
+
+  /* Sanity check: the sum of each particle type part of the halo should be equal to
+   * the total number (after communicating). */
+#ifndef NDEBUG
+  if (world.rank() == 0)
+  {
+    for (HBTInt halo_i = 0; halo_i < TotalNumberGroups; halo_i++)
+    {
+      HBTInt SumParticleTypes = 0;
+      for (int PartType = 0; PartType < TypeMax; PartType++)
+        SumParticleTypes += AllHaloSizesPerType[halo_i][PartType];
+
+      assert(AllHaloSizes[halo_i] == SumParticleTypes);
+    }
+  }
+#endif
+
   /* Sanity check: the sum of all halo sizes should equal the total number of particles
    * in haloes. */
-  HBTInt np_local = std::accumulate(HaloSizesLocal.begin(), HaloSizesLocal.end(), (HBTInt)0);
-  HBTInt np_allproc = 0;
-  MPI_Reduce(&np_local, &np_allproc, 1, MPI_HBT_INT, MPI_SUM, root_node, world.Communicator);
-  if (world.rank() == root_node)
-    assert(np_allproc == TotalNumberGroupParticles);
+  {
+    HBTInt np_local = std::accumulate(LocalHaloSizes.begin(), LocalHaloSizes.end(), 0);
+    HBTInt np_allproc = 0;
+
+    MPI_Reduce(&np_local, &np_allproc, 1, MPI_HBT_INT, MPI_SUM, root_node, world.Communicator);
+    if (world.rank() == root_node)
+      assert(np_allproc == TotalNumberGroupParticles);
+  }
 }
 
 /* Gathers in the root MPI rank how many particles each MPI rank has. */
@@ -764,7 +809,7 @@ void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &
   HaloPartitioner_t HaloPartitioner;
   if (world.rank() == root_node)
   {
-    HaloPartitioner.Fill(HaloSizesAll, NumberParticlesPerRank);
+    HaloPartitioner.Fill(AllHaloSizes, NumberParticlesPerRank);
   }
 
   /* Tell each MPI rank what the minimum and maximum halo number they contain */
@@ -828,7 +873,7 @@ void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &
   HBTInt np_tot = 0;
   MPI_Reduce(&np, &np_tot, 1, MPI_HBT_INT, MPI_SUM, root_node, world.Communicator);
   if (world.rank() == root_node)
-    assert(np_tot == TotNumPartInGroups);
+    assert(np_tot == TotalNumberGroupParticles);
 }
 
 /* Group up particles in the same rank that share the same HostId, and create
