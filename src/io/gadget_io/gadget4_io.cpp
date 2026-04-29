@@ -31,6 +31,8 @@ inline bool CompParticleHost(const Particle_t &a, const Particle_t &b)
 namespace Gadget4Reader
 {
 
+typedef vector<HBTInt> CountBuffer_t;
+
 /* Creates the Header struct data type for MPI communication */
 void create_Gadget4Header_MPI_type(MPI_Datatype &dtype)
 {
@@ -420,7 +422,8 @@ void Gadget4Reader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
   H5Fclose(file);
 }
 
-/* Reads the total size of the haloes in the current group file. */
+/* Reads the total number of all particle types for the haloes in the current
+ * group file. */
 void Gadget4Reader_t::ReadGroupLen(int ifile, HBTInt *buf)
 {
   /* Open the group file. */
@@ -435,6 +438,26 @@ void Gadget4Reader_t::ReadGroupLen(int ifile, HBTInt *buf)
   /* Read the dataset. */
   if (NumGroups > 0)
     ReadDataset(file, "Group/GroupLen", H5T_HBTInt, buf);
+
+  H5Fclose(file);
+}
+
+/* Reads the number of different particle types for the haloes in the current
+ * group file. */
+void Gadget4Reader_t::ReadGroupLenPerType(int ifile, std::array<HBTInt, TypeMax> *buf)
+{
+  /* Open the group file. */
+  string filename;
+  GetGroupFileName(ifile, filename);
+  hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+  /* How many groups are there in this file. */
+  HBTInt NumGroups;
+  ReadAttribute(file, "Header", "Ngroups_ThisFile", H5T_HBTInt, &NumGroups);
+
+  /* Read the dataset. */
+  if (NumGroups > 0)
+    ReadDataset(file, "Group/GroupLenType", H5T_HBTInt, buf);
 
   H5Fclose(file);
 }
@@ -492,81 +515,105 @@ void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Pa
   LoadParticleHosts(world, Particles);
 }
 
-typedef vector<HBTInt> CountBuffer_t;
-
 /* Loads halo particle sizes from all files in parallel and gathers to root MPI
  * rank. */
 void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
 {
 
-  /* Read file metadata */
-  int FileCounts;
-  vector<HBTInt> nhalo_per_groupfile;
-  vector<HBTInt> offsethalo_per_groupfile;
-  HBTInt NhaloTotal;
+  /* File metadata */
+  int NumberGroupFiles;
+  HBTInt TotalNumberGroups;
+  std::vector<HBTInt> NumberGroupsPerFile;
+  std::vector<HBTInt> OffsetGroupsPerFile;
+
   if (world.rank() == root_node)
   {
-    FileCounts = ReadGroupFileCounts(0);
-    nhalo_per_groupfile.resize(FileCounts);
-    offsethalo_per_groupfile.resize(FileCounts);
-    NhaloTotal = CompileGroupFileOffsets(nhalo_per_groupfile, offsethalo_per_groupfile);
-    TotNumPartInGroups = ReadGroupFileTotParticles(0);
+    NumberGroupFiles = ReadGroupFileCounts(0);
+    NumberGroupsPerFile.resize(NumberGroupFiles);
+    OffsetGroupsPerFile.resize(NumberGroupFiles);
+    TotalNumberGroups = CompileGroupFileOffsets(NumberGroupsPerFile, OffsetGroupsPerFile);
+    TotalNumberGroupParticles = ReadGroupFileTotParticles(0);
   }
 
-  world.SyncAtom(FileCounts, MPI_INT, root_node);
-  world.SyncAtom(NhaloTotal, MPI_HBT_INT, root_node);
-  world.SyncContainer(nhalo_per_groupfile, MPI_HBT_INT, root_node);
-  world.SyncContainer(offsethalo_per_groupfile, MPI_HBT_INT, root_node);
-  world.SyncAtom(TotNumPartInGroups, MPI_HBT_INT, root_node);
+  world.SyncAtom(NumberGroupFiles, MPI_INT, root_node);
+  world.SyncAtom(TotalNumberGroups, MPI_HBT_INT, root_node);
+  world.SyncContainer(NumberGroupsPerFile, MPI_HBT_INT, root_node);
+  world.SyncContainer(OffsetGroupsPerFile, MPI_HBT_INT, root_node);
+  world.SyncAtom(TotalNumberGroupParticles, MPI_HBT_INT, root_node);
 
-  /* Read halo sizes in parallel. */
+  /* Assign each task to a range of files to read in parallel. */
   HBTInt FirstFileIndex, LastFileIndex;
-  AssignTasks(world.rank(), world.size(), FileCounts, FirstFileIndex, LastFileIndex);
+  AssignTasks(world.rank(), world.size(), NumberGroupFiles, FirstFileIndex, LastFileIndex);
+
+  /* Allocate sufficient memory to hold halo lengths in this rank. */
+  HBTInt NumberGroupsInRank = std::accumulate(NumberGroupsPerFile.begin() + FirstFileIndex, NumberGroupsPerFile.begin() + LastFileIndex, 0);
+  std::vector<HBTInt> HaloSizesLocal(NumberGroupsInRank);
+  std::vector<std::array<HBTInt, TypeMax>> HaloSizesPerTypeLocal(NumberGroupsInRank);
+
+  for (int i = 0, ireader = 0; i < world.size(); i++, ireader++)
   {
-    int nhalo_local = 0;
-    nhalo_local =
-      accumulate(nhalo_per_groupfile.begin() + FirstFileIndex, nhalo_per_groupfile.begin() + LastFileIndex, nhalo_local);
-
-    vector<HBTInt> HaloSizesLocal;
-    HaloSizesLocal.resize(nhalo_local);
-
-    for (int i = 0, ireader = 0; i < world.size(); i++, ireader++)
+    if (ireader == HBTConfig.MaxConcurrentIO)
     {
-      if (ireader == HBTConfig.MaxConcurrentIO)
+      ireader = 0;                     // reset reader count
+      MPI_Barrier(world.Communicator); // wait for every thread to arrive.
+    }
+    if (world.rank() == i) // read
+    {
+      for (int FileIndex = FirstFileIndex; FileIndex < LastFileIndex; FileIndex++)
       {
-        ireader = 0;                     // reset reader count
-        MPI_Barrier(world.Communicator); // wait for every thread to arrive.
-      }
-      if (i == world.rank()) // read
-      {
-        for (int iFile = FirstFileIndex; iFile < LastFileIndex; iFile++)
+        if (NumberGroupsPerFile[FileIndex]) // some files do not have groups
         {
-          if (nhalo_per_groupfile[iFile]) // some files do not have groups
-            ReadGroupLen(iFile, HaloSizesLocal.data() + offsethalo_per_groupfile[iFile] -
-                                  offsethalo_per_groupfile[FirstFileIndex]);
+          ReadGroupLen(FileIndex, HaloSizesLocal.data() + OffsetGroupsPerFile[FileIndex] -
+                                OffsetGroupsPerFile[FirstFileIndex]);
+          ReadGroupLenPerType(FileIndex, HaloSizesPerTypeLocal.data() + OffsetGroupsPerFile[FileIndex] -
+                                OffsetGroupsPerFile[FirstFileIndex]);
         }
       }
     }
+  }
 
-    vector<int> buffersizes, bufferoffsets;
+  /* Sanity check: the sum of each particle type part of the halo should be equal to
+   * the total number. */
+#ifndef NDEBUG
+  for (HBTInt halo_i = 0; halo_i < NumberGroupsInRank; halo_i++)
+  {
+    HBTInt SumParticleTypes = 0;
+    for (int PartType = 0; PartType < TypeMax; PartType++)
+      SumParticleTypes += HaloSizesPerTypeLocal[halo_i][PartType];
+
+    assert(HaloSizesLocal[halo_i] == SumParticleTypes);
+  }
+#endif
+
+  /* In this block we will gather the halo sizes loaded by each rank into the
+   * root rank. The information will eventually be used to determine particle
+   * offsets. */
+  {
+    std::vector<int> NumberHalosPerRank, OffsetHaloesPerRank;
+
     if (world.rank() == root_node)
     {
-      HaloSizesAll.resize(NhaloTotal);
-      buffersizes.resize(world.size());
+      HaloSizesAll.resize(TotalNumberGroups);
+      NumberHalosPerRank.resize(world.size());
     }
-    MPI_Gather(&nhalo_local, 1, MPI_INT, buffersizes.data(), 1, MPI_INT, root_node, world.Communicator);
-    if (world.rank() == root_node)
-      CompileOffsets(buffersizes, bufferoffsets);
-    MPI_Gatherv(HaloSizesLocal.data(), HaloSizesLocal.size(), MPI_HBT_INT, HaloSizesAll.data(), buffersizes.data(),
-                bufferoffsets.data(), MPI_HBT_INT, root_node, world.Communicator);
+    MPI_Gather(&NumberGroupsInRank, 1, MPI_INT, NumberHalosPerRank.data(), 1, MPI_INT, root_node, world.Communicator);
 
-    /* Sanity check */
-    HBTInt np_local = accumulate(HaloSizesLocal.begin(), HaloSizesLocal.end(), (HBTInt)0);
-    HBTInt np_allproc = 0;
-    MPI_Reduce(&np_local, &np_allproc, 1, MPI_HBT_INT, MPI_SUM, root_node, world.Communicator);
+    /* Create an offset value for each halo value. */
     if (world.rank() == root_node)
-      assert(np_allproc == TotNumPartInGroups);
+      CompileOffsets(NumberHalosPerRank, OffsetHaloesPerRank);
+
+    cout << "OffsetHaloesPerRank = " << OffsetHaloesPerRank << endl;
+    MPI_Gatherv(HaloSizesLocal.data(), HaloSizesLocal.size(), MPI_HBT_INT, HaloSizesAll.data(), NumberHalosPerRank.data(),
+                OffsetHaloesPerRank.data(), MPI_HBT_INT, root_node, world.Communicator);
   }
+
+  /* Sanity check: the sum of all halo sizes should equal the total number of particles
+   * in haloes. */
+  HBTInt np_local = std::accumulate(HaloSizesLocal.begin(), HaloSizesLocal.end(), (HBTInt)0);
+  HBTInt np_allproc = 0;
+  MPI_Reduce(&np_local, &np_allproc, 1, MPI_HBT_INT, MPI_SUM, root_node, world.Communicator);
+  if (world.rank() == root_node)
+    assert(np_allproc == TotalNumberGroupParticles);
 }
 
 /* Gathers in the root MPI rank how many particles each MPI rank has. */

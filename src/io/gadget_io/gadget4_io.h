@@ -50,8 +50,10 @@ class Gadget4Reader_t
   void ReadHeader(int ifile, Gadget4Header_t &header);
 
   /* Particle information. */
-  vector<HBTInt> NumberParticlesPerRank;
-  vector<HBTInt> NumberParticlesPerFile;
+  std::vector<HBTInt> NumberParticlesPerRank;
+  std::vector<HBTInt> NumberParticlesPerFile;
+  std::vector<HBTInt> NumberParticlesPerTypeThisRank;
+
   vector<HBTInt> offset_file;
   HBTInt CompileFileOffsets(int nfiles);
   void GetFileName(int ifile, string &filename);
@@ -61,13 +63,16 @@ class Gadget4Reader_t
   void LoadParticleProperties(MpiWorker_t &world, vector<Particle_t> &Particles);
 
   /* FoF group information. */
-  HBTInt TotNumPartInGroups;
+  HBTInt TotalNumberGroupParticles;
   vector<HBTInt> HaloSizesAll; // only significant on root proc
   void GetNumberParticlesPerRank(MpiWorker_t &world, const std::vector<Particle_t> &Particles);
   void LoadHaloSizes(MpiWorker_t &world);
   int ReadGroupFileCounts(int ifile);
   void GetGroupFileName(int ifile, string &filename);
+
   void ReadGroupLen(int ifile, HBTInt *buf);
+  void ReadGroupLenPerType(int ifile, std::array<HBTInt, TypeMax> *buf);
+
   HBTInt ReadGroupFileTotParticles(int ifile);
   HBTInt CompileGroupFileOffsets(vector<HBTInt> &nhalo_per_groupfile, vector<HBTInt> &offsethalo_per_groupfile);
   void LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &Particles);
