@@ -54,6 +54,7 @@ class Gadget4Reader_t
   std::vector<HBTInt> NumberParticlesPerFile;
   std::vector<HBTInt> OffsetParticlesPerFile;
   std::vector<HBTInt> NumberParticlesPerTypeThisRank;
+  std::vector<std::array<HBTInt, TypeMax>> NumberParticlesPerTypePerRank;
   std::vector<std::array<int, TypeMax>> NumberParticlesPerTypePerFile;
   std::vector<std::array<int, TypeMax>> OffsetParticlesPerTypePerFile;
 

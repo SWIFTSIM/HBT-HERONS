@@ -34,8 +34,6 @@ inline bool CompParticleHost(const Particle_t &a, const Particle_t &b)
 namespace Gadget4Reader
 {
 
-typedef vector<HBTInt> CountBuffer_t;
-
 /* Creates the Header struct data type for MPI communication */
 void create_Gadget4Header_MPI_type(MPI_Datatype &dtype)
 {
@@ -692,30 +690,44 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
   }
 }
 
-/* Gathers in the root MPI rank how many particles each MPI rank has. */
+/* Gathers in the root MPI rank how many particles each MPI rank has. Also, how
+ * many of each type it has loaded. */
 void Gadget4Reader_t::GetNumberParticlesPerRank(MpiWorker_t &world, const std::vector<Particle_t> &Particles)
 {
   if (world.rank() == root_node)
+  {
     NumberParticlesPerRank.resize(world.size());
+    NumberParticlesPerTypePerRank.resize(world.size());
+  }
 
+  /* First the total number of particles per rank. */
   HBTInt NumberParticlesThisRank = Particles.size();
   MPI_Gather(&NumberParticlesThisRank, 1, MPI_HBT_INT, NumberParticlesPerRank.data(), 1, MPI_HBT_INT, root_node, world.Communicator);
+
+  /* Now the number of particles per type.*/
+  MPI_Datatype MPI_HBT_ARRAY;
+  MPI_Type_contiguous(TypeMax, MPI_HBT_INT, &MPI_HBT_ARRAY);
+  MPI_Type_commit(&MPI_HBT_ARRAY);
+  MPI_Gather(NumberParticlesPerTypeThisRank.data(), 1, MPI_HBT_ARRAY, NumberParticlesPerTypePerRank.data(), 1, MPI_HBT_ARRAY, root_node, world.Communicator);
+  MPI_Type_free(&MPI_HBT_ARRAY);
 }
 
 /* Identifies how haloes are partitioned into segments across MPI ranks for in
  * GADGET4 group outputs. */
 struct HaloPartitioner_t
 {
-  vector<HBTInt> ProcFirstHalo, ProcLastHalo;
-  vector<CountBuffer_t> HaloSizesOnProc;
+
+  typedef std::vector<HBTInt> CountBuffer_t;
+  std::vector<CountBuffer_t> HaloSizesOnProc;
+  std::vector<HBTInt> RankFirstHalo, RankLastHalo;
 
   void Fill(vector<HBTInt> HaloSizes, vector<HBTInt> ProcLen)
   {
     /* Number of ranks, what the first and last halo number is for each rank, and
      * corresponding halo particles. */
-    int nproc = ProcLen.size();
-    ProcFirstHalo.resize(nproc);
-    ProcLastHalo.resize(nproc);
+    int NumberRanks = ProcLen.size();
+    RankFirstHalo.resize(NumberRanks);
+    RankLastHalo.resize(NumberRanks);
 
     /* Offset of halo particle numbers */
     vector<HBTInt> HaloOffsets;
@@ -727,15 +739,18 @@ struct HaloPartitioner_t
     HBTInt NumPartInProcs = CompileOffsets(ProcLen, ProcOffsets);
     ProcOffsets.push_back(NumPartInProcs);
 
-    assert(NumPartInHalos < NumPartInProcs);
+    /* Sanity check: there cannot be more particles in haloes than total
+     * particles. We can have equal numbers, e.g. if there are no particles of
+     * a given type. */
+    assert(NumPartInHalos <= NumPartInProcs);
 
-    ProcFirstHalo[0] = 0; // First segment of first MPI rank is always halo 0.
+    RankFirstHalo[0] = 0; // First segment of first MPI rank is always halo 0.
     int iproc = 1;
 
     /* We iterate over MPI ranks to find what the HostId of its first and last
      * halo segment is. We make use of the fact that GADGET4 groups are sorted
      * in ascending group number. */
-    if (nproc > 1)
+    if (NumberRanks > 1)
     {
       for (HBTInt ihalo = 0; ihalo < HaloOffsets.size(); ihalo++)
       {
@@ -746,16 +761,16 @@ struct HaloPartitioner_t
            * completely new halo. */
           if (HaloOffsets[ihalo] == ProcOffsets[iproc]) // New halo
           {
-            ProcFirstHalo[iproc] = ihalo;
+            RankFirstHalo[iproc] = ihalo;
           }
           else // Continuation of the last halo segment of the previous rank.
           {
-            ProcFirstHalo[iproc] = ihalo - 1;
+            RankFirstHalo[iproc] = ihalo - 1;
           }
 
           /* The value of iproc will keep on increasing until we find the last
            * segment of a halo that is split across MPI ranks. */
-          ProcLastHalo[iproc - 1] = ihalo - 1;
+          RankLastHalo[iproc - 1] = ihalo - 1;
           iproc++;
         }
       }
@@ -763,23 +778,23 @@ struct HaloPartitioner_t
 
     /* Last segment of last MPI rank with at least one halo segment is always the
      * last halo. */
-    ProcLastHalo[iproc - 1] = HaloSizes.size() - 1;
+    RankLastHalo[iproc - 1] = HaloSizes.size() - 1;
 
     /* The remainder of the processors have no haloes (i.e. HostId = -1) */
-    for (; iproc < nproc; iproc++)
+    for (; iproc < NumberRanks; iproc++)
     {
-      ProcFirstHalo[iproc] = -1;
-      ProcLastHalo[iproc] = -1;
+      RankFirstHalo[iproc] = -1;
+      RankLastHalo[iproc] = -1;
     }
 
     /* Get particle size of each local halo segment. */
-    HaloSizesOnProc.resize(nproc);
+    HaloSizesOnProc.resize(NumberRanks);
 #pragma omp parallel for
-    for (iproc = 0; iproc < nproc; iproc++)
+    for (iproc = 0; iproc < NumberRanks; iproc++)
     {
 
-      HBTInt first_halo = ProcFirstHalo[iproc];
-      HBTInt last_halo = ProcLastHalo[iproc];
+      HBTInt first_halo = RankFirstHalo[iproc];
+      HBTInt last_halo = RankLastHalo[iproc];
       HBTInt nhalos = last_halo - first_halo + 1;
       if (first_halo < 0 || last_halo < 0)
         nhalos = 0;
@@ -869,85 +884,115 @@ void Gadget4Reader_t::LoadParticleProperties(MpiWorker_t &world, vector<Particle
 /* Load particle host halo. */
 void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &Particles)
 {
+  /* For a sanity check at the end of this function. */
+  HBTInt LocalNumberParticlesAssigned = 0;
 
   /* We obtain the total length of haloes and how many particles each MPI rank
    * contains in the root MPI rank. */
   LoadHaloSizes(world);
   GetNumberParticlesPerRank(world, Particles);
 
-  /* Identify how haloes are partitioned across MPI ranks. */
-  HaloPartitioner_t HaloPartitioner;
-  if (world.rank() == root_node)
+  /* We iterate over particle types because we will use GroupLenType and the fact
+   * that the same particle types are contiguous in Particles vector to assign
+   * them the correct FoF group membership. */
+  for(int PartType = 0; PartType < TypeMax; PartType++)
   {
-    HaloPartitioner.Fill(AllHaloSizes, NumberParticlesPerRank);
-  }
-
-  /* Tell each MPI rank what the minimum and maximum halo number they contain */
-  HBTInt first_halo, last_halo;
-  MPI_Scatter(HaloPartitioner.ProcFirstHalo.data(), 1, MPI_HBT_INT, &first_halo, 1, MPI_HBT_INT, root_node,
-              world.Communicator);
-  MPI_Scatter(HaloPartitioner.ProcLastHalo.data(), 1, MPI_HBT_INT, &last_halo, 1, MPI_HBT_INT, root_node,
-              world.Communicator);
-
-  /* The root rank will send the size of each halo segment contained in non-root
-   * MPI ranks. */
-  vector<HBTInt> local_halo_sizes;
-  if (world.rank() == root_node)
-  {
-    for (int rank = 0; rank < world.size(); rank++)
+    /* Identify how haloes are partitioned across MPI ranks. */
+    HaloPartitioner_t HaloPartitioner;
+    if (world.rank() == root_node)
     {
-      if (rank == root_node)
-        local_halo_sizes = HaloPartitioner.HaloSizesOnProc[rank];
-      else
+      /* We create two vectors for the current particle type, one holding how many
+       * particles per FoF group and another per rank. It will be used to determine
+       * which range of particles get assigned which FoF group. */
+      std::vector<HBTInt> AllHaloSizesThisType(AllHaloSizesPerType.size());
+      for(size_t halo_i = 0; halo_i < AllHaloSizesThisType.size(); halo_i++)
+        AllHaloSizesThisType[halo_i] = AllHaloSizesPerType[halo_i][PartType];
+
+      std::vector<HBTInt> NumberParticlesThisTypePerRank(NumberParticlesPerTypePerRank.size());
+      for(int rank = 0; rank < world.size(); rank++)
+        NumberParticlesThisTypePerRank[rank] = NumberParticlesPerTypePerRank[rank][PartType];
+
+      HaloPartitioner.Fill(AllHaloSizesThisType, NumberParticlesThisTypePerRank);
+    }
+
+    /* Tell each MPI rank what the minimum and maximum halo number they contain */
+    HBTInt FirstHaloThisRank, LastHaloThisRank;
+    MPI_Scatter(HaloPartitioner.RankFirstHalo.data(), 1, MPI_HBT_INT, &FirstHaloThisRank, 1, MPI_HBT_INT, root_node,
+                world.Communicator);
+    MPI_Scatter(HaloPartitioner.RankLastHalo.data(), 1, MPI_HBT_INT, &LastHaloThisRank, 1, MPI_HBT_INT, root_node,
+                world.Communicator);
+
+    /* The root rank will send the size of each halo segment contained in non-root
+     * MPI ranks. */
+    std::vector<HBTInt> LocalHaloSizesThisType;
+    if (world.rank() == root_node)
+    {
+      for (int rank = 0; rank < world.size(); rank++)
       {
-        auto &sendarr = HaloPartitioner.HaloSizesOnProc[rank];
-        MPI_Send(sendarr.data(), sendarr.size(), MPI_HBT_INT, rank, 0, world.Communicator);
+        if (rank == root_node)
+          LocalHaloSizesThisType = HaloPartitioner.HaloSizesOnProc[rank];
+        else
+        {
+          auto &sendarr = HaloPartitioner.HaloSizesOnProc[rank];
+          MPI_Send(sendarr.data(), sendarr.size(), MPI_HBT_INT, rank, 0, world.Communicator);
+        }
       }
     }
-  }
-  else
-  {
-    MPI_Status stat;
-    MPI_Probe(root_node, 0, world.Communicator, &stat);
-    int nhalos;
-    MPI_Get_count(&stat, MPI_HBT_INT, &nhalos);
-    local_halo_sizes.resize(nhalos);
-    MPI_Recv(local_halo_sizes.data(), nhalos, MPI_HBT_INT, root_node, 0, world.Communicator, MPI_STATUS_IGNORE);
-  }
+    else
+    {
+      MPI_Status stat;
+      MPI_Probe(root_node, 0, world.Communicator, &stat);
+      int nhalos;
+      MPI_Get_count(&stat, MPI_HBT_INT, &nhalos);
+      LocalHaloSizesThisType.resize(nhalos);
+      MPI_Recv(LocalHaloSizesThisType.data(), nhalos, MPI_HBT_INT, root_node, 0, world.Communicator, MPI_STATUS_IGNORE);
+    }
 
-  /* Retrieve the particle offsets of each halo segment, measured relative to
-   * the first particle in each MPI rank. */
-  vector<HBTInt> local_halo_offsets;
-  HBTInt np = CompileOffsets(local_halo_sizes, local_halo_offsets);
-  local_halo_offsets.push_back(np);
+    /* Retrieve the particle offsets of each halo segment, measured relative to
+     * the first particle in each MPI rank. */
+    std::vector<HBTInt> LocalHaloOffsetsThisType;
+    HBTInt np = CompileOffsets(LocalHaloSizesThisType, LocalHaloOffsetsThisType);
+    LocalHaloOffsetsThisType.push_back(np);
+
+    /* We only want to iterate over particles of this type. */
+    auto FirstParticleThisType = Particles.begin() + std::accumulate(NumberParticlesPerTypeThisRank.begin(), NumberParticlesPerTypeThisRank.begin() + PartType, 0);
+    auto LastParticleThisType  = Particles.begin() + std::accumulate(NumberParticlesPerTypeThisRank.begin(), NumberParticlesPerTypeThisRank.begin() + PartType + 1, 0);
 
 #pragma omp parallel for default(shared)
-  for (HBTInt i = 0; i < local_halo_sizes.size(); i++)
-  {
-    /* The range of particles that belong to the current halo segment. */
-    auto start_particle = Particles.begin() + local_halo_offsets[i];
-    auto end_particle = Particles.begin() + local_halo_offsets[i + 1];
+    for (size_t halo_i = 0; halo_i < LocalHaloSizesThisType.size(); halo_i++)
+    {
+      /* The range of particles that belong to the current halo segment. */
+      auto start_particle = FirstParticleThisType + LocalHaloOffsetsThisType[halo_i];
+      auto end_particle = FirstParticleThisType + LocalHaloOffsetsThisType[halo_i + 1];
 
-    /* We assign a HostHalo to each particle based on its host. This needs to be done because
-     * when we find host haloes we need up-to-date information for particles that are part of
-     * subhaloes. */
-    for (auto particle_it = start_particle; particle_it != end_particle; ++particle_it)
-      particle_it->HostId = i + first_halo;
+      /* We assign a HostHalo to each particle based on its host. This needs to be done because
+       * when we find host haloes we need up-to-date information for particles that are part of
+       * subhaloes. */
+      for (auto particle_it = start_particle; particle_it != end_particle; ++particle_it)
+      {
+        particle_it->HostId = halo_i + FirstHaloThisRank;
+        LocalNumberParticlesAssigned++;
+      }
+    }
+
+    /* The rest of the particles of this type have no host, so initialise them to NullGroupId */
+    for (auto particle_it = FirstParticleThisType + LocalHaloOffsetsThisType[LocalHaloSizesThisType.size()]; particle_it != LastParticleThisType; ++particle_it)
+      particle_it->HostId = NullGroupId;
   }
 
-  /* The rest of the particles have no host, so initialise them to NullGroupId */
-  for (auto particle_it = Particles.begin() + local_halo_offsets[local_halo_sizes.size()]; particle_it != Particles.end(); ++particle_it)
-    particle_it->HostId = NullGroupId;
-
   /* Sanity check */
-  HBTInt np_tot = 0;
-  MPI_Reduce(&np, &np_tot, 1, MPI_HBT_INT, MPI_SUM, root_node, world.Communicator);
+  HBTInt TotalNumberParticlesAssigned = 0;
+  MPI_Reduce(&LocalNumberParticlesAssigned, &TotalNumberParticlesAssigned, 1, MPI_HBT_INT, MPI_SUM, root_node, world.Communicator);
+
+  /* TODO: Add loading of TotalNumberGroupParticles to enable assert, since we
+   * are currently loading it at a later stage and this will trigger a memory
+   * error. */
   if (world.rank() == root_node)
-    assert(np_tot == TotalNumberGroupParticles);
+    assert(TotalNumberParticlesAssigned == TotalNumberGroupParticles);
 }
 
 /* Group up particles in the same rank that share the same HostId, and create
- * a new halo segment within for Halos. */
+ * a new halo segment within Halos. */
 void Gadget4Reader_t::CreateHaloSegments(const std::vector<Particle_t> &SnapshotParticles, std::vector<Halo_t> &Halos)
 {
   /* Create a copy of the Particle snapshot, from which we will create the halo
