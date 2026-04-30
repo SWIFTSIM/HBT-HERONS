@@ -856,7 +856,7 @@ void Gadget4Reader_t::LoadParticleProperties(MpiWorker_t &world, vector<Particle
       {
         /* We pass the whole vector particle vector. We handle offsetting within
          * this function call. */
-        ReadSnapshot(FileIndex, FirstFileIndex, Particles.data());
+        ReadSnapshot(FirstFileIndex, FileIndex, Particles.data());
       }
     }
   }
