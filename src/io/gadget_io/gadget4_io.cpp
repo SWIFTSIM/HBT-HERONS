@@ -887,6 +887,11 @@ void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &
   /* For a sanity check at the end of this function. */
   HBTInt LocalNumberParticlesAssigned = 0;
 
+  /* We default-initialise particles to be in no hosts. */
+#pragma omp parallel for
+  for (size_t part_i = 0; part_i < Particles.size(); part_i++)
+    Particles[part_i].HostId = NullGroupId;
+
   /* We obtain the total length of haloes and how many particles each MPI rank
    * contains in the root MPI rank. */
   LoadHaloSizes(world);
@@ -974,10 +979,6 @@ void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &
         LocalNumberParticlesAssigned++;
       }
     }
-
-    /* The rest of the particles of this type have no host, so initialise them to NullGroupId */
-    for (auto particle_it = FirstParticleThisType + LocalHaloOffsetsThisType[LocalHaloSizesThisType.size()]; particle_it != LastParticleThisType; ++particle_it)
-      particle_it->HostId = NullGroupId;
   }
 
   /* Sanity check */
