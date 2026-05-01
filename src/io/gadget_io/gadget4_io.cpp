@@ -721,21 +721,30 @@ struct HaloPartitioner_t
   std::vector<CountBuffer_t> HaloSizesOnProc;
   std::vector<HBTInt> RankFirstHalo, RankLastHalo;
 
-  void Fill(vector<HBTInt> HaloSizes, vector<HBTInt> ProcLen)
+  void Fill(const std::vector<HBTInt> &HaloSizes, const std::vector<HBTInt> &ProcLen)
   {
     /* Number of ranks, what the first and last halo number is for each rank, and
-     * corresponding halo particles. */
+     * corresponding halo particles. We default-initalise everything to have no
+     * haloes. */
     int NumberRanks = ProcLen.size();
-    RankFirstHalo.resize(NumberRanks);
-    RankLastHalo.resize(NumberRanks);
+    RankFirstHalo.assign(NumberRanks, -1);
+    RankLastHalo.assign(NumberRanks, -1);
 
-    /* Offset of halo particle numbers */
-    vector<HBTInt> HaloOffsets;
+    /* Particle size of each local halo segment. */
+    HaloSizesOnProc.resize(NumberRanks);
+
+    /* Offset of halo particle numbers. */
+    std::vector<HBTInt> HaloOffsets;
     HBTInt NumPartInHalos = CompileOffsets(HaloSizes, HaloOffsets);
     HaloOffsets.push_back(NumPartInHalos);
 
+    /* If we have no particles of this type in haloes, we can skip the
+     * remainder */
+    if (NumPartInHalos == 0)
+      return;
+
     /* Offset of MPI rank particle numbers */
-    vector<HBTInt> ProcOffsets;
+    std::vector<HBTInt> ProcOffsets;
     HBTInt NumPartInProcs = CompileOffsets(ProcLen, ProcOffsets);
     ProcOffsets.push_back(NumPartInProcs);
 
@@ -744,35 +753,37 @@ struct HaloPartitioner_t
      * a given type. */
     assert(NumPartInHalos <= NumPartInProcs);
 
-    RankFirstHalo[0] = 0; // First segment of first MPI rank is always halo 0.
-    int iproc = 1;
+    /* If we reach this point, there is at least one FoF group that contains this
+     * particle type, so we know the first segment of first MPI rank is halo 0 */
+    if (NumPartInHalos > 0)
+      RankFirstHalo[0] = 0;
 
     /* We iterate over MPI ranks to find what the HostId of its first and last
      * halo segment is. We make use of the fact that GADGET4 groups are sorted
      * in ascending group number. */
-    if (NumberRanks > 1)
+    int iproc = 1;
+    for (HBTInt ihalo = 0; ihalo < HaloOffsets.size(); ihalo++)
     {
-      for (HBTInt ihalo = 0; ihalo < HaloOffsets.size(); ihalo++)
+      /* NOTE: we should have at least one halo that this parttype is a part of,
+       * otherwise this will cause out-of-bounds access if iproc > NumberRanks. */
+      while (ProcOffsets[iproc] <= HaloOffsets[ihalo])
       {
-        while (ProcOffsets[iproc] <= HaloOffsets[ihalo])
-        {
-          /* Identify whether the first halo segment of an MPI rank is a
-           * continuation of the last halo segment of the previous rank, or a
-           * completely new halo. */
-          if (HaloOffsets[ihalo] == ProcOffsets[iproc]) // New halo
-          {
-            RankFirstHalo[iproc] = ihalo;
-          }
-          else // Continuation of the last halo segment of the previous rank.
-          {
-            RankFirstHalo[iproc] = ihalo - 1;
-          }
 
-          /* The value of iproc will keep on increasing until we find the last
-           * segment of a halo that is split across MPI ranks. */
-          RankLastHalo[iproc - 1] = ihalo - 1;
-          iproc++;
+        /* Identify whether the first halo segment of an MPI rank is a
+         * continuation of the last halo segment of the previous rank, or a
+         * completely new halo. */
+        if (HaloOffsets[ihalo] == ProcOffsets[iproc]) // New halo
+        {
+          RankFirstHalo[iproc] = ihalo;
         }
+        else // Continuation of the last halo segment of the previous rank.
+        {
+          RankFirstHalo[iproc] = ihalo - 1;
+        }
+        /* The value of iproc will keep on increasing until we find the last
+          * segment of a halo that is split across MPI ranks. */
+        RankLastHalo[iproc - 1] = ihalo - 1;
+        iproc++;
       }
     }
 
@@ -780,15 +791,6 @@ struct HaloPartitioner_t
      * last halo. */
     RankLastHalo[iproc - 1] = HaloSizes.size() - 1;
 
-    /* The remainder of the processors have no haloes (i.e. HostId = -1) */
-    for (; iproc < NumberRanks; iproc++)
-    {
-      RankFirstHalo[iproc] = -1;
-      RankLastHalo[iproc] = -1;
-    }
-
-    /* Get particle size of each local halo segment. */
-    HaloSizesOnProc.resize(NumberRanks);
 #pragma omp parallel for
     for (iproc = 0; iproc < NumberRanks; iproc++)
     {
@@ -798,6 +800,7 @@ struct HaloPartitioner_t
       HBTInt nhalos = last_halo - first_halo + 1;
       if (first_halo < 0 || last_halo < 0)
         nhalos = 0;
+
       auto &local_halo_sizes = HaloSizesOnProc[iproc];
       local_halo_sizes.resize(nhalos);
 
