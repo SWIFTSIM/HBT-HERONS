@@ -866,6 +866,7 @@ void Gadget4Reader_t::LoadParticleProperties(MpiWorker_t &world, vector<Particle
 
   /* Sanity check: Every particle entry should have been filled in, and particle
    * types should be together */
+#ifndef DM_ONLY
 #ifndef NDEBUG
   for (int PartType = 0; PartType < TypeMax; PartType++)
   {
@@ -881,7 +882,8 @@ void Gadget4Reader_t::LoadParticleProperties(MpiWorker_t &world, vector<Particle
     for(HBTInt part_i = FirstIndex; part_i < LastIndex; part_i++)
       assert(Particles[part_i].Type == PartType);
   }
-#endif
+#endif // NDEBUG
+#endif // DM_ONLY
 }
 
 /* Load particle host halo. */
