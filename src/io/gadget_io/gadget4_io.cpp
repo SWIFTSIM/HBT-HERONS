@@ -86,7 +86,7 @@ MPI_Datatype Gadget4Reader_t::GADGET4_HEADER_MPI_datatype()
 }
 
 /* To communicate vectors containing arrays of size TypeMax (e.g. halo length
- * per type, particles in each snapshot per type)*/
+ * per type, particles in each snapshot per type) */
 MPI_Datatype Gadget4Reader_t::INT_ARRAY_MPI_datatype()
 {
   MPI_Datatype MPI_HBT_INT_ARRAY;
@@ -111,22 +111,22 @@ void Gadget4Reader_t::SetSnapshot(int snapshotId)
 }
 
 /* Generates the path to the snapshot (sub)file */
-void Gadget4Reader_t::GetFileName(int ifile, string &filename)
+std::string Gadget4Reader_t::GetSnapshotFileName(int ifile)
 {
-  stringstream formatter;
+  std::stringstream formatter;
 
   if (HBTConfig.SnapshotDirBase.length() > 0)
    formatter << HBTConfig.SnapshotPath << "/" << SnapshotName << "." << ifile << ".hdf5";
   else
     formatter << HBTConfig.SnapshotPath << "/" << SnapshotName << ".hdf5";
 
-  filename = formatter.str();
+  return formatter.str();
 }
 
-void Gadget4Reader_t::GetGroupFileName(int ifile, string &filename)
+std::string Gadget4Reader_t::GetGroupFileName(int ifile)
 {
-  string snap_idname = SnapshotName.substr(SnapshotName.size() - 3); // last 3 chars
-  stringstream formatter;
+  std::string snap_idname = SnapshotName.substr(SnapshotName.size() - 3); // last 3 chars
+  std::stringstream formatter;
 
   /* Halo catalogues have the same number of files as snapshots. Within each block
   /* we try two possible combinations, since the name of the FoF catalogue
@@ -135,57 +135,57 @@ void Gadget4Reader_t::GetGroupFileName(int ifile, string &filename)
   {
     /* If only FoF was run. */
     formatter << HBTConfig.HaloPath << "groups_" << setw(3) << setfill('0') << SnapshotId << "/fof_tab_" << snap_idname << "." << ifile << ".hdf5";
-    filename = formatter.str();
-    bool is_valid_file = is_it_valid(filename);
+    bool is_valid_file = is_it_valid(formatter.str());
 
     if(is_valid_file)
-      return;
+      return formatter.str();
 
     std::stringstream().swap(formatter); // Empty stringstream
 
     /* Subfind or Subfind-HBT was also run. */
     formatter << HBTConfig.HaloPath << "groups_" << setw(3) << setfill('0') << SnapshotId << "/fof_subhalo_tab_" << snap_idname << "." << ifile << ".hdf5";
-    filename = formatter.str();
   }
   else
   {
     /* If only FoF was run. */
     formatter << HBTConfig.HaloPath << "/fof_tab_" << snap_idname << ".hdf5";
-    filename = formatter.str();
-    bool is_valid_file = is_it_valid(filename);
+    bool is_valid_file = is_it_valid(formatter.str());
 
     if(is_valid_file)
-      return;
+      return formatter.str();
 
     std::stringstream().swap(formatter); // Empty stringstream
 
     /* Subfind or Subfind-HBT was also run. */
     formatter << HBTConfig.HaloPath << "/fof_subhalo_tab_" << snap_idname << ".hdf5";
-    filename = formatter.str();
   }
-  return;
+
+  return formatter.str();
 }
 
-void Gadget4Reader_t::ReadHeader(int ifile, Gadget4Header_t &header)
+Gadget4Header_t Gadget4Reader_t::ReadHeader(int ifile)
 {
-  string filename;
-  GetFileName(ifile, filename);
+  Gadget4Header_t HeaderThisFile;
+
+  std::string filename = GetSnapshotFileName(ifile);
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
-  ReadAttribute(file, "Header", "NumFilesPerSnapshot", H5T_NATIVE_INT, &header.NumberOfFiles);
-  ReadAttribute(file, "Header", "BoxSize", H5T_NATIVE_DOUBLE, &header.BoxSize);
-  ReadAttribute(file, "Header", "Time", H5T_NATIVE_DOUBLE, &header.ScaleFactor);
-  ReadAttribute(file, "Parameters", "Omega0", H5T_NATIVE_DOUBLE, &header.OmegaM0);
-  ReadAttribute(file, "Parameters", "OmegaLambda", H5T_NATIVE_DOUBLE, &header.OmegaLambda0);
-  for (int i = 0; i < TypeMax; i++) // initialize
+  ReadAttribute(file, "Header", "NumFilesPerSnapshot", H5T_NATIVE_INT, &HeaderThisFile.NumberOfFiles);
+  ReadAttribute(file, "Header", "BoxSize", H5T_NATIVE_DOUBLE, &HeaderThisFile.BoxSize);
+  ReadAttribute(file, "Header", "Time", H5T_NATIVE_DOUBLE, &HeaderThisFile.ScaleFactor);
+  ReadAttribute(file, "Parameters", "Omega0", H5T_NATIVE_DOUBLE, &HeaderThisFile.OmegaM0);
+  ReadAttribute(file, "Parameters", "OmegaLambda", H5T_NATIVE_DOUBLE, &HeaderThisFile.OmegaLambda0);
+
+  /* Per particle type information. */
+  for (int i = 0; i < TypeMax; i++)
   {
-    header.mass[i] = 0.;
-    header.npart[i] = 0;
-    header.npartTotal[i] = 0;
+    HeaderThisFile.mass[i] = 0.;
+    HeaderThisFile.npart[i] = 0;
+    HeaderThisFile.npartTotal[i] = 0;
   }
-  ReadAttribute(file, "Header", "MassTable", H5T_NATIVE_DOUBLE, header.mass);
-  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, header.npart);
-  ReadAttribute(file, "Header", "NumPart_Total", H5T_HBTInt, header.npartTotal);
+  ReadAttribute(file, "Header", "MassTable", H5T_NATIVE_DOUBLE, HeaderThisFile.mass);
+  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, HeaderThisFile.npart);
+  ReadAttribute(file, "Header", "NumPart_Total", H5T_HBTInt, HeaderThisFile.npartTotal);
 
   /* Read unit system used by GADGET-4 */
   double length_cgs;
@@ -196,9 +196,9 @@ void Gadget4Reader_t::ReadHeader(int ifile, Gadget4Header_t &header)
   ReadAttribute(file, "Parameters", "UnitVelocity_in_cm_per_s", H5T_NATIVE_DOUBLE, &velocity_cgs);
 
   /* To later tell HBT-HERONS the units of the snapshot */
-  Header.MassInMsunh  = mass_cgs / 1.98841e33;
-  Header.LengthInMpch = length_cgs / 3.08567758e24;
-  Header.VelInKmS = velocity_cgs / 1e5;
+  HeaderThisFile.MassInMsunh  = mass_cgs / 1.98841e33;
+  HeaderThisFile.LengthInMpch = length_cgs / 3.08567758e24;
+  HeaderThisFile.VelInKmS = velocity_cgs / 1e5;
 
   /* For now we assume that all particles have the same softening as PartType1. */
   // TODO: generalise to allow for different softenings per particle type.
@@ -207,20 +207,21 @@ void Gadget4Reader_t::ReadHeader(int ifile, Gadget4Header_t &header)
 
   stringstream DM_comoving_softening_dataset;
   DM_comoving_softening_dataset << "SofteningComovingClass" << DM_softening_class;
-  ReadAttribute(file, "Parameters", DM_comoving_softening_dataset.str().c_str(), H5T_NATIVE_DOUBLE, &Header.DM_comoving_softening);
+  ReadAttribute(file, "Parameters", DM_comoving_softening_dataset.str().c_str(), H5T_NATIVE_DOUBLE, &HeaderThisFile.DM_comoving_softening);
 
   stringstream DM_max_softening_dataset;
   DM_max_softening_dataset << "SofteningComovingClass" << DM_softening_class;
-  ReadAttribute(file, "Parameters", DM_max_softening_dataset.str().c_str(), H5T_NATIVE_DOUBLE, &Header.DM_maximum_physical_softening);
+  ReadAttribute(file, "Parameters", DM_max_softening_dataset.str().c_str(), H5T_NATIVE_DOUBLE, &HeaderThisFile.DM_maximum_physical_softening);
 
   H5Fclose(file);
+
+  return HeaderThisFile;
 }
 
 int Gadget4Reader_t::ReadGroupFileCounts(int ifile)
 {
   int nfiles;
-  string filename;
-  GetGroupFileName(ifile, filename);
+  std::string filename = GetGroupFileName(ifile);
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
   ReadAttribute(file, "Header", "NumFiles", H5T_NATIVE_INT, &nfiles);
   H5Fclose(file);
@@ -231,8 +232,7 @@ int Gadget4Reader_t::ReadGroupFileCounts(int ifile)
 HBTInt Gadget4Reader_t::ReadGroupFileTotParticles(int ifile)
 { // total np in groups from all files
   HBTInt np_tot;
-  string filename;
-  GetGroupFileName(ifile, filename);
+  std::string filename = GetGroupFileName(ifile);
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
   ReadAttribute(file, "Header", "Nids_Total", H5T_HBTInt, &np_tot);
   H5Fclose(file);
@@ -261,8 +261,7 @@ void Gadget4Reader_t::CompileSnapshotParticleOffsets(int NumberFiles)
   {
     std::array<HBTInt, TypeMax> NumberParticlesPerTypeThisFile{};
 
-    string filename;
-    GetFileName(ifile, filename);
+    std::string filename = GetSnapshotFileName(ifile);
     hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     GetParticleCountInFile(file, NumberParticlesPerTypeThisFile.data());
     H5Fclose(file);
@@ -301,8 +300,7 @@ HBTInt Gadget4Reader_t::CompileGroupFileOffsets(vector<HBTInt> &nhalo_per_groupf
     offsethalo_per_groupfile[ifile] = offset;
 
     HBTInt nhalo_this;
-    string filename;
-    GetGroupFileName(ifile, filename);
+    std::string filename = GetGroupFileName(ifile);
     hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     ReadAttribute(file, "Header", "Ngroups_ThisFile", H5T_HBTInt, &nhalo_this);
     if (ifile == 0)
@@ -332,8 +330,8 @@ static void check_id_size(hid_t loc)
 void Gadget4Reader_t::ReadSnapshot(int FirstFileIndex, int CurrentFileIndex, Particle_t *ParticlesInFile)
 {
   /* Open the simulation output to read */
-  string filename;
-  GetFileName(CurrentFileIndex, filename);
+  std::string filename = GetSnapshotFileName(CurrentFileIndex);
+
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
   /* Load each particle type. */
@@ -458,8 +456,7 @@ void Gadget4Reader_t::ReadSnapshot(int FirstFileIndex, int CurrentFileIndex, Par
 void Gadget4Reader_t::ReadGroupLen(int ifile, HBTInt *buf)
 {
   /* Open the group file. */
-  string filename;
-  GetGroupFileName(ifile, filename);
+  std::string filename = GetGroupFileName(ifile);
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
   /* How many groups are there in this file. */
@@ -478,8 +475,7 @@ void Gadget4Reader_t::ReadGroupLen(int ifile, HBTInt *buf)
 void Gadget4Reader_t::ReadGroupLenPerType(int ifile, std::array<HBTInt, TypeMax> *buf)
 {
   /* Open the group file. */
-  string filename;
-  GetGroupFileName(ifile, filename);
+  std::string filename = GetGroupFileName(ifile);
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
   /* How many groups are there in this file. */
@@ -502,7 +498,7 @@ void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Pa
    * we have in each file.*/
   if (world.rank() == root_node)
   {
-    ReadHeader(0, Header);
+    Header = ReadHeader(0);
     CompileSnapshotParticleOffsets(Header.NumberOfFiles);
   }
 
@@ -820,7 +816,7 @@ struct HaloPartitioner_t
 
 /* Loads particle properties in parallel and places particles of the same PartType
  * in a contiguous section of Particles */
-void Gadget4Reader_t::LoadParticleProperties(MpiWorker_t &world, vector<Particle_t> &Particles)
+void Gadget4Reader_t::LoadParticleProperties(MpiWorker_t &world, std::vector<Particle_t> &Particles)
 {
 
   /* Allocate a range of files for each task to read. */
@@ -890,7 +886,7 @@ void Gadget4Reader_t::LoadParticleProperties(MpiWorker_t &world, vector<Particle
 }
 
 /* Load particle host halo. */
-void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &Particles)
+void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, std::vector<Particle_t> &Particles)
 {
   /* For a sanity check at the end of this function. */
   HBTInt LocalNumberParticlesAssigned = 0;
