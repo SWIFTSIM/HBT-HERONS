@@ -55,13 +55,13 @@ class Gadget4Reader_t
   std::vector<HBTInt> OffsetParticlesPerFile;
   std::vector<HBTInt> NumberParticlesPerTypeThisRank;
   std::vector<std::array<HBTInt, TypeMax>> NumberParticlesPerTypePerRank;
-  std::vector<std::array<int, TypeMax>> NumberParticlesPerTypePerFile;
-  std::vector<std::array<int, TypeMax>> OffsetParticlesPerTypePerFile;
+  std::vector<std::array<HBTInt, TypeMax>> NumberParticlesPerTypePerFile;
+  std::vector<std::array<HBTInt, TypeMax>> OffsetParticlesPerTypePerFile;
 
   void CompileSnapshotParticleOffsets(int NumberFiles);
   void GetFileName(int ifile, string &filename);
   void SetSnapshot(int snapshotId);
-  void GetParticleCountInFile(hid_t file, int np[]);
+  void GetParticleCountInFile(hid_t file, HBTInt np[]);
   void LoadParticleProperties(MpiWorker_t &world, vector<Particle_t> &Particles);
   void ReadSnapshot(int FirstFileIndex, int CurrentFileIndex, Particle_t *ParticlesOfThisType);
 
@@ -87,7 +87,7 @@ class Gadget4Reader_t
   void CreateHaloSegments(const std::vector<Particle_t> &SnapshotParticles, std::vector<Halo_t> &Halos);
 
   /* Custom MPI datatypes for easier communication. */
-  MPI_Datatype MPI_INT_ARRAY, MPI_GADGET4_HEADER;
+  MPI_Datatype MPI_HBT_INT_ARRAY, MPI_GADGET4_HEADER;
   MPI_Datatype INT_ARRAY_MPI_datatype();
   MPI_Datatype GADGET4_HEADER_MPI_datatype();
 
@@ -95,13 +95,13 @@ public:
 
   Gadget4Reader_t()
   {
-    MPI_INT_ARRAY = INT_ARRAY_MPI_datatype();
+    MPI_HBT_INT_ARRAY = INT_ARRAY_MPI_datatype();
     MPI_GADGET4_HEADER = GADGET4_HEADER_MPI_datatype();
   }
 
   ~Gadget4Reader_t()
   {
-    My_Type_free(&MPI_INT_ARRAY);
+    My_Type_free(&MPI_HBT_INT_ARRAY);
     My_Type_free(&MPI_GADGET4_HEADER);
   }
 

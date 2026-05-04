@@ -17,9 +17,6 @@ using namespace std;
 #include "gadget4_io.h"
 #include "../comms/exchange_and_merge.h"
 
-/* IMPORTANT TODO: handle the fact that INTs and HBT_INTs are mixed up in some
- * MPI communications and array/vector declarations. */
-
 /* Checks whether a file is accessible. */
 inline bool is_it_valid(const std::string& name) {
   struct stat buffer;
@@ -92,10 +89,10 @@ MPI_Datatype Gadget4Reader_t::GADGET4_HEADER_MPI_datatype()
  * per type, particles in each snapshot per type)*/
 MPI_Datatype Gadget4Reader_t::INT_ARRAY_MPI_datatype()
 {
-  MPI_Datatype MPI_INT_ARRAY;
-  MPI_Type_contiguous(TypeMax, MPI_INT, &MPI_INT_ARRAY);
-  MPI_Type_commit(&MPI_INT_ARRAY);
-  return MPI_INT_ARRAY;
+  MPI_Datatype MPI_HBT_INT_ARRAY;
+  MPI_Type_contiguous(TypeMax, MPI_HBT_INT, &MPI_HBT_INT_ARRAY);
+  MPI_Type_commit(&MPI_HBT_INT_ARRAY);
+  return MPI_HBT_INT_ARRAY;
 }
 
 void Gadget4Reader_t::SetSnapshot(int snapshotId)
@@ -244,9 +241,9 @@ HBTInt Gadget4Reader_t::ReadGroupFileTotParticles(int ifile)
 }
 
 /* Gets the number of particles of each type in the current file. */
-void Gadget4Reader_t::GetParticleCountInFile(hid_t file, int np[])
+void Gadget4Reader_t::GetParticleCountInFile(hid_t file, HBTInt np[])
 {
-  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, np);
+  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_HBTInt, np);
 #ifdef DM_ONLY
   for (int i = 0; i < TypeMax; i++)
     if (i != TypeDM)
@@ -262,7 +259,7 @@ void Gadget4Reader_t::CompileSnapshotParticleOffsets(int NumberFiles)
 
   for (int ifile = 0; ifile < NumberFiles; ifile++)
   {
-    std::array<int, TypeMax> NumberParticlesPerTypeThisFile{};
+    std::array<HBTInt, TypeMax> NumberParticlesPerTypeThisFile{};
 
     string filename;
     GetFileName(ifile, filename);
@@ -282,7 +279,7 @@ void Gadget4Reader_t::CompileSnapshotParticleOffsets(int NumberFiles)
   OffsetParticlesPerTypePerFile.resize(NumberFiles);
 
   HBTInt ParticleOffset = 0;
-  std::array<int, TypeMax> ParticleOffsetPerType{};
+  std::array<HBTInt, TypeMax> ParticleOffsetPerType{};
   for (int ifile = 0; ifile < NumberFiles; ifile++)
   {
     OffsetParticlesPerFile[ifile] = ParticleOffset;
@@ -513,8 +510,8 @@ void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Pa
   MPI_Bcast(&Header, 1, MPI_GADGET4_HEADER, root_node, world.Communicator);
   world.SyncContainer(NumberParticlesPerFile, MPI_HBT_INT, root_node);
   world.SyncContainer(OffsetParticlesPerFile, MPI_HBT_INT, root_node);
-  world.SyncContainer(NumberParticlesPerTypePerFile, MPI_INT_ARRAY, root_node);
-  world.SyncContainer(OffsetParticlesPerTypePerFile, MPI_INT_ARRAY, root_node);
+  world.SyncContainer(NumberParticlesPerTypePerFile, MPI_HBT_INT_ARRAY, root_node);
+  world.SyncContainer(OffsetParticlesPerTypePerFile, MPI_HBT_INT_ARRAY, root_node);
 
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
 
@@ -587,7 +584,7 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
   /* Allocate sufficient memory to hold halo lengths in this rank. */
   HBTInt NumberGroupsInRank = std::accumulate(NumberGroupsPerFile.begin() + FirstFileIndex, NumberGroupsPerFile.begin() + LastFileIndex, 0);
   std::vector<HBTInt> LocalHaloSizes(NumberGroupsInRank);
-  std::vector<std::array<HBTInt, TypeMax>> LocalHaloSizesPerType(NumberGroupsInRank);
+  std::vector<std::array<HBTInt, TypeMax>> LocalHaloSizesPerType(NumberGroupsInRank); // This would need changing.
 
   for (int i = 0, ireader = 0; i < world.size(); i++, ireader++)
   {
@@ -663,8 +660,8 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
       CompileOffsets(NumberHalosPerRank, OffsetHaloesPerRank);
 
     /* Gather in the root rank. */
-    MPI_Gatherv(LocalHaloSizesPerType.data(), LocalHaloSizesPerType.size(), MPI_INT_ARRAY, AllHaloSizesPerType.data(), NumberHalosPerRank.data(),
-                OffsetHaloesPerRank.data(), MPI_INT_ARRAY, root_node, world.Communicator);
+    MPI_Gatherv(LocalHaloSizesPerType.data(), LocalHaloSizesPerType.size(), MPI_HBT_INT_ARRAY, AllHaloSizesPerType.data(), NumberHalosPerRank.data(),
+                OffsetHaloesPerRank.data(), MPI_HBT_INT_ARRAY, root_node, world.Communicator);
   }
 
   /* Sanity check: the sum of each particle type part of the halo should be equal to
@@ -710,7 +707,7 @@ void Gadget4Reader_t::GetNumberParticlesPerRank(MpiWorker_t &world, const std::v
   MPI_Gather(&NumberParticlesThisRank, 1, MPI_HBT_INT, NumberParticlesPerRank.data(), 1, MPI_HBT_INT, root_node, world.Communicator);
 
   /* Now the number of particles per type.*/
-  MPI_Gather(NumberParticlesPerTypeThisRank.data(), 1, MPI_INT_ARRAY, NumberParticlesPerTypePerRank.data(), 1, MPI_INT_ARRAY, root_node, world.Communicator);
+  MPI_Gather(NumberParticlesPerTypeThisRank.data(), 1, MPI_HBT_INT_ARRAY, NumberParticlesPerTypePerRank.data(), 1, MPI_HBT_INT_ARRAY, root_node, world.Communicator);
 }
 
 /* Identifies how haloes are partitioned into segments across MPI ranks for in
