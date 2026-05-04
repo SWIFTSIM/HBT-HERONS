@@ -764,15 +764,19 @@ struct HaloPartitioner_t
     int iproc = 1;
     for (HBTInt ihalo = 0; ihalo < HaloOffsets.size(); ihalo++)
     {
-      /* NOTE: we should have at least one halo that this parttype is a part of,
-       * otherwise this will cause out-of-bounds access if iproc > NumberRanks. */
-      while (ProcOffsets[iproc] <= HaloOffsets[ihalo])
+      /* The second condition handles the last few FoF groups in the catalogue
+       * that have zero particles of this type (e.g. haloes with no star or
+       * black hole particles). Otherwise it will try to assign haloes to a non-
+       * existing rank.
+       * NOTE: The alternative is to trim HaloSizesOnProc to remove these haloes,
+       * but we don't know a priori above which index all haloes have zero size. */
+      while (ProcOffsets[iproc] <= HaloOffsets[ihalo] & iproc < NumberRanks)
       {
 
         /* Identify whether the first halo segment of an MPI rank is a
          * continuation of the last halo segment of the previous rank, or a
          * completely new halo. */
-        if (HaloOffsets[ihalo] == ProcOffsets[iproc]) // New halo
+        if (ProcOffsets[iproc] == HaloOffsets[ihalo]) // New halo
         {
           RankFirstHalo[iproc] = ihalo;
         }
@@ -780,8 +784,9 @@ struct HaloPartitioner_t
         {
           RankFirstHalo[iproc] = ihalo - 1;
         }
+
         /* The value of iproc will keep on increasing until we find the last
-          * segment of a halo that is split across MPI ranks. */
+         * segment of a halo that is split across MPI ranks. */
         RankLastHalo[iproc - 1] = ihalo - 1;
         iproc++;
       }
