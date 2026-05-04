@@ -86,21 +86,28 @@ class Gadget4Reader_t
   void ReadGroupLengthPerParticleType(int ifile, HBTInt *buf);
   void CreateHaloSegments(const std::vector<Particle_t> &SnapshotParticles, std::vector<Halo_t> &Halos);
 
-  MPI_Datatype MPI_Gadget4Header_t;
+  /* Custom MPI datatypes for easier communication. */
+  MPI_Datatype MPI_INT_ARRAY, MPI_GADGET4_HEADER;
+  MPI_Datatype INT_ARRAY_MPI_datatype();
+  MPI_Datatype GADGET4_HEADER_MPI_datatype();
 
 public:
 
   Gadget4Reader_t()
   {
-    create_Gadget4Header_MPI_type(MPI_Gadget4Header_t);
-  }
-  ~Gadget4Reader_t()
-  {
-    My_Type_free(&MPI_Gadget4Header_t);
+    MPI_INT_ARRAY = INT_ARRAY_MPI_datatype();
+    MPI_GADGET4_HEADER = GADGET4_HEADER_MPI_datatype();
   }
 
-  void LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles, Cosmology_t &Cosmology);
+  ~Gadget4Reader_t()
+  {
+    My_Type_free(&MPI_INT_ARRAY);
+    My_Type_free(&MPI_GADGET4_HEADER);
+  }
+
   void LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &partsnap, vector<Halo_t> &Halos);
+  void LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles, Cosmology_t &Cosmology);
+
 };
 
 extern bool IsGadget4Group(const string &GroupFileFormat);

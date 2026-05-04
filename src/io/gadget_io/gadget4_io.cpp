@@ -34,8 +34,12 @@ inline bool CompParticleHost(const Particle_t &a, const Particle_t &b)
 namespace Gadget4Reader
 {
 
-/* Creates the Header struct data type for MPI communication */
-void create_Gadget4Header_MPI_type(MPI_Datatype &dtype)
+/******************************************************************************/
+/* MPI custom dtype creation.                                                 */
+/******************************************************************************/
+
+/* To communicate snapshot file header */
+MPI_Datatype Gadget4Reader_t::GADGET4_HEADER_MPI_datatype()
 {
   Gadget4Header_t p;
 #define NumAttr 13
@@ -73,12 +77,25 @@ void create_Gadget4Header_MPI_type(MPI_Datatype &dtype)
   RegisterAttr(DM_maximum_physical_softening, MPI_DOUBLE, 1);
 
 #undef RegisterAttr
-          assert(i <= NumAttr);
+  assert(i <= NumAttr);
 
-  MPI_Type_create_struct(i, blockcounts, offsets, oldtypes, &dtype);
-  MPI_Type_create_resized(dtype, (MPI_Aint)0, extent, &dtype);
-  MPI_Type_commit(&dtype);
+  MPI_Datatype MPI_GADGET4_HEADER;
+  MPI_Type_create_struct(i, blockcounts, offsets, oldtypes, &MPI_GADGET4_HEADER);
+  MPI_Type_create_resized(MPI_GADGET4_HEADER, (MPI_Aint)0, extent, &MPI_GADGET4_HEADER);
+  MPI_Type_commit(&MPI_GADGET4_HEADER);
 #undef NumAttr
+
+  return MPI_GADGET4_HEADER;
+}
+
+/* To communicate vectors containing arrays of size TypeMax (e.g. halo length
+ * per type, particles in each snapshot per type)*/
+MPI_Datatype Gadget4Reader_t::INT_ARRAY_MPI_datatype()
+{
+  MPI_Datatype MPI_INT_ARRAY;
+  MPI_Type_contiguous(TypeMax, MPI_INT, &MPI_INT_ARRAY);
+  MPI_Type_commit(&MPI_INT_ARRAY);
+  return MPI_INT_ARRAY;
 }
 
 void Gadget4Reader_t::SetSnapshot(int snapshotId)
@@ -493,18 +510,11 @@ void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Pa
   }
 
   /* Tell other MPI ranks about the information the root MPI rank just loaded. */
-  MPI_Bcast(&Header, 1, MPI_Gadget4Header_t, root_node, world.Communicator);
+  MPI_Bcast(&Header, 1, MPI_GADGET4_HEADER, root_node, world.Communicator);
   world.SyncContainer(NumberParticlesPerFile, MPI_HBT_INT, root_node);
   world.SyncContainer(OffsetParticlesPerFile, MPI_HBT_INT, root_node);
-
-  /* Need a custom MPI type here. TODO: Make this MPI dtype creation into its
-   * own function. */
-  MPI_Datatype MPI_HBT_ARRAY;
-  MPI_Type_contiguous(TypeMax, MPI_INT, &MPI_HBT_ARRAY);
-  MPI_Type_commit(&MPI_HBT_ARRAY);
-  world.SyncContainer(NumberParticlesPerTypePerFile, MPI_HBT_ARRAY, root_node);
-  world.SyncContainer(OffsetParticlesPerTypePerFile, MPI_HBT_ARRAY, root_node);
-  MPI_Type_free(&MPI_HBT_ARRAY);
+  world.SyncContainer(NumberParticlesPerTypePerFile, MPI_INT_ARRAY, root_node);
+  world.SyncContainer(OffsetParticlesPerTypePerFile, MPI_INT_ARRAY, root_node);
 
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
 
@@ -652,14 +662,9 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
     if (world.rank() == root_node)
       CompileOffsets(NumberHalosPerRank, OffsetHaloesPerRank);
 
-    /* Gather in the root rank. We create a custom MPI dtype because each vector
-     * element is an array of size TypeMax. */
-    MPI_Datatype MPI_HBT_ARRAY;
-    MPI_Type_contiguous(TypeMax, MPI_HBT_INT, &MPI_HBT_ARRAY);
-    MPI_Type_commit(&MPI_HBT_ARRAY);
-    MPI_Gatherv(LocalHaloSizesPerType.data(), LocalHaloSizesPerType.size(), MPI_HBT_ARRAY, AllHaloSizesPerType.data(), NumberHalosPerRank.data(),
-                OffsetHaloesPerRank.data(), MPI_HBT_ARRAY, root_node, world.Communicator);
-    MPI_Type_free(&MPI_HBT_ARRAY);
+    /* Gather in the root rank. */
+    MPI_Gatherv(LocalHaloSizesPerType.data(), LocalHaloSizesPerType.size(), MPI_INT_ARRAY, AllHaloSizesPerType.data(), NumberHalosPerRank.data(),
+                OffsetHaloesPerRank.data(), MPI_INT_ARRAY, root_node, world.Communicator);
   }
 
   /* Sanity check: the sum of each particle type part of the halo should be equal to
@@ -705,11 +710,7 @@ void Gadget4Reader_t::GetNumberParticlesPerRank(MpiWorker_t &world, const std::v
   MPI_Gather(&NumberParticlesThisRank, 1, MPI_HBT_INT, NumberParticlesPerRank.data(), 1, MPI_HBT_INT, root_node, world.Communicator);
 
   /* Now the number of particles per type.*/
-  MPI_Datatype MPI_HBT_ARRAY;
-  MPI_Type_contiguous(TypeMax, MPI_HBT_INT, &MPI_HBT_ARRAY);
-  MPI_Type_commit(&MPI_HBT_ARRAY);
-  MPI_Gather(NumberParticlesPerTypeThisRank.data(), 1, MPI_HBT_ARRAY, NumberParticlesPerTypePerRank.data(), 1, MPI_HBT_ARRAY, root_node, world.Communicator);
-  MPI_Type_free(&MPI_HBT_ARRAY);
+  MPI_Gather(NumberParticlesPerTypeThisRank.data(), 1, MPI_INT_ARRAY, NumberParticlesPerTypePerRank.data(), 1, MPI_INT_ARRAY, root_node, world.Communicator);
 }
 
 /* Identifies how haloes are partitioned into segments across MPI ranks for in
