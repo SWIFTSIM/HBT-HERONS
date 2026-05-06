@@ -16,6 +16,7 @@
 #include "./apostle_io/apostle_io.h"
 #include "./gadget_io/gadget_group_io.h"
 #include "./gadget_io/gadget4_io.h"
+#include "./arepo_io/arepo_io.h"
 #include "./swiftsim_io/swiftsim_io.h"
 
 void HaloSnapshot_t::Load(MpiWorker_t &world, const ParticleSnapshot_t &partsnap)
@@ -32,6 +33,8 @@ void HaloSnapshot_t::Load(MpiWorker_t &world, const ParticleSnapshot_t &partsnap
     else
       GadgetGroup::Load(world, SnapshotId, Halos);
   }
+  else if (ArepoReader::IsArepoGroup(GroupFileFormat))
+      ArepoReader::ArepoReader_t().LoadGroups(world, partsnap, Halos); // only this needs partsnap
   else if (IsApostleGroup(GroupFileFormat))
     ApostleReader_t().LoadGroups(world, SnapshotId, Halos);
   else if (IsSwiftSimGroup(GroupFileFormat))

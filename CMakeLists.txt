@@ -101,6 +101,7 @@ set(HBT_SRC
   src/io/gadget_io/gadget_group_io.cpp
   src/io/gadget_io/gadget_io.cpp
   src/io/gadget_io/gadget4_io.cpp
+  src/io/arepo_io/arepo_io.cpp
   src/io/swiftsim_io/swiftsim_io.cpp
   src/io/halo_io.cpp
   src/io/snapshot_io.cpp
