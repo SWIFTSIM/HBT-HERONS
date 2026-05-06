@@ -579,8 +579,11 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
 
   /* Allocate sufficient memory to hold halo lengths in this rank. */
   HBTInt NumberGroupsInRank = std::accumulate(NumberGroupsPerFile.begin() + FirstFileIndex, NumberGroupsPerFile.begin() + LastFileIndex, 0);
+  std::vector<std::array<HBTInt, TypeMax>> LocalHaloSizesPerType(NumberGroupsInRank);
+
+#ifndef NDEBUG
   std::vector<HBTInt> LocalHaloSizes(NumberGroupsInRank);
-  std::vector<std::array<HBTInt, TypeMax>> LocalHaloSizesPerType(NumberGroupsInRank); // This would need changing.
+#endif // NDEBUG
 
   for (int i = 0, ireader = 0; i < world.size(); i++, ireader++)
   {
@@ -595,18 +598,20 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
       {
         if (NumberGroupsPerFile[FileIndex]) // some files do not have groups
         {
-          ReadGroupLen(FileIndex, LocalHaloSizes.data() + OffsetGroupsPerFile[FileIndex] -
-                                OffsetGroupsPerFile[FirstFileIndex]);
           ReadGroupLenPerType(FileIndex, LocalHaloSizesPerType.data() + OffsetGroupsPerFile[FileIndex] -
                                 OffsetGroupsPerFile[FirstFileIndex]);
+#ifndef NDEBUG
+          ReadGroupLen(FileIndex, LocalHaloSizes.data() + OffsetGroupsPerFile[FileIndex] -
+                                OffsetGroupsPerFile[FirstFileIndex]);
+#endif // NDEBUG
         }
       }
     }
   }
 
+#ifndef NDEBUG
   /* Sanity check: the sum of each particle type part of the halo should be equal to
    * the total number. */
-#ifndef NDEBUG
   for (HBTInt halo_i = 0; halo_i < NumberGroupsInRank; halo_i++)
   {
     HBTInt SumParticleTypes = 0;
@@ -615,29 +620,7 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
 
     assert(LocalHaloSizes[halo_i] == SumParticleTypes);
   }
-#endif
-
-  /* In this block we will gather the halo sizes loaded by each rank into the
-   * root rank. The information will eventually be used to determine particle
-   * offsets. NOTE: this is currently redudant, but it can be useful for
-   * debugging */
-  {
-    std::vector<int> NumberHalosPerRank, OffsetHaloesPerRank;
-
-    if (world.rank() == root_node)
-    {
-      AllHaloSizes.resize(TotalNumberGroups);
-      NumberHalosPerRank.resize(world.size());
-    }
-    MPI_Gather(&NumberGroupsInRank, 1, MPI_INT, NumberHalosPerRank.data(), 1, MPI_INT, root_node, world.Communicator);
-
-    /* Create an offset value for each halo value. */
-    if (world.rank() == root_node)
-      CompileOffsets(NumberHalosPerRank, OffsetHaloesPerRank);
-
-    MPI_Gatherv(LocalHaloSizes.data(), LocalHaloSizes.size(), MPI_HBT_INT, AllHaloSizes.data(), NumberHalosPerRank.data(),
-                OffsetHaloesPerRank.data(), MPI_HBT_INT, root_node, world.Communicator);
-  }
+#endif //NDEBUG
 
   /* In this block we will gather the halo sizes (per particle type) loaded by
    * each rank into the root rank. The information will eventually be used to
@@ -663,6 +646,25 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
   /* Sanity check: the sum of each particle type part of the halo should be equal to
    * the total number (after communicating). */
 #ifndef NDEBUG
+
+  /* Gather the total halo sizes loaded by each rank into the root rank. */
+  {
+    std::vector<int> NumberHalosPerRank, OffsetHaloesPerRank;
+    if (world.rank() == root_node)
+    {
+      AllHaloSizes.resize(TotalNumberGroups);
+      NumberHalosPerRank.resize(world.size());
+    }
+    MPI_Gather(&NumberGroupsInRank, 1, MPI_INT, NumberHalosPerRank.data(), 1, MPI_INT, root_node, world.Communicator);
+
+    /* Create an offset value for each halo value. */
+    if (world.rank() == root_node)
+      CompileOffsets(NumberHalosPerRank, OffsetHaloesPerRank);
+
+    MPI_Gatherv(LocalHaloSizes.data(), LocalHaloSizes.size(), MPI_HBT_INT, AllHaloSizes.data(), NumberHalosPerRank.data(),
+                OffsetHaloesPerRank.data(), MPI_HBT_INT, root_node, world.Communicator);
+  }
+
   if (world.rank() == 0)
   {
     for (HBTInt halo_i = 0; halo_i < TotalNumberGroups; halo_i++)
