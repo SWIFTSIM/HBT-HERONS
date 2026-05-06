@@ -97,29 +97,11 @@ void Linkedlist_t::merge()
     }
   }
 
-  // equivalent way:
-  //   #pragma omp parallel for
-  //   for(int ichain=0;ichain<HOC.size();ichain++)
-  //   {
-  //     auto *p=&HOC[ichain];
-  //     for(int ithread=0;ithread<LLs.size();ithread++)
-  //     {
-  //       auto pid=LLs[ithread].HOC[ichain];
-  //       while(pid>=0)//copy till tail
-  //       {
-  // 	*p=Samples[ithread].restore_id(pid);//copy
-  // 	pid=LLs[ithread].List[pid];//next value
-  // 	p=&List[*p];//next storage
-  //       }
-  //     }
-  //     *p=-1;//close the chain
-  //   }
-
   LLs.clear();
   Samples.clear();
 }
 
-void LinkedlistLinkGroup(HBTReal radius, const Snapshot_t &snapshot, vector<HBTInt> &GrpLen, vector<HBTInt> &GrpTags,
+void LinkedlistLinkGroup(HBTReal radius, const Snapshot_t &snapshot, std::vector<HBTInt> &GrpLen, std::vector<HBTInt> &GrpTags,
                          int ndiv)
 /* link particles in the given snapshot into groups.
  * Output: filled GrpLen and GrpTags (0~Ngroups-1), down to mass=1 (diffuse particles)
@@ -127,22 +109,22 @@ void LinkedlistLinkGroup(HBTReal radius, const Snapshot_t &snapshot, vector<HBTI
 {
   GrpTags.assign(snapshot.size(), -1);
 
-  cout << "Building linkedlist...\n" << flush;
+  std::cout << "Building linkedlist...\n" << std::flush;
 
   SnapshotPos_t posdata(snapshot);
   Linkedlist_t ll(ndiv, &posdata, HBTConfig.BoxSize, HBTConfig.PeriodicBoundaryOn);
 
-  cout << "Linking Groups...\n" << flush;
+  std::cout << "Linking Groups...\n" << std::flush;
   HBTInt grpid = 0;
   HBTInt printstep = snapshot.size() / 100, progress = printstep;
-  cout << "00%" << flush;
+  std::cout << "00%" << std::flush;
   for (HBTInt i = 0; i < snapshot.size(); i++)
   {
     if (GrpTags[i] < 0)
     {
       if (i >= progress)
       {
-        cout << "\b\b\b" << setw(2) << progress / printstep << "%" << flush;
+        std::cout << "\b\b\b" << std::setw(2) << progress / printstep << "%" << std::flush;
         progress += printstep;
       }
       GrpTags[i] = grpid; // infect the seed particle
@@ -152,5 +134,5 @@ void LinkedlistLinkGroup(HBTReal radius, const Snapshot_t &snapshot, vector<HBTI
     }
   }
 
-  cout << "Found " << GrpLen.size() << " Groups\n";
+  std::cout << "Found " << GrpLen.size() << " Groups\n";
 }

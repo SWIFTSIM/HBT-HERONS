@@ -16,7 +16,7 @@ int GetGrid(HBTReal x, HBTReal step, int dim)
   return i;
 }
 
-int AssignCell(const HBTxyz &Pos, const HBTxyz &step, const vector<int> &dims)
+int AssignCell(const HBTxyz &Pos, const HBTxyz &step, const std::vector<int> &dims)
 {
 #define GRIDtoRank(g0, g1, g2) (((g0) * dims[1] + (g1)) * dims[2] + (g2))
 #define GID(i) GetGrid(Pos[i], step[i], dims[i])
@@ -88,9 +88,9 @@ int LargestRootFactor(int N, int dim)
 
 /* Return a factorization of `N` into `dim` factors that are as close as possible
  * to each other*/
-vector<int> ClosestFactors(int N, int dim)
+std::vector<int> ClosestFactors(int N, int dim)
 {
-  vector<int> factors;
+  std::vector<int> factors;
   for (; dim > 0; dim--)
   {
     int x = LargestRootFactor(N, dim);

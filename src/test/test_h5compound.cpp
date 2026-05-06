@@ -37,7 +37,6 @@ using std::vector;
 #include "H5Cpp.h"
 #include "hdf5.h"
 #include "hdf5_hl.h"
-// #include "H5VarLenType.h"
 
 #ifndef H5_NO_NAMESPACE
 using namespace H5;
@@ -151,10 +150,10 @@ int main(void)
      */
 #define ShowField(s, x)                                                                                                \
   {                                                                                                                    \
-    cout << endl << "Field " << #x << " : " << endl;                                                                   \
+    std::cout << std::endl << "Field " << #x << " : " << std::endl;                                                                   \
     for (i = 0; i < LENGTH; i++)                                                                                       \
-      cout << s[i].x << " ";                                                                                           \
-    cout << endl;                                                                                                      \
+      std::cout << s[i].x << " ";                                                                                           \
+    std::cout << std::endl;                                                                                                      \
   }
     ShowField(s2, a);
     ShowField(s2, c);
@@ -175,10 +174,10 @@ int main(void)
     /*
      * Display the field
      */
-    cout << endl << "Field b : " << endl;
+    std::cout << std::endl << "Field b : " << std::endl;
     for (i = 0; i < LENGTH; i++)
-      cout << sf[i] << " ";
-    cout << endl;
+      std::cout << sf[i] << " ";
+    std::cout << std::endl;
 
     struct s3_t
     {
@@ -187,7 +186,7 @@ int main(void)
       int a;
       int d;
       float x[3];
-      vector<int> i; // this invalidates POD requirement of s3_t
+      std::vector<int> i; // this invalidates POD requirement of s3_t
       // 		float *f;
       // 		s2_t *s2;
       //  		CompType mtype2;
@@ -204,12 +203,12 @@ int main(void)
       }
     };
     ct_t mtype3container;
-    cout << mtype3container.getsize() << endl;
+    std::cout << mtype3container.getsize() << std::endl;
     VarLenType vlt_i(&PredType::NATIVE_INT);
-    cout << "s3_t size=" << sizeof(s3_t) << endl;
-    cout << "vecotor i size=" << sizeof(vector<int>) << endl;
-    vector<int> ii(10);
-    cout << "vector ii size=" << sizeof(ii) << endl;
+    std::cout << "s3_t size=" << sizeof(s3_t) << std::endl;
+    std::cout << "vecotor i size=" << sizeof(vector<int>) << std::endl;
+    std::vector<int> ii(10);
+    std::cout << "vector ii size=" << sizeof(ii) << std::endl;
     CompType mtype3(sizeof(s3_t));
     mtype3.insertMember("a", HOFFSET(s3_t, a), PredType::NATIVE_INT);
     //       mtype3.insertMember(MEMBER2, HOFFSET(s3_t, b), PredType::NATIVE_FLOAT);
@@ -217,47 +216,47 @@ int main(void)
     mtype3.insertMember("d", HOFFSET(s3_t, d), PredType::NATIVE_INT);
     hsize_t dims = 3;
     mtype3.insertMember("x", HOFFSET(s3_t, x), ArrayType(PredType::NATIVE_INT, 1, &dims));
-    // 	  mtype3.insertMember("i", HOFFSET(s3_t, i), vlt_i); //this is not useful, since i is the vector object, not the
+    // 	  mtype3.insertMember("i", HOFFSET(s3_t, i), vlt_i); //this is not useful, since i is the std::vector object, not the
     // memory storage.
 
-    vector<s3_t> s3(LENGTH);
+    std::vector<s3_t> s3(LENGTH);
 
     s3[0].i.assign(3, 1);
     s3[3].i.assign(2, -1);
     dataset->read(s3.data(), mtype3);
 
-    cout << endl << "Field d : " << endl;
+    std::cout << std::endl << "Field d : " << std::endl;
     for (i = 0; i < LENGTH; i++)
-      cout << s3[i].d << " ";
-    cout << endl;
+      std::cout << s3[i].d << " ";
+    std::cout << std::endl;
 
-    cout << endl << "Field a : " << endl;
+    std::cout << std::endl << "Field a : " << std::endl;
     for (i = 0; i < LENGTH; i++)
-      cout << s3[i].a << " ";
-    cout << endl;
+      std::cout << s3[i].a << " ";
+    std::cout << std::endl;
 
-    cout << endl << "Field b : " << endl;
+    std::cout << std::endl << "Field b : " << std::endl;
     for (i = 0; i < LENGTH; i++)
-      cout << s3[i].b << " ";
-    cout << endl;
+      std::cout << s3[i].b << " ";
+    std::cout << std::endl;
 
-    cout << endl << "Field x : " << endl;
+    std::cout << std::endl << "Field x : " << std::endl;
     for (i = 0; i < LENGTH; i++)
     {
-      cout << i << ":";
+      std::cout << i << ":";
       for (auto x : s3[i].x)
-        cout << x << " ";
-      cout << endl;
+        std::cout << x << " ";
+      std::cout << std::endl;
     }
 
-    cout << endl << "Field i : " << endl;
+    std::cout << std::endl << "Field i : " << std::endl;
     for (i = 0; i < LENGTH; i++)
       if (s3[i].i.size())
       {
-        cout << i << ":";
+        std::cout << i << ":";
         for (auto x : s3[i].i)
-          cout << x << " ";
-        cout << endl;
+          std::cout << x << " ";
+        std::cout << std::endl;
       }
 
     /*
@@ -295,20 +294,20 @@ int main(void)
       for (offset[0] = 0; offset[0] < dim[0]; offset[0]++)
       {
         dspace.selectHyperslab(H5S_SELECT_SET, count, offset, stride, block);
-        cout << dset2.getVlenBufSize(vlt_i, dspace) / vlt_i.getSuper().getSize() << " ";
+        std::cout << dset2.getVlenBufSize(vlt_i, dspace) / vlt_i.getSuper().getSize() << " ";
       }
-      cout << endl;
-      cout << dset2.getStorageSize() << ',' << dset2.getInMemDataSize() << endl;
-      cout << vlt_i.getSize() << endl;
-      cout << dim[0] << endl;
+      std::cout << std::endl;
+      std::cout << dset2.getStorageSize() << ',' << dset2.getInMemDataSize() << std::endl;
+      std::cout << vlt_i.getSize() << std::endl;
+      std::cout << dim[0] << std::endl;
       hvl_t vl[dim[0]];
       dset2.read(vl, VarLenType(&PredType::NATIVE_FLOAT)); // this does not have to be the same as the storage type!
       for (i = 0; i < LENGTH; i++)
       {
-        cout << "data " << i << ":";
+        std::cout << "data " << i << ":";
         for (int j = 0; j < vl[i].len; j++)
-          cout << ((float *)vl[i].p)[j] << " ";
-        cout << endl;
+          std::cout << ((float *)vl[i].p)[j] << " ";
+        std::cout << std::endl;
       }
     }
   } // end of try block

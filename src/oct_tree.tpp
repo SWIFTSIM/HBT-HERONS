@@ -1,8 +1,3 @@
-// #include <cstdlib>
-// #include <cstdio>
-// #include <cmath>
-// #include <cstring>
-
 #include "mymath.h"
 #include "config_parser.h"
 

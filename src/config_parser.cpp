@@ -10,7 +10,7 @@ namespace PhysicalConst
 
 Parameter_t HBTConfig;
 
-bool Parameter_t::TryCompulsoryParameterValue(string ParameterName, stringstream &ParameterValue)
+bool Parameter_t::TryCompulsoryParameterValue(std::string ParameterName, std::stringstream &ParameterValue)
 {
 #define TrySetPar(var, i)                                                                                              \
   if (ParameterName == #var)                                                                                           \
@@ -33,7 +33,7 @@ bool Parameter_t::TryCompulsoryParameterValue(string ParameterName, stringstream
   return false; // This signals to continue looking for valid parameter names
 }
 
-bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &ParameterValue)
+bool Parameter_t::TrySingleValueParameter(std::string ParameterName, std::stringstream &ParameterValue)
 {
 #define TrySetPar(var)                                                                                                 \
   if (ParameterName == #var)                                                                                           \
@@ -82,15 +82,15 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
 
   if (ParameterName == "GroupParticleIdMask")
   {
-    ParameterValue >> hex >> GroupParticleIdMask >> dec;
-    cout << "GroupParticleIdMask = " << hex << GroupParticleIdMask << dec << endl;
+    ParameterValue >> std::hex >> GroupParticleIdMask >> std::dec;
+    std::cout << "GroupParticleIdMask = " << std::hex << GroupParticleIdMask << std::dec << std::endl;
     return true;
   }
 
   return false; // This signals to continue looking for valid parameter names
 }
 
-bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &ParameterValues)
+bool Parameter_t::TryMultipleValueParameter(std::string ParameterName, std::stringstream &ParameterValues)
 {
 
   if (ParameterName == "SnapshotIdList")
@@ -133,9 +133,9 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
       /* Sanity check: we can only specify a single number if -1 is present. */
       if(DoNotSubsampleParticleTypes.size() > 1)
       {
-        stringstream error_message;
-        error_message << "DoNotSubsampleParticleTypes only takes a single number if -1 is present. " << endl;
-        throw runtime_error(error_message.str());
+        std::stringstream error_message;
+        error_message << "DoNotSubsampleParticleTypes only takes a single number if -1 is present. " << std::endl;
+        throw std::runtime_error(error_message.str());
       }
 
       /* We need a right bit shift, as it is otherwise undefined. */
@@ -150,13 +150,12 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
   return false; // This signals to continue looking for valid parameter names
 }
 
-void Parameter_t::SetParameterValue(const string &line)
+void Parameter_t::SetParameterValue(const std::string &line)
 {
   /* Get the name of the parameter */
-  stringstream ss(line);
-  string name;
+  std::stringstream ss(line);
+  std::string name;
   ss >> name;
-  //   transform(name.begin(),name.end(),name.begin(),::tolower);
 
   /* We will try matching the name of the input parameter to those which have
    * been defined in the code. If we find a match, we assign its value. First
@@ -169,24 +168,24 @@ void Parameter_t::SetParameterValue(const string &line)
     return;
 
   /* No matching parameter name has been found, throw an error message */
-  stringstream error_message;
-  error_message << "Unrecognized configuration entry: " << name << endl;
-  throw runtime_error(error_message.str());
+  std::stringstream error_message;
+  error_message << "Unrecognized configuration entry: " << name << std::endl;
+  throw std::runtime_error(error_message.str());
 }
 
 void Parameter_t::ParseConfigFile(const char *param_file)
 {
-  ifstream ifs;
+  std::ifstream ifs;
   ifs.open(param_file);
   if (!ifs.is_open()) // or ifs.fail()
   {
-    cerr << "Error: failed to open configuration: " << param_file << endl;
+    std::cerr << "Error: failed to open configuration: " << param_file << std::endl;
     exit(1);
   }
-  vector<string> lines;
-  string line;
+  std::vector<std::string> lines;
+  std::string line;
 
-  cout << "Reading configuration file " << param_file << endl;
+  std::cout << "Reading configuration file " << param_file << std::endl;
 
   while (getline(ifs, line))
   {
@@ -220,23 +219,22 @@ void Parameter_t::ParseConfigFile(const char *param_file)
 void Parameter_t::ReadSnapshotNameList()
 { // to specify snapshotnamelist, create a file "snapshotlist.txt" under SubhaloPath, and list the filenames inside, one
   // per line.
-  string snaplist_filename = SubhaloPath + "/snapshotlist.txt";
-  ifstream ifs;
+  std::string snaplist_filename = SubhaloPath + "/snapshotlist.txt";
+  std::ifstream ifs;
   ifs.open(snaplist_filename);
   if (ifs.is_open())
   {
-    cout << "Found SnapshotNameList file " << snaplist_filename << endl;
+    std::cout << "Found SnapshotNameList file " << snaplist_filename << std::endl;
 
-    string line;
+    std::string line;
     while (getline(ifs, line))
     {
       trim_trailing_garbage(line, "#");
-      istringstream ss(line);
-      string name;
+      std::istringstream ss(line);
+      std::string name;
       ss >> name;
       if (!name.empty())
       {
-        // 		cout<<name<<endl;
         SnapshotNameList.push_back(name);
       }
     }
@@ -248,42 +246,42 @@ void Parameter_t::ReadSnapshotNameList()
 /* Checks whether the all mandatory parameters have been specified */
 void Parameter_t::CheckRequiredParameters()
 {
-  stringstream error_message; /* In case we need to raise an error. */
+  std::stringstream error_message; /* In case we need to raise an error. */
 
   if(!IsSet[0])
   {
-    error_message << "SnapshotPath: Mandatory parameter not found." << endl;
-    throw invalid_argument(error_message.str());
+    error_message << "SnapshotPath: Mandatory parameter not found." << std::endl;
+    throw std::invalid_argument(error_message.str());
   }
   if(!IsSet[1])
   {
-    error_message << "HaloPath: Mandatory parameter not found." << endl;
-    throw invalid_argument(error_message.str());
+    error_message << "HaloPath: Mandatory parameter not found." << std::endl;
+    throw std::invalid_argument(error_message.str());
   }
   if(!IsSet[2])
   {
-    error_message << "SubhaloPath: Mandatory parameter not found." << endl;
-    throw invalid_argument(error_message.str());
+    error_message << "SubhaloPath: Mandatory parameter not found." << std::endl;
+    throw std::invalid_argument(error_message.str());
   }
   if(!IsSet[3])
   {
-    error_message << "SnapshotFileBase: Mandatory parameter not found." << endl;
-    throw invalid_argument(error_message.str());
+    error_message << "SnapshotFileBase: Mandatory parameter not found." << std::endl;
+    throw std::invalid_argument(error_message.str());
   }
   if(!IsSet[4])
   {
-    error_message << "MaxSnapshotIndex: Mandatory parameter not found." << endl;
-    throw invalid_argument(error_message.str());
+    error_message << "MaxSnapshotIndex: Mandatory parameter not found." << std::endl;
+    throw std::invalid_argument(error_message.str());
   }
   if(!IsSet[5])
   {
-    error_message << "BoxSize: Mandatory parameter not found." << endl;
-    throw invalid_argument(error_message.str());
+    error_message << "BoxSize: Mandatory parameter not found." << std::endl;
+    throw std::invalid_argument(error_message.str());
   }
   if(!IsSet[6])
   {
-    error_message << "SofteningHalo: Mandatory parameter not found." << endl;
-    throw invalid_argument(error_message.str());
+    error_message << "SofteningHalo: Mandatory parameter not found." << std::endl;
+    throw std::invalid_argument(error_message.str());
   }
 }
 
@@ -298,27 +296,27 @@ bool ContainsDuplicateValues(const std::vector<int> &InputVectorParameter)
 /* Checks whether the input parameters are valid */
 void Parameter_t::CheckValidityParameters()
 {
-  stringstream error_message; /* In case we need to raise an error. */
+  std::stringstream error_message; /* In case we need to raise an error. */
 
   /* Make sure we have not provided duplicate entries for vector input types */
   {
     /* SnapshotIdList will be empty if no values are passed at runtime. */
     if(SnapshotIdList.size() && ContainsDuplicateValues(SnapshotIdList))
     {
-      error_message << "SnapshotIdList: There are duplicate values, please remove repeated elements." << endl;
-      throw invalid_argument(error_message.str());
+      error_message << "SnapshotIdList: There are duplicate values, please remove repeated elements." << std::endl;
+      throw std::invalid_argument(error_message.str());
     }
 
     if(ContainsDuplicateValues(TracerParticleTypes))
     {
-      error_message << "TracerParticleTypes: There are duplicate values, please remove repeated elements." << endl;
-      throw invalid_argument(error_message.str());
+      error_message << "TracerParticleTypes: There are duplicate values, please remove repeated elements." << std::endl;
+      throw std::invalid_argument(error_message.str());
     }
 
     if(ContainsDuplicateValues(DoNotSubsampleParticleTypes))
     {
-      error_message << "DoNotSubsampleParticleTypes: There are duplicate values, please remove repeated elements." << endl;
-      throw invalid_argument(error_message.str());
+      error_message << "DoNotSubsampleParticleTypes: There are duplicate values, please remove repeated elements." << std::endl;
+      throw std::invalid_argument(error_message.str());
     }
   }
 
@@ -328,38 +326,38 @@ void Parameter_t::CheckValidityParameters()
     /* The snapshot ID list should be in ascending order. */
     if(!std::is_sorted(SnapshotIdList.begin(), SnapshotIdList.end()))
     {
-      error_message << "SnapshotIdList: Values are not in ascending order." << endl;
-      throw invalid_argument(error_message.str());
+      error_message << "SnapshotIdList: Values are not in ascending order." << std::endl;
+      throw std::invalid_argument(error_message.str());
     }
 
     /* MaxSnapshotIndex should be consistent with SnapshotIdList */
     if (MaxSnapshotIndex != (SnapshotIdList.size() - 1))
     {
-      error_message << "MaxSnapshotIndex (" << MaxSnapshotIndex << "): inconsistent with SnapshotIdList (SnapshotIdList.size() - 1 = " << (SnapshotIdList.size() - 1) << ")." << endl;
-      throw invalid_argument(error_message.str());
+      error_message << "MaxSnapshotIndex (" << MaxSnapshotIndex << "): inconsistent with SnapshotIdList (SnapshotIdList.size() - 1 = " << (SnapshotIdList.size() - 1) << ")." << std::endl;
+      throw std::invalid_argument(error_message.str());
     }
   }
 
   /* No negative values for MaxSampleSizeOfPotentialEstimate allowed. */
   if(MaxSampleSizeOfPotentialEstimate < 0)
   {
-    error_message << "MaxSampleSizeOfPotentialEstimate: Negative values are not allowed. Use a value of 0 (no subsampling) or larger (subsampling)." << endl;
-    throw invalid_argument(error_message.str());
+    error_message << "MaxSampleSizeOfPotentialEstimate: Negative values are not allowed. Use a value of 0 (no subsampling) or larger (subsampling)." << std::endl;
+    throw std::invalid_argument(error_message.str());
   }
 
   /* We always need at least one particle for core properties of self-bound subhaloes. */
   if(SubCoreSizeMin < 1)
   {
-    error_message << "SubCoreSizeMin: the minimum allowed value is 1. Increase the value of SubCoreSizeMin. " << endl;
-    throw invalid_argument(error_message.str());
+    error_message << "SubCoreSizeMin: the minimum allowed value is 1. Increase the value of SubCoreSizeMin. " << std::endl;
+    throw std::invalid_argument(error_message.str());
   }
 
   /* No negative values for SubCoreSizeFactor allowed and we cannot use more than
    * Nbound particles. */
   if((SubCoreSizeFactor < 0.) | (SubCoreSizeFactor > 1.))
   {
-    error_message << "SubCoreSizeFactor: allowed values are only within [0, 1], with 0 disabling the core size scaling with Nbound." << endl;
-    throw invalid_argument(error_message.str());
+    error_message << "SubCoreSizeFactor: allowed values are only within [0, 1], with 0 disabling the core size scaling with Nbound." << std::endl;
+    throw std::invalid_argument(error_message.str());
   }
 
   /* Cannot say we subsample in DMO and then disable DM particle subsampling.
@@ -367,9 +365,9 @@ void Parameter_t::CheckValidityParameters()
    * relevant particle types */
   {
 #ifdef DM_ONLY
-    vector<int> TestParticleTypes = {1};
+    std::vector<int> TestParticleTypes = {1};
 #else
-    vector<int> TestParticleTypes = {0, 1, 4, 5};
+    std::vector<int> TestParticleTypes = {0, 1, 4, 5};
 #endif
 
     /* Create a bit mask corresponding to disabling subsampling for all relevant types */
@@ -381,11 +379,11 @@ void Parameter_t::CheckValidityParameters()
     if (TestBitMask == DoNotSubsampleParticleBitMask)
     {
 #ifdef DM_ONLY
-      error_message << "Cannot enable subsampling (MaxSampleSizeOfPotentialEstimate > 0) and then disable subsampling (DoNotSubsampleParticleTypes 1) in DMO simulations. Disable either of the two options." << endl;
+      error_message << "Cannot enable subsampling (MaxSampleSizeOfPotentialEstimate > 0) and then disable subsampling (DoNotSubsampleParticleTypes 1) in DMO simulations. Disable either of the two options." << std::endl;
 #else
-      error_message << "Cannot enable subsampling (MaxSampleSizeOfPotentialEstimate > 0) and then disable subsampling (DoNotSubsampleParticleTypes 0 1 4 5) in HYDRO simulations. Disable either of the two options." << endl;
+      error_message << "Cannot enable subsampling (MaxSampleSizeOfPotentialEstimate > 0) and then disable subsampling (DoNotSubsampleParticleTypes 0 1 4 5) in HYDRO simulations. Disable either of the two options." << std::endl;
 #endif
-      throw invalid_argument(error_message.str());
+      throw std::invalid_argument(error_message.str());
     }
   }
 }
@@ -514,19 +512,19 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
 void Parameter_t::DumpParameters()
 {
 #ifndef HBT_VERSION
-  cout << "Warning: HBT_VERSION unknown.\n";
+  std::cout << "Warning: HBT_VERSION unknown.\n";
 #define HBT_VERSION "unknown"
 #endif
-  string filename = SubhaloPath + "/Parameters.log";
-  ofstream version_file(filename, ios::out | ios::trunc);
+  std::string filename = SubhaloPath + "/Parameters.log";
+  std::ofstream version_file(filename, std::ios::out | std::ios::trunc);
   if (!version_file.is_open())
   {
-    cerr << "Error opening " << filename << " for parameter dump." << endl;
+    std::cerr << "Error opening " << filename << " for parameter dump." << std::endl;
     exit(1);
   }
-  version_file << "#VERSION " << HBT_VERSION << endl;
+  version_file << "#VERSION " << HBT_VERSION << std::endl;
 
-#define DumpPar(var) version_file << #var << " " << var << endl;
+#define DumpPar(var) version_file << #var << " " << var << std::endl;
 #define DumpComment(var)                                                                                               \
   {                                                                                                                    \
     version_file << "#";                                                                                               \
@@ -534,8 +532,8 @@ void Parameter_t::DumpParameters()
   }
 #define DumpHeader(title)                                                                                              \
   {                                                                                                                    \
-    version_file << endl;                                                                                              \
-    version_file << "[" << title << "]" << endl;                                                                       \
+    version_file << std::endl;                                                                                              \
+    version_file << "[" << title << "]" << std::endl;                                                                       \
   }
 
   DumpHeader("File paths");
@@ -556,7 +554,7 @@ void Parameter_t::DumpParameters()
     version_file << "SnapshotIdList";
     for (auto &&i : SnapshotIdList)
       version_file << " " << i;
-    version_file << endl;
+    version_file << std::endl;
   }
 
   if (SnapshotNameList.size())
@@ -564,7 +562,7 @@ void Parameter_t::DumpParameters()
     version_file << "#SnapshotNameList";
     for (auto &&i : SnapshotNameList)
       version_file << " " << i;
-    version_file << endl;
+    version_file << std::endl;
   }
 
   DumpHeader("Particle Properties");
@@ -579,7 +577,7 @@ void Parameter_t::DumpParameters()
   DumpPar(ParticlesSplit);
 #endif
   if (GroupParticleIdMask)
-    version_file << "GroupParticleIdMask " << hex << GroupParticleIdMask << dec << endl;
+    version_file << "GroupParticleIdMask " << std::hex << GroupParticleIdMask << std::dec << std::endl;
 
   DumpHeader("Units");
   DumpPar(MassInMsunh);
@@ -614,7 +612,7 @@ void Parameter_t::DumpParameters()
     version_file << "DoNotSubsampleParticleTypes";
     for (auto &&i : DoNotSubsampleParticleTypes)
       version_file << " " << i;
-    version_file << endl;
+    version_file << std::endl;
   }
 
   DumpHeader("Subhalo Tracking");
@@ -627,7 +625,7 @@ void Parameter_t::DumpParameters()
     version_file << "TracerParticleTypes";
     for (auto &&i : TracerParticleTypes)
       version_file << " " << i;
-    version_file << endl;
+    version_file << std::endl;
   }
   DumpPar(MergeTrappedSubhalos);
   DumpPar(MajorProgenitorMassRatio);
@@ -647,5 +645,5 @@ HBTReal Parameter_t::GetCurrentSoftening(HBTReal ScaleFactor)
     return SofteningHalo;
 
   // If two are defined, choose the one with the smallest value
-  return min(SofteningHalo, MaxPhysicalSofteningHalo / ScaleFactor);
+  return std::min(SofteningHalo, MaxPhysicalSofteningHalo / ScaleFactor);
 }

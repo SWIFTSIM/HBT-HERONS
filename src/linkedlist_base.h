@@ -53,8 +53,8 @@ protected:
   void init(int ndiv, PositionData_t *data, HBTReal boxsize, bool periodic);
 
 public:
-  vector<HBTInt> HOC;
-  vector<HBTInt> List;
+  std::vector<HBTInt> HOC;
+  std::vector<HBTInt> List;
   LinkedlistBase_t() = default;
   LinkedlistBase_t(int ndiv, PositionData_t *data, HBTReal boxsize = 0., bool periodic = false)
   {
@@ -65,7 +65,7 @@ public:
   void SearchSphere(HBTReal radius, const HBTxyz &searchcenter, ParticleCollector_t &colletor);
   void SearchCylinder(HBTReal radius_z, HBTReal radius_p, const HBTxyz &searchcenter,
                       ParticleCollector_t &collector); // search within +-radius_z along z and projected radius_p
-  HBTInt TagFriendsOfFriends(HBTInt seed, HBTInt grpid, vector<HBTInt> &group_tags, HBTReal LinkLength);
+  HBTInt TagFriendsOfFriends(HBTInt seed, HBTInt grpid, std::vector<HBTInt> &group_tags, HBTReal LinkLength);
   HBTInt get_chain_length(int i)
   {
     HBTInt pid = HOC[i];
@@ -82,10 +82,10 @@ public:
     auto pid = HOC[i];
     while (pid >= 0)
     {
-      cout << pid << ",";
+      std::cout << pid << ",";
       pid = List[pid];
     }
-    cout << endl;
+    std::cout << std::endl;
   }
 };
 

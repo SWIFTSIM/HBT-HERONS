@@ -38,16 +38,16 @@ struct ParticleHost_t : public Particle_t
 class ApostleReader_t
 {
   const int NullGroupId = 1 << 30; // 1073741824
-  string SnapshotName;
+  std::string SnapshotName;
 
-  vector<HBTInt> np_file;
-  vector<HBTInt> offset_file;
+  std::vector<HBTInt> np_file;
+  std::vector<HBTInt> offset_file;
   ApostleHeader_t Header;
   void ReadHeader(int ifile, ApostleHeader_t &header);
   HBTInt CompileFileOffsets(int nfiles);
   void ReadSnapshot(int ifile, Particle_t *ParticlesInFile);
   void ReadGroupParticles(int ifile, ParticleHost_t *ParticlesInFile, bool FlagReadParticleId);
-  void GetFileName(int ifile, string &filename);
+  void GetFileName(int ifile, std::string &filename);
   void SetSnapshot(int snapshotId);
   void GetParticleCountInFile(hid_t file, int np[]);
 
@@ -62,9 +62,9 @@ public:
   {
     My_Type_free(&MPI_ApostleHeader_t);
   }
-  void LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles, Cosmology_t &Cosmology);
-  void LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo_t> &Halos);
+  void LoadSnapshot(MpiWorker_t &world, int snapshotId, std::vector<Particle_t> &Particles, Cosmology_t &Cosmology);
+  void LoadGroups(MpiWorker_t &world, int snapshotId, std::vector<Halo_t> &Halos);
 };
 
-extern bool IsApostleGroup(const string &GroupFileFormat);
+extern bool IsApostleGroup(const std::string &GroupFileFormat);
 #endif

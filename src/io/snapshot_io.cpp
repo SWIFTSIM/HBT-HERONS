@@ -1,6 +1,4 @@
-using namespace std;
 #include <iostream>
-// #include <iomanip>
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -54,7 +52,7 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
      * LoadMySnapshot(SnapshotId, Particles, Cosmology); */
   }
   else
-    throw(runtime_error("unknown SnapshotFormat " + HBTConfig.SnapshotFormat));
+    throw(std::runtime_error("unknown SnapshotFormat " + HBTConfig.SnapshotFormat));
 
   global_timer.Tick("snap_io", world.Communicator);
 
@@ -77,11 +75,11 @@ int main(int argc, char **argv)
   HBTConfig.ParseConfigFile(argv[1]);
   ParticleSnapshot_t snapshot;
   snapshot.Load(HBTConfig.MaxSnapshotIndex, true);
-  cout << snapshot.GetNumberOfParticles() << endl;
-  cout << snapshot.GetParticleId(10) << endl;
-  cout << snapshot.GetComovingPosition(10) << endl;
-  cout << snapshot.GetParticleMass(10) << ',' << snapshot.GetParticleMass(100) << endl;
-  cout << snapshot.GetParticleIndex(snapshot.GetParticleId(10)) << endl;
+  std::cout << snapshot.GetNumberOfParticles() << std::endl;
+  std::cout << snapshot.GetParticleId(10) << std::endl;
+  std::cout << snapshot.GetComovingPosition(10) << std::endl;
+  std::cout << snapshot.GetParticleMass(10) << ',' << snapshot.GetParticleMass(100) << std::endl;
+  std::cout << snapshot.GetParticleIndex(snapshot.GetParticleId(10)) << std::endl;
   return 0;
 }
 #endif

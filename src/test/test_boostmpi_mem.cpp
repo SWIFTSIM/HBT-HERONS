@@ -13,7 +13,7 @@ int main(int argc, char **argv)
   mpi::communicator world;
 
 #define MSG_LEN 100000
-  vector<int> sendbuf(MSG_LEN, 1), recvbuf(MSG_LEN);
+  std::vector<int> sendbuf(MSG_LEN, 1), recvbuf(MSG_LEN);
 
 #define USE_BOOST
 
@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 #endif
 
   if (world.rank() == 1)
-    cout << "Data received: " << recvbuf[0] << "," << recvbuf[1] << "...\n";
+    std::cout << "Data received: " << recvbuf[0] << "," << recvbuf[1] << "...\n";
 
   return 0;
 }

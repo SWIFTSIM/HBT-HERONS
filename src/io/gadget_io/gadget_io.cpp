@@ -1,4 +1,3 @@
-using namespace std;
 #include <iostream>
 #include <numeric>
 #include <assert.h>
@@ -57,7 +56,7 @@ void GadgetHeader_t::create_MPI_type(MPI_Datatype &dtype)
 #undef NumAttr
 }
 
-GadgetReader_t::GadgetReader_t(MpiWorker_t &world, int snapshot_id, vector<Particle_t> &particles,
+GadgetReader_t::GadgetReader_t(MpiWorker_t &world, int snapshot_id, std::vector<Particle_t> &particles,
                                Cosmology_t &cosmology)
   : SnapshotId(snapshot_id), Particles(particles), Cosmology(cosmology), Header()
 {
@@ -72,7 +71,7 @@ GadgetReader_t::GadgetReader_t(MpiWorker_t &world, int snapshot_id, vector<Parti
 #define SkipVelocityBlock(fp) SkipFortranBlock(fp, NeedByteSwap)
 #define SkipIdBlock(fp) SkipFortranBlock(fp, NeedByteSwap)
 #define ReadBlockSize(a) myfread(&a, sizeof(a), 1, fp)
-void GadgetReader_t::GetGadgetFileName(int ifile, string &filename)
+void GadgetReader_t::GetGadgetFileName(int ifile, std::string &filename)
 {
   FILE *fp;
   char buf[1024];
@@ -91,7 +90,7 @@ void GadgetReader_t::GetGadgetFileName(int ifile, string &filename)
             ifile); // for BJL's RAMSES output
   if (!file_exist(buf))
   {
-    cerr << "Failed to find a snapshot file at " << buf << endl;
+    std::cerr << "Failed to find a snapshot file at " << buf << std::endl;
     exit(1);
   }
   filename = buf;
@@ -111,9 +110,9 @@ bool GadgetReader_t::ReadGadgetFileHeader(FILE *fp, GadgetHeader_t &header)
     NeedByteSwap = true;
   else
   {
-    cerr << "endianness check failed for header\n file format not expected:" << dummy << " not match headersize "
-         << headersize << " or " << headersize_byteswap << endl
-         << flush;
+    std::cerr << "endianness check failed for header\n file format not expected:" << dummy << " not match headersize "
+         << headersize << " or " << headersize_byteswap << std::endl
+         << std::flush;
     exit(1);
   }
   dummy = headersize;
@@ -151,7 +150,7 @@ bool GadgetReader_t::ReadGadgetFileHeader(FILE *fp, GadgetHeader_t &header)
 HBTInt GadgetReader_t::ReadGadgetNumberOfParticles(int ifile)
 {
   FILE *fp;
-  string filename;
+  std::string filename;
   GetGadgetFileName(ifile, filename);
   myfopen(fp, filename.c_str(), "r");
   GadgetHeader_t header;
@@ -172,7 +171,7 @@ void GadgetReader_t::LoadGadgetHeader(int ifile)
   // read the header part, assign header extensions, and check byteorder
 
   FILE *fp;
-  string filename;
+  std::string filename;
   GetGadgetFileName(ifile, filename);
 
   myfopen(fp, filename.c_str(), "r");
@@ -180,8 +179,8 @@ void GadgetReader_t::LoadGadgetHeader(int ifile)
 
   if ((HBTReal)Header.BoxSize != HBTConfig.BoxSize)
   {
-    cerr << "BoxSize not match input: read " << Header.BoxSize << "; expect " << HBTConfig.BoxSize << endl;
-    cerr << "Maybe the length unit differ? Expected unit: " << HBTConfig.LengthInMpch << " Mpc/h\n";
+    std::cerr << "BoxSize not match input: read " << Header.BoxSize << "; expect " << HBTConfig.BoxSize << std::endl;
+    std::cerr << "Maybe the length unit differ? Expected unit: " << HBTConfig.LengthInMpch << " Mpc/h\n";
     exit(1);
   }
 
@@ -195,7 +194,7 @@ void GadgetReader_t::LoadGadgetHeader(int ifile)
   blocksize = SkipVelocityBlock(fp);
   assert(blocksize == RealTypeSize * NumPartInFile * 3);
   if (sizeof(HBTReal) < RealTypeSize)
-    cerr << "WARNING: loading size " << RealTypeSize << " float in snapshot with size " << sizeof(HBTReal)
+    std::cerr << "WARNING: loading size " << RealTypeSize << " float in snapshot with size " << sizeof(HBTReal)
          << " float in HBT. possible loss of accuracy.\n Please use ./HBTdouble unless you know what you are doing.";
 
   if (HBTConfig.SnapshotHasIdBlock)
@@ -204,9 +203,6 @@ void GadgetReader_t::LoadGadgetHeader(int ifile)
     IntTypeSize = blocksize / NumPartInFile;
     assert(sizeof(int) == IntTypeSize || sizeof(long) == IntTypeSize);
     assert(sizeof(HBTInt) >= IntTypeSize);
-    // 	if(sizeof(HBTInt)<IntTypeSize)
-    // 	  cerr<<"WARNING: loading size "<<IntTypeSize<<" integer in snapshot with size "<<sizeof(HBTInt)<<" int in HBT.
-    // possible data overflow.\n Please use ./HBTdouble unless you know what you are doing.";
   }
 
   fclose(fp);
@@ -260,8 +256,6 @@ void GadgetReader_t::Load(MpiWorker_t &world)
         ReadGadgetFile(iFile);
     }
   }
-
-  //   cout<<" ( "<<Header.num_files<<" total files ) : "<<Particles.size()<<" particles loaded."<<endl;
 }
 
 #define ReadScalarBlock(dtype, Attr)                                                                                   \
@@ -285,7 +279,7 @@ void GadgetReader_t::Load(MpiWorker_t &world)
 #define ReadMassBlock(dtype)                                                                                           \
   {                                                                                                                    \
     size_t n_read_mass = 0;                                                                                            \
-    vector<HBTInt> offset_mass(TypeMax);                                                                               \
+    std::vector<HBTInt> offset_mass(TypeMax);                                                                               \
     for (int itype = 0; itype < TypeMax; itype++)                                                                      \
       if (MassDataPresent(itype))                                                                                      \
       {                                                                                                                \
@@ -342,18 +336,18 @@ void GadgetReader_t::Load(MpiWorker_t &world)
 void GadgetReader_t::ReadGadgetFile(int iFile)
 {
   FILE *fp;
-  string filename;
+  std::string filename;
   GetGadgetFileName(iFile, filename);
   myfopen(fp, filename.c_str(), "r");
   GadgetHeader_t header;
   ReadGadgetFileHeader(fp, header);
 #ifdef DM_ONLY
-  size_t n_read = header.npart[TypeDM], n_skip = accumulate(header.npart, header.npart + TypeDM, size_t(0));
+  size_t n_read = header.npart[TypeDM], n_skip = std::accumulate(header.npart, header.npart + TypeDM, size_t(0));
 #else
-  size_t n_read = accumulate(begin(header.npart), end(header.npart), (size_t)0), n_skip = 0;
+  size_t n_read = std::accumulate(std::begin(header.npart), std::end(header.npart), (size_t)0), n_skip = 0;
 #endif
-  vector<HBTInt> offset(TypeMax);
-  CompileOffsets(begin(header.npart), end(header.npart), offset.begin());
+  std::vector<HBTInt> offset(TypeMax);
+  CompileOffsets(std::begin(header.npart), std::end(header.npart), offset.begin());
 
   Particles.resize(Particles.size() + n_read);
   const auto NewParticles = Particles.end() - n_read;
@@ -438,7 +432,7 @@ void GadgetReader_t::ReadGadgetFile(int iFile)
 
   if (feof(fp))
   {
-    cout << "Error: End-of-File when reading " << filename << endl;
+    std::cout << "Error: End-of-File when reading " << filename << std::endl;
     exit(1);
   }
 

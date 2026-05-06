@@ -1,4 +1,3 @@
-using namespace std;
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -72,7 +71,7 @@ inline bool CompHaloId(const Halo_t &a, const Halo_t &b)
   return a.HaloId < b.HaloId;
 }
 
-static double ReduceHaloPosition(vector<HaloInfo_t>::iterator it_begin, vector<HaloInfo_t>::iterator it_end, HBTxyz &x)
+static double ReduceHaloPosition(std::vector<HaloInfo_t>::iterator it_begin, std::vector<HaloInfo_t>::iterator it_end, HBTxyz &x)
 {
   HBTInt i, j;
   double sx[3], origin[3], msum;
@@ -116,8 +115,8 @@ static double ReduceHaloPosition(vector<HaloInfo_t>::iterator it_begin, vector<H
   return msum;
 }
 
-static void ReduceHaloRank(vector<HaloInfo_t>::iterator it_begin, vector<HaloInfo_t>::iterator it_end, HBTxyz &step,
-                           vector<int> &dims)
+static void ReduceHaloRank(std::vector<HaloInfo_t>::iterator it_begin, std::vector<HaloInfo_t>::iterator it_end, HBTxyz &step,
+                           std::vector<int> &dims)
 {
   HBTxyz x;
   ReduceHaloPosition(it_begin, it_end, x);
@@ -126,13 +125,13 @@ static void ReduceHaloRank(vector<HaloInfo_t>::iterator it_begin, vector<HaloInf
     it->id = rank; // store destination rank in id.
 }
 
-static void DecideTargetProcessor(MpiWorker_t &world, vector<Halo_t> &Halos, vector<IdRank_t> &TargetRank)
+static void DecideTargetProcessor(MpiWorker_t &world, std::vector<Halo_t> &Halos, std::vector<IdRank_t> &TargetRank)
 {
   int this_rank = world.rank();
   for (auto &&h : Halos)
     h.Mass = AveragePosition(h.ComovingAveragePosition, h.Particles.data(), h.Particles.size());
 
-  vector<HaloInfo_t> HaloInfoSend(Halos.size()), HaloInfoRecv;
+  std::vector<HaloInfo_t> HaloInfoSend(Halos.size()), HaloInfoRecv;
   for (HBTInt i = 0; i < Halos.size(); i++)
   {
     HaloInfoSend[i].id = Halos[i].HaloId;
@@ -147,7 +146,7 @@ static void DecideTargetProcessor(MpiWorker_t &world, vector<Halo_t> &Halos, vec
   HBTInt ndiv = (++MaxHaloId) / world.size();
   if (MaxHaloId % world.size())
     ndiv++;
-  vector<int> SendSizes(world.size(), 0), SendOffsets(world.size()), RecvSizes(world.size()), RecvOffsets(world.size());
+  std::vector<int> SendSizes(world.size(), 0), SendOffsets(world.size()), RecvSizes(world.size()), RecvOffsets(world.size());
   for (HBTInt i = 0; i < Halos.size(); i++)
   {
     int idiv = Halos[i].HaloId / ndiv;
@@ -163,8 +162,8 @@ static void DecideTargetProcessor(MpiWorker_t &world, vector<Halo_t> &Halos, vec
                 RecvSizes.data(), RecvOffsets.data(), MPI_HaloInfo_t, world.Communicator);
   for (int i = 0; i < nhalo_recv; i++)
     HaloInfoRecv[i].order = i;
-  sort(HaloInfoRecv.begin(), HaloInfoRecv.end(), CompHaloInfo_Id);
-  list<int> haloid_offsets;
+  std::sort(HaloInfoRecv.begin(), HaloInfoRecv.end(), CompHaloInfo_Id);
+  std::list<int> haloid_offsets;
   HBTInt curr_id = -1;
   for (int i = 0; i < nhalo_recv; i++)
   {
@@ -204,7 +203,7 @@ static void DecideTargetProcessor(MpiWorker_t &world, vector<Halo_t> &Halos, vec
 
 /* After communicating disjoint pieces of FoF groups from different MPI ranks,
  * merge them into a single FoF group. */
-static void MergeHalos(vector<Halo_t> &Halos)
+static void MergeHalos(std::vector<Halo_t> &Halos)
 {
   if (Halos.empty())
     return;
@@ -222,7 +221,7 @@ static void MergeHalos(vector<Halo_t> &Halos)
     {
       ++it1;
       if (it2 != it1)
-        *it1 = move(*it2);
+        *it1 = std::move(*it2);
     }
   }
   Halos.resize(it1 - Halos.begin() + 1);
@@ -239,24 +238,24 @@ static void MergeHalos(vector<Halo_t> &Halos)
   }
 }
 
-static void ExchangeHalos(MpiWorker_t &world, vector<Halo_t> &InHalos, vector<Halo_t> &OutHalos,
+static void ExchangeHalos(MpiWorker_t &world, std::vector<Halo_t> &InHalos, std::vector<Halo_t> &OutHalos,
                           MPI_Datatype MPI_Halo_Shell_Type)
 {
-  typedef typename vector<Halo_t>::iterator HaloIterator_t;
+  typedef typename std::vector<Halo_t>::iterator HaloIterator_t;
   typedef HaloParticleIterator_t<HaloIterator_t> ParticleIterator_t;
 
-  vector<IdRank_t> TargetRank(InHalos.size());
+  std::vector<IdRank_t> TargetRank(InHalos.size());
   DecideTargetProcessor(world, InHalos, TargetRank);
 
   // distribute halo shells
-  vector<int> SendHaloCounts(world.size(), 0), RecvHaloCounts(world.size()), SendHaloDisps(world.size()),
+  std::vector<int> SendHaloCounts(world.size(), 0), RecvHaloCounts(world.size()), SendHaloDisps(world.size()),
     RecvHaloDisps(world.size());
-  sort(TargetRank.begin(), TargetRank.end(), CompareRank);
-  vector<Halo_t> InHalosSorted(InHalos.size());
-  vector<HBTInt> InHaloSizes(InHalos.size());
+  std::sort(TargetRank.begin(), TargetRank.end(), CompareRank);
+  std::vector<Halo_t> InHalosSorted(InHalos.size());
+  std::vector<HBTInt> InHaloSizes(InHalos.size());
   for (HBTInt haloid = 0; haloid < InHalos.size(); haloid++)
   {
-    InHalosSorted[haloid] = move(InHalos[TargetRank[haloid].Id]);
+    InHalosSorted[haloid] = std::move(InHalos[TargetRank[haloid].Id]);
     SendHaloCounts[TargetRank[haloid].Rank]++;
     InHaloSizes[haloid] = InHalosSorted[haloid].Particles.size();
   }
@@ -268,7 +267,7 @@ static void ExchangeHalos(MpiWorker_t &world, vector<Halo_t> &InHalos, vector<Ha
   MPI_Alltoallv(InHalosSorted.data(), SendHaloCounts.data(), SendHaloDisps.data(), MPI_Halo_Shell_Type, &NewHalos[0],
                 RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_Halo_Shell_Type, world.Communicator);
   // resize receivehalos
-  vector<HBTInt> OutHaloSizes(NumNewHalos);
+  std::vector<HBTInt> OutHaloSizes(NumNewHalos);
   MPI_Alltoallv(InHaloSizes.data(), SendHaloCounts.data(), SendHaloDisps.data(), MPI_HBT_INT, OutHaloSizes.data(),
                 RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_HBT_INT, world.Communicator);
   for (HBTInt i = 0; i < NumNewHalos; i++)
@@ -279,8 +278,8 @@ static void ExchangeHalos(MpiWorker_t &world, vector<Halo_t> &InHalos, vector<Ha
     MPI_Datatype MPI_HBT_Particle;
     Particle_t().create_MPI_type(MPI_HBT_Particle);
     // create combined iterator for each bunch of haloes
-    vector<ParticleIterator_t> InParticleIterator(world.size());
-    vector<ParticleIterator_t> OutParticleIterator(world.size());
+    std::vector<ParticleIterator_t> InParticleIterator(world.size());
+    std::vector<ParticleIterator_t> OutParticleIterator(world.size());
     for (int rank = 0; rank < world.size(); rank++)
     {
       InParticleIterator[rank].init(InHalosSorted.begin() + SendHaloDisps[rank],
@@ -288,7 +287,7 @@ static void ExchangeHalos(MpiWorker_t &world, vector<Halo_t> &InHalos, vector<Ha
       OutParticleIterator[rank].init(NewHalos + RecvHaloDisps[rank],
                                      NewHalos + RecvHaloDisps[rank] + RecvHaloCounts[rank]);
     }
-    vector<HBTInt> InParticleCount(world.size(), 0);
+    std::vector<HBTInt> InParticleCount(world.size(), 0);
     for (HBTInt i = 0; i < InHalosSorted.size(); i++)
       InParticleCount[TargetRank[i].Rank] += InHalosSorted[i].Particles.size();
 
@@ -299,9 +298,9 @@ static void ExchangeHalos(MpiWorker_t &world, vector<Halo_t> &InHalos, vector<Ha
   }
 }
 
-void ExchangeAndMerge(MpiWorker_t &world, vector<Halo_t> &Halos)
+void ExchangeAndMerge(MpiWorker_t &world, std::vector<Halo_t> &Halos)
 {
-  vector<Halo_t> LocalHalos;
+  std::vector<Halo_t> LocalHalos;
   MPI_Datatype MPI_Halo_Shell_t;
   create_MPI_Halo_Id_type(MPI_Halo_Shell_t);
   ExchangeHalos(world, Halos, LocalHalos, MPI_Halo_Shell_t);

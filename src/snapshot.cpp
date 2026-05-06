@@ -1,6 +1,4 @@
-using namespace std;
 #include <iostream>
-// #include <iomanip>
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -13,30 +11,12 @@ using namespace std;
 #include "mymath.h"
 #include "snapshot.h"
 
-ostream &operator<<(ostream &o, Particle_t &p)
+std::ostream &operator<<(std::ostream &o, Particle_t &p)
 {
   o << "[" << p.Id << ", " << p.Mass << ", " << p.ComovingPosition << ", " << p.PhysicalVelocity << "]";
   return o;
 };
-/*
-void ParticleSnapshot_t::FillParticleHash()
-{
-  cout<<"Filling Hash Table...\n";
-  auto begin = chrono::high_resolution_clock::now();
-  ParticleHash.rehash(NumberOfParticles);
-  ParticleHash.reserve(NumberOfParticles);
-  for(HBTInt i=0;i<NumberOfParticles;i++)
-    ParticleHash[ParticleId[i]]=i;
-  auto end = chrono::high_resolution_clock::now();
-  auto elapsed = chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-  cout << "inserts: " << elapsed.count() << endl;
-//   cout<<ParticleHash.bucket_count()<<" buckets used; load factor "<<ParticleHash.load_factor()<<endl;
-}
-void ParticleSnapshot_t::ClearParticleHash()
-{
-  ParticleHash.clear();
-}
-*/
+
 class ParticleKeyList_t : public KeyList_t<HBTInt, HBTInt>
 {
   typedef HBTInt Index_t;
@@ -253,7 +233,7 @@ double AverageVelocity(HBTxyz &CoV, const Particle_t Particles[], HBTInt NumPart
 }
 
 void Snapshot_t::SphericalOverdensitySize(float &Mvir, float &Rvir, HBTReal VirialFactor,
-                                          const vector<HBTReal> &RSorted, HBTReal ParticleMass) const
+                                          const std::vector<HBTReal> &RSorted, HBTReal ParticleMass) const
 /*
  * find SphericalOverdensitySize from a given list of sorted particle distances.
  * all distances comoving.
@@ -276,7 +256,7 @@ void Snapshot_t::SphericalOverdensitySize(float &Mvir, float &Rvir, HBTReal Viri
   Rvir = pow(i / RhoVirial, 1.0 / 3); // comoving
 }
 void Snapshot_t::SphericalOverdensitySize(float &Mvir, float &Rvir, HBTReal VirialFactor,
-                                          const vector<RadMassVel_t> &prof) const
+                                          const std::vector<RadMassVel_t> &prof) const
 /*
  * find SphericalOverdensitySize from a given list of sorted particle distances.
  * all distances comoving.
@@ -301,7 +281,7 @@ void Snapshot_t::SphericalOverdensitySize(float &Mvir, float &Rvir, HBTReal Viri
   }
 }
 void Snapshot_t::SphericalOverdensitySize2(float &Mvir, float &Rvir, HBTReal VirialFactor,
-                                           const vector<HBTReal> &RSorted, HBTReal ParticleMass) const
+                                           const std::vector<HBTReal> &RSorted, HBTReal ParticleMass) const
 /*
  * find SphericalOverdensitySize from a given list of sorted particle distances.
  * all distances comoving.
@@ -357,7 +337,7 @@ void ParticleSnapshot_t::ClearParticles()
 {
 #define RESET(x, T)                                                                                                    \
   {                                                                                                                    \
-    vector<T>().swap(x);                                                                                               \
+    std::vector<T>().swap(x);                                                                                               \
   }
   RESET(Particles, Particle_t);
 #undef RESET
@@ -368,6 +348,5 @@ void ParticleSnapshot_t::Clear()
 {
   ClearParticles();
   ClearParticleHash(); // even if you don't do this, the destructor will still clean up the memory.
-  //   cout<<NumberOfParticles<<" particles cleared from snapshot "<<SnapshotIndex<<endl;
   NumberOfParticlesOnAllNodes = 0;
 }

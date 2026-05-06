@@ -1,4 +1,3 @@
-using namespace std;
 #include <cstdlib>
 #include <iostream>
 #include <omp.h>
@@ -31,30 +30,30 @@ int main(int argc, char **argv)
   if (world.rank() == 0)
   {
     // Print information about the version being run.
-    cout << "HBT-HERONS compiled using git branch: " << branch_name << " and commit: " << commit_hash;
+    std::cout << "HBT-HERONS compiled using git branch: " << branch_name << " and commit: " << commit_hash;
     if (uncommitted_changes)
-      cout << " (with uncommitted changes)";
+      std::cout << " (with uncommitted changes)";
     else
-      cout << " (clean)";
-    cout << endl;
+      std::cout << " (clean)";
+    std::cout << std::endl;
 
     ParseHBTParams(argc, argv, HBTConfig, snapshot_start, snapshot_end);
     mkdir(HBTConfig.SubhaloPath.c_str(), 0755);
 
-    cout << argv[0] << " run using " << world.size() << " mpi tasks";
+    std::cout << argv[0] << " run using " << world.size() << " mpi tasks";
 #ifdef _OPENMP
 #pragma omp parallel
 #pragma omp master
-    cout << ", each with " << omp_get_num_threads() << " threads";
-    cout << endl;
+    std::cout << ", each with " << omp_get_num_threads() << " threads";
+    std::cout << std::endl;
 #endif
-    cout << endl;
-    cout << "Configured with the following data type sizes (bytes):" << endl;
-    cout << "  Real quantities    : " << sizeof(HBTReal) << endl;
-    cout << "  Integer quantities : " << sizeof(HBTInt) << endl;
-    cout << "  Particle velocities: " << sizeof(HBTVelType) << endl;
-    cout << "  Particle masses    : " << sizeof(HBTMassType) << endl;
-    cout << "  Size of Particle_t : " << sizeof(Particle_t) << endl;
+    std::cout << std::endl;
+    std::cout << "Configured with the following data type sizes (bytes):" << std::endl;
+    std::cout << "  Real quantities    : " << sizeof(HBTReal) << std::endl;
+    std::cout << "  Integer quantities : " << sizeof(HBTInt) << std::endl;
+    std::cout << "  Particle velocities: " << sizeof(HBTVelType) << std::endl;
+    std::cout << "  Particle masses    : " << sizeof(HBTMassType) << std::endl;
+    std::cout << "  Size of Particle_t : " << sizeof(Particle_t) << std::endl;
   }
   HBTConfig.BroadCast(world, 0, snapshot_start, snapshot_end);
 
@@ -62,7 +61,7 @@ int main(int argc, char **argv)
   subsnap.Load(world, snapshot_start - 1, SubReaderDepth_t::SrcParticles);
 
   if (world.rank() == 0)
-    cout << endl;
+    std::cout << std::endl;
 
   /* Main loop, iterate over chosen data outputs */
   for (int isnap = snapshot_start; isnap <= snapshot_end; isnap++)
@@ -134,7 +133,7 @@ int main(int argc, char **argv)
     /* Assign gas particles to the same subhalo as their nearest neighbour
        tracer type particle in the same FoF group */
     if (world.rank() == 0)
-      cout << "Reassigning particles...\n";
+      std::cout << "Reassigning particles...\n";
     subsnap.ReassignParticles(world, halosnap);
     global_timer.Tick("reassign_particles", world.Communicator);
 

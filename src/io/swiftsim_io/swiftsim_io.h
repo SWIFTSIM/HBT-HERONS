@@ -42,9 +42,9 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype);
 
 class SwiftSimReader_t
 {
-  string SnapshotName;
-  vector<HBTInt> np_file;
-  vector<HBTInt> offset_file;
+  std::string SnapshotName;
+  std::vector<HBTInt> np_file;
+  std::vector<HBTInt> offset_file;
   SwiftSimHeader_t Header;
   hid_t OpenFile(int ifile);
   void ReadHeader(int ifile, SwiftSimHeader_t &header);
@@ -53,12 +53,12 @@ class SwiftSimReader_t
   void ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count);
   void ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count,
                           bool FlagReadParticleId);
-  void GetFileName(int ifile, string &filename);
+  void GetFileName(int ifile, std::string &filename);
   void SetSnapshot(int snapshotId);
   void GetParticleCountInFile(hid_t file, HBTInt np[]);
 
   /* To load information about particle splits */
-  void GetParticleSplitFileName(int snapshotId, string &filename);
+  void GetParticleSplitFileName(int snapshotId, std::string &filename);
   hid_t OpenParticleSplitFile(int snapshotId);
 
   MPI_Datatype MPI_SwiftSimHeader_t;
@@ -72,10 +72,10 @@ public:
   {
     MPI_Type_free(&MPI_SwiftSimHeader_t);
   }
-  void LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles, Cosmology_t &Cosmology);
-  void LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo_t> &Halos);
+  void LoadSnapshot(MpiWorker_t &world, int snapshotId, std::vector<Particle_t> &Particles, Cosmology_t &Cosmology);
+  void LoadGroups(MpiWorker_t &world, int snapshotId, std::vector<Halo_t> &Halos);
   void ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &ParticleSplitMap, int snapshotId);
 };
 
-extern bool IsSwiftSimGroup(const string &GroupFileFormat);
+extern bool IsSwiftSimGroup(const std::string &GroupFileFormat);
 #endif

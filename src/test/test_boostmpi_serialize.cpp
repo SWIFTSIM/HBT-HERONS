@@ -1,7 +1,6 @@
 using namespace std;
 #include <iostream>
 #include <string>
-// #include "mpi.h"
 
 #include <boost/mpi.hpp>
 namespace mpi = boost::mpi;
@@ -12,7 +11,7 @@ int main(int argc, char **argv)
   mpi::communicator world;
 
 #define MSG_LEN 1000000
-  vector<int> sendbuf(MSG_LEN, 1), recvbuf(MSG_LEN);
+  std::vector<int> sendbuf(MSG_LEN, 1), recvbuf(MSG_LEN);
 
   MPI_Comm comm = world;
   if (world.rank() == 0)
@@ -24,7 +23,7 @@ int main(int argc, char **argv)
     int sendsize = static_cast<int>(oa.size());
     MPI_Send(&sendsize, 1, MPI_INT, 1, 0, comm);
     MPI_Ssend(sendptr, sendsize, MPI_PACKED, 1, 0, comm);
-    cout << sendsize << "," << oa.size() << endl;
+    std::cout << sendsize << "," << oa.size() << std::endl;
   }
   else if (world.rank() == 1)
   {
@@ -35,7 +34,7 @@ int main(int argc, char **argv)
     auto recvptr = ia.address();
     MPI_Recv(recvptr, recvsize, MPI_PACKED, 0, 0, comm, MPI_STATUS_IGNORE);
     ia >> recvbuf;
-    cout << "Data received: " << recvbuf[0] << "," << recvbuf[1] << "...\n";
+    std::cout << "Data received: " << recvbuf[0] << "," << recvbuf[1] << "...\n";
   }
 
   return 0;

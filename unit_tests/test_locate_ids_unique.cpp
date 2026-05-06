@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     {
 
       // Create array of IDs
-      vector<HBTInt> all_ids(total_nr_ids);
+      std::vector<HBTInt> all_ids(total_nr_ids);
       for (int i = 0; i < total_nr_ids; i += 1)
         all_ids[i] = i;
 
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
       std::shuffle(all_ids.begin(), all_ids.end(), rng);
 
       // Create array of values as a function of their associated ID
-      vector<int> all_values(total_nr_ids);
+      std::vector<int> all_values(total_nr_ids);
       for (int i = 0; i < total_nr_ids; i += 1)
         all_values[i] = 1000 * all_ids[i];
 

@@ -35,7 +35,7 @@ bool GetGroupFileByteOrder(const char *filename, const int FileCounts)
   int Nfiles, n, ns;
   long offset;
   FILE *fp;
-  string GroupFileFormat = HBTConfig.GroupFileFormat;
+  std::string GroupFileFormat = HBTConfig.GroupFileFormat;
 
   if (GroupFileFormat == "gadget4")
     n = sizeof(GroupV4Header_t);
@@ -63,12 +63,12 @@ bool GetGroupFileByteOrder(const char *filename, const int FileCounts)
   if (Nfiles == ns)
     return true;
 
-  cerr << "endianness check failed for: " << filename << ", file format not expected:" << Nfiles << ';' << n << ';'
-       << ns << endl;
+  std::cerr << "endianness check failed for: " << filename << ", file format not expected:" << Nfiles << ';' << n << ';'
+       << ns << std::endl;
   exit(1);
 }
 
-void GetFileNameFormat(int SnapshotId, string &format, int &FileCounts, bool &IsSubFile, bool &NeedByteSwap)
+void GetFileNameFormat(int SnapshotId, std::string &format, int &FileCounts, bool &IsSubFile, bool &NeedByteSwap)
 {
   IsSubFile = false;
   FileCounts = 1;
@@ -133,15 +133,14 @@ void GetFileNameFormat(int SnapshotId, string &format, int &FileCounts, bool &Is
     return;
   }
 
-  // 	return 0;
-  cerr << "Error: no group files found under " << HBTConfig.HaloPath << " at snapshot " << SnapshotId << endl;
+  std::cerr << "Error: no group files found under " << HBTConfig.HaloPath << " at snapshot " << SnapshotId << std::endl;
   exit(1);
 }
 
 class GroupFileReader_t
 {
 private:
-  string filename_format;
+  std::string filename_format;
   bool IsSubFile, NeedByteSwap;
   int iFile;
   int SnapshotId;
@@ -152,8 +151,8 @@ private:
 public:
   HBTInt NumberOfGroups;    // in file, not necessarily the same as read
   HBTInt NumberOfParticles; // in file, not necessarily the same as read
-  vector<HBTInt> Particles;
-  vector<int> Len, Offset;
+  std::vector<HBTInt> Particles;
+  std::vector<int> Len, Offset;
   int FileCounts;
 
   GroupFileReader_t(int SnapshotId)
@@ -203,7 +202,7 @@ void GroupFileReader_t::ReadV2V3(int read_level, HBTInt start_particle, HBTInt e
   }
   if (FileCounts != NFiles)
   {
-    cout << "File count mismatch for file " << filename << ": expect " << FileCounts << ", got " << NFiles << endl;
+    std::cout << "File count mismatch for file " << filename << ": expect " << FileCounts << ", got " << NFiles << std::endl;
     exit(1);
   }
   if (read_level == READ_META_DATA)
@@ -248,7 +247,7 @@ void GroupFileReader_t::ReadV2V3(int read_level, HBTInt start_particle, HBTInt e
   if (end_particle < 0)
     end_particle = Nids;
   HBTInt Nread = end_particle - start_particle;
-  vector<PIDtype_t> PIDs(Nread);
+  std::vector<PIDtype_t> PIDs(Nread);
   fseek(fd, sizeof(PIDtype_t) * start_particle, SEEK_CUR);
   myfread(PIDs.data(), sizeof(PIDtype_t), Nread, fd);
   PIDtype_t Mask = HBTConfig.GroupParticleIdMask;
@@ -259,8 +258,8 @@ void GroupFileReader_t::ReadV2V3(int read_level, HBTInt start_particle, HBTInt e
   fseek(fd, sizeof(PIDtype_t) * (Nids - end_particle), SEEK_CUR);
   if (long int extra_bytes = BytesToEOF(fd))
   {
-    cerr << "Error: unexpected format of " << filename << endl;
-    cerr << extra_bytes << " extra bytes beyond particleId block! Check if particleId has a different type?\n";
+    std::cerr << "Error: unexpected format of " << filename << std::endl;
+    std::cerr << extra_bytes << " extra bytes beyond particleId block! Check if particleId has a different type?\n";
     exit(1);
   }
   if (feof(fd))
@@ -277,13 +276,13 @@ void GroupFileReader_t::Read(int ifile, int read_level, HBTInt start_particle, H
 {
   iFile = ifile;
 
-  string GroupFileFormat = HBTConfig.GroupFileFormat;
+  std::string GroupFileFormat = HBTConfig.GroupFileFormat;
   if (GroupFileFormat == "gadget2_int" || GroupFileFormat == "gadget3_int")
     ReadV2V3<int>(read_level, start_particle, end_particle);
   else if (GroupFileFormat == "gadget2_long" || GroupFileFormat == "gadget3_long")
     ReadV2V3<long>(read_level, start_particle, end_particle);
   else
-    throw(runtime_error("unknown GroupFileFormat " + GroupFileFormat));
+    throw(std::runtime_error("Unknown GroupFileFormat " + GroupFileFormat));
 }
 
 struct FileAssignment_t
@@ -340,8 +339,8 @@ struct FileAssignment_t
   }
 };
 
-typedef vector<HBTInt> ParticleIdBuffer_t;
-typedef vector<HBTInt> CountBuffer_t;
+typedef std::vector<HBTInt> ParticleIdBuffer_t;
+typedef std::vector<HBTInt> CountBuffer_t;
 void AssignHaloTasks(int nworkers, HBTInt npart_tot, const CountBuffer_t &HaloOffsets, const CountBuffer_t &FileOffsets,
                      HBTInt &npart_begin, FileAssignment_t &task)
 {
@@ -366,14 +365,15 @@ void AssignHaloTasks(int nworkers, HBTInt npart_tot, const CountBuffer_t &HaloOf
 
   npart_begin = npart_end;
 }
-void Load(MpiWorker_t &world, int SnapshotId, vector<Halo_t> &Halos)
+
+void Load(MpiWorker_t &world, int SnapshotId, std::vector<Halo_t> &Halos)
 {
   GroupFileReader_t Reader(SnapshotId);
   int FileCounts = Reader.FileCounts;
   CountBuffer_t HaloLenBuffer;
 
   /* Determine which tasks will read which haloes. */
-  vector<FileAssignment_t> alltasks;
+  std::vector<FileAssignment_t> alltasks;
   FileAssignment_t thistask;
   if (world.rank() == 0)
   {
@@ -468,7 +468,7 @@ void Load(MpiWorker_t &world, int SnapshotId, vector<Halo_t> &Halos)
   global_timer.Tick("halo_io", world.Communicator);
 }
 
-bool IsGadgetGroup(const string &GroupFileFormat)
+bool IsGadgetGroup(const std::string &GroupFileFormat)
 {
   return GroupFileFormat.substr(0, 6) == "gadget";
 }
@@ -497,8 +497,8 @@ int main(int argc, char **argv)
   if (halo.Halos.size() > 1)
   {
     auto &h = halo.Halos[1];
-    cout << " Halo 1 from thread " << world.rank() << ":"
-         << "id=" << h.HaloId << "," << h.Particles.size() << ", " << h.Particles[5] << endl;
+    std::cout << " Halo 1 from thread " << world.rank() << ":"
+         << "id=" << h.HaloId << "," << h.Particles.size() << ", " << h.Particles[5] << std::endl;
   }
 
   MPI_Finalize();
