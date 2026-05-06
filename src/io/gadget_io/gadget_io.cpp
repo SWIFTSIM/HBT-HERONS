@@ -342,7 +342,7 @@ void GadgetReader_t::ReadGadgetFile(int iFile)
   GadgetHeader_t header;
   ReadGadgetFileHeader(fp, header);
 #ifdef DM_ONLY
-  size_t n_read = header.npart[TypeDM], n_skip = accumulate(header.npart, header.npart + TypeDM, size_t(0));
+  size_t n_read = header.npart[TypeDM], n_skip = std::accumulate(header.npart, header.npart + TypeDM, size_t(0));
 #else
   size_t n_read = std::accumulate(std::begin(header.npart), std::end(header.npart), (size_t)0), n_skip = 0;
 #endif
