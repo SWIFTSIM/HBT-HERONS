@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     x = 1000;
   }
   MPI_Bcast(&x, 1, MPI_INT, 0, MPI_COMM_WORLD);
-  cout << "x= " << x << " on " << myrank << endl;
+  std::cout << "x= " << x << " on " << myrank << std::endl;
 
   MPI_Request Req;
   const int nmax = 4831572;
@@ -28,21 +28,21 @@ int main(int argc, char **argv)
   }
   else
   {
-    vector<int> y(nmax);
-    vector<MPI_Request> Reqs(nmax);
+    std::vector<int> y(nmax);
+    std::vector<MPI_Request> Reqs(nmax);
     for (int i = 0; i < nmax; i++)
     {
       MPI_Irecv(&y[i], 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &Reqs[i]);
       // 	  cout<<y[i]<<" ";
     }
-    cout << endl;
+    std::cout << std::endl;
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Waitall(
       Reqs.size(), Reqs.data(),
       MPI_STATUSES_IGNORE); // without this, the receive may not happen inside this block, where y is destroyed.
     // 	copy(y.cbegin(), y.cend(), ostream_iterator<int>(cout, ", "));
-    cout << y.front() << "," << y.back();
-    cout << endl;
+    std::cout << y.front() << "," << y.back();
+    std::cout << std::endl;
   }
 
   MPI_Finalize();

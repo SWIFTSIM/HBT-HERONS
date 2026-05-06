@@ -31,7 +31,6 @@ void LinkedlistBase_t::init(int ndiv, PositionData_t *data, HBTReal boxsize, boo
   BoxHalf = BoxSize / 2.;
 
   HBTInt i, j;
-  // cout<<"creating linked list for "<<particles.size()<<" particles..."<<endl;
   /*determining enclosing cube*/
   if (BoxSize)
   {
@@ -235,7 +234,7 @@ void LinkedlistBase_t::SearchCylinder(HBTReal radius_z, HBTReal radius_p, const 
       }
 }
 
-HBTInt LinkedlistBase_t::TagFriendsOfFriends(HBTInt seed, HBTInt grpid, vector<HBTInt> &group_tags, HBTReal LinkLength)
+HBTInt LinkedlistBase_t::TagFriendsOfFriends(HBTInt seed, HBTInt grpid, std::vector<HBTInt> &group_tags, HBTReal LinkLength)
 /*tag all the particles that are linked to seed with grpid
  * Note if system stack size is too small, this recursive routine may crash
  * in that case you should set:  ulimit -s unlimited  (bash) before running.
@@ -247,7 +246,7 @@ HBTInt LinkedlistBase_t::TagFriendsOfFriends(HBTInt seed, HBTInt grpid, vector<H
   HBTReal LinkLength2 = LinkLength * LinkLength;
   int i, j, k, subbox_grid[3][2];
 
-  vector<HBTInt> friends;
+  std::vector<HBTInt> friends;
 
   for (i = 0; i < 3; i++)
   {

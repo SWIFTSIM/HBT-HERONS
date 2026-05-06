@@ -1,4 +1,3 @@
-using namespace std;
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -12,4 +11,4 @@ using namespace std;
 
 #include "../../mymath.h"
 
-void ExchangeAndMerge(MpiWorker_t &world, vector<Halo_t> &Halos);
+void ExchangeAndMerge(MpiWorker_t &world, std::vector<Halo_t> &Halos);

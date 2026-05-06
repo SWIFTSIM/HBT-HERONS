@@ -208,7 +208,7 @@ int main(int argc, char **argv)
     double E =
       tree.BindingEnergy(snapshot.GetComovingPosition(P[i]), snapshot.GetPhysicalVelocity(P[i]),
                          halo.Halos[0].ComovingPosition, halo.Halos[0].PhysicalVelocity, snapshot.GetMass(P[i]));
-    cout << i << " : " << E << endl;
+    std::cout << i << " : " << E << std::endl;
   }
 
   return 0;

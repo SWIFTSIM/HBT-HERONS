@@ -5,11 +5,10 @@
 #include <iterator>
 #include <queue>
 #include <cassert>
-using namespace std;
+// using namespace std;
 #include <array>
 #include <vector>
 
-// #include <memory>
 #ifdef DM_ONLY
 #undef UNBIND_WITH_THERMAL_ENERGY
 #undef HAS_THERMAL_ENERGY
@@ -56,7 +55,7 @@ typedef float HBTVelType;
 typedef HBTReal HBTVelType;
 #define MPI_HBT_VEL MPI_HBT_REAL
 #endif
-typedef array<HBTVelType, 3> HBTvel;
+typedef std::array<HBTVelType, 3> HBTvel;
 
 // Type to store masses
 #ifdef HBT_REAL4_MASS
@@ -79,7 +78,7 @@ typedef int HBTInt;
 #endif
 
 /* Used for reducing the TracerIndex value. Taken from https://shorturl.at/aENT2 */
-typedef pair<HBTInt, int> IndexParticleType_t;
+typedef std::pair<HBTInt, int> IndexParticleType_t;
 inline IndexParticleType_t firstIndex(IndexParticleType_t a, IndexParticleType_t b)
 {
   return a.first < b.first ? a : b;
@@ -90,7 +89,7 @@ inline IndexParticleType_t firstIndex(IndexParticleType_t a, IndexParticleType_t
 {
   memcpy(dest, src, sizeof(HBTxyz));
 }*/
-typedef array<HBTReal, 3> HBTxyz;
+typedef std::array<HBTReal, 3> HBTxyz;
 inline void copyHBTxyz(HBTxyz &dest, const HBTxyz &src)
 {
   /*copy for std:arr implementation*/
@@ -238,7 +237,7 @@ class LocatedParticleCollector_t : public ParticleCollector_t
 // a simple collector that appends all found particles to a vector.
 {
 public:
-  vector<LocatedParticle_t> Founds;
+  std::vector<LocatedParticle_t> Founds;
   LocatedParticleCollector_t(HBTInt n_reserve = 0) : Founds()
   {
     Founds.reserve(n_reserve);

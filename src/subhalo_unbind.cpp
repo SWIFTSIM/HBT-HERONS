@@ -32,7 +32,7 @@ inline bool IsNotSubsampleParticleType(const Particle_t &a)
 
 /* Separates unbound particles from bound particles by placing them at the end
  * of Elist */
-static HBTInt RemoveUnboundParticles(vector<ParticleEnergy_t> &Elist, const size_t NumPart)
+static HBTInt RemoveUnboundParticles(std::vector<ParticleEnergy_t> &Elist, const size_t NumPart)
 {
   /* Separate bound from unbound particles. Stable partition since we want to
    * keep original relative ordering (bound particles that cannot be subsampled
@@ -52,11 +52,11 @@ class EnergySnapshot_t : public Snapshot_t
     return Elist[i].ParticleIndex;
   }
 
-  vector<HBTReal> MassUpscaleFactor;
+  std::vector<HBTReal> MassUpscaleFactor;
 
 public:
   ParticleEnergy_t *Elist;
-  typedef vector<Particle_t> ParticleList_t;
+  typedef std::vector<Particle_t> ParticleList_t;
   HBTInt N;
   const ParticleList_t &Particles;
 
@@ -398,7 +398,7 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
   auto &Elist = ESnap.Elist;
   auto &Particles = ESnap.Particles;
   tree.Build(ESnap, Size);
-  vector<ParticleEnergy_t> Einner(Size);
+  std::vector<ParticleEnergy_t> Einner(Size);
 #pragma omp parallel if (Size > 100)
   {
 #pragma omp for
@@ -427,7 +427,7 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
 /* Randomly shuffles the particles whose type are eligible to be subsampled
  * during unbinding. Particles types that are not eligible will be placed at the
  * start of the vector. */
-HBTInt PrepareParticlesForSubsampling(vector<Particle_t> &Particles)
+HBTInt PrepareParticlesForSubsampling(std::vector<Particle_t> &Particles)
 {
   /* We first partition the particle vector into those which we will
    * subsample and those which we will not. */
@@ -443,7 +443,7 @@ HBTInt PrepareParticlesForSubsampling(vector<Particle_t> &Particles)
 }
 
 /* Counts how many bound particles are not eligible to be subsampled. */
-HBTInt CountUnsampledParticles(const vector<ParticleEnergy_t> &Elist, const vector<Particle_t> &Particles, const HBTInt &OldNsubsample)
+HBTInt CountUnsampledParticles(const std::vector<ParticleEnergy_t> &Elist, const std::vector<Particle_t> &Particles, const HBTInt &OldNsubsample)
 {
   HBTInt NewNunsample = 0;
   for (HBTInt i = 0; i < OldNsubsample; i++)
@@ -525,7 +525,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   /* This vector stores the original ordering of particles, and will later store
    * their binding energies. */
-  vector<ParticleEnergy_t> Elist(Particles.size());
+  std::vector<ParticleEnergy_t> Elist(Particles.size());
   for (HBTInt i = 0; i < Particles.size(); i++)
     Elist[i].ParticleIndex = i;
 
@@ -723,7 +723,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
          * would be limited to the (MaxSampleSize / Nbound) fraction of most bound particles, whose ranking can be
          * extremely sensitive to the randomness used during unbinding. */
         HBTInt SampleSizeCenterRefinement =
-          max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCenterRefinement * Nbound));
+          std::max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCenterRefinement * Nbound));
 
         /* Computes self-binding energy of the SampleSizeCenterRefinement most bound
          * particles, and sorts them according to their binding energy. */

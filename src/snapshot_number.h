@@ -61,7 +61,7 @@ inline int SnapshotNumber_t::GetSnapshotId(const int &snapshot_index) const
     return HBTConfig.SnapshotIdList[snapshot_index];
 }
 
-inline void SnapshotNumber_t::FormatSnapshotId(stringstream &ss)
+inline void SnapshotNumber_t::FormatSnapshotId(std::stringstream &ss)
 {
   ss << std::setw(3) << std::setfill('0') << SnapshotId;
 }

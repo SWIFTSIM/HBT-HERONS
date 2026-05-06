@@ -67,14 +67,14 @@ int main(int argc, char *argv[])
     std::vector<int> recvbuf(nr_recv);
 
     // Set up iterators
-    typedef vector<int>::iterator InputIterator_t;
+    typedef std::vector<int>::iterator InputIterator_t;
     std::vector<InputIterator_t> input_iterators(comm_size);
     for (int i = 0; i < comm_size; i += 1)
     {
       input_iterators[i] = sendbuf.begin() + senddispls[i];
     }
 
-    typedef vector<int>::iterator OutputIterator_t;
+    typedef std::vector<int>::iterator OutputIterator_t;
     std::vector<OutputIterator_t> output_iterators(comm_size);
     for (int i = 0; i < comm_size; i += 1)
     {

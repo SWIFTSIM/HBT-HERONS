@@ -64,8 +64,8 @@ public:
   template <class T>
   void SyncAtom(T &x, MPI_Datatype dtype, int root_worker);
   void SyncAtomBool(bool &x, int root);
-  void SyncVectorBool(vector<bool> &x, int root);
-  void SyncVectorString(vector<string> &x, int root);
+  void SyncVectorBool(std::vector<bool> &x, int root);
+  void SyncVectorString(std::vector<std::string> &x, int root);
 };
 
 template <class T>
@@ -77,7 +77,7 @@ void MpiWorker_t::SyncContainer(T &x, MPI_Datatype dtype, int root_worker)
   {
     len = x.size();
     if (len >= INT_MAX)
-      throw runtime_error("Error: in SyncContainer(), sending more than INT_MAX elements with MPI causes overflow.\n");
+      throw std::runtime_error("Error: in SyncContainer(), sending more than INT_MAX elements with MPI causes overflow.\n");
   }
   MPI_Bcast(&len, 1, MPI_INT, root_worker, Communicator);
 
@@ -92,9 +92,9 @@ inline void MpiWorker_t::SyncAtom(T &x, MPI_Datatype dtype, int root_worker)
 }
 
 template <class T>
-void VectorAllToAll(MpiWorker_t &world, vector<vector<T>> &SendVecs, vector<vector<T>> &ReceiveVecs, MPI_Datatype dtype)
+void VectorAllToAll(MpiWorker_t &world, std::vector<std::vector<T>> &SendVecs, std::vector<std::vector<T>> &ReceiveVecs, MPI_Datatype dtype)
 {
-  vector<int> SendSizes(world.size()), ReceiveSizes(world.size());
+  std::vector<int> SendSizes(world.size()), ReceiveSizes(world.size());
   for (int i = 0; i < world.size(); i++)
     SendSizes[i] = SendVecs[i].size();
   MPI_Alltoall(SendSizes.data(), 1, MPI_INT, ReceiveSizes.data(), 1, MPI_INT, world.Communicator);
@@ -103,7 +103,7 @@ void VectorAllToAll(MpiWorker_t &world, vector<vector<T>> &SendVecs, vector<vect
   for (int i = 0; i < world.size(); i++)
     ReceiveVecs[i].resize(ReceiveSizes[i]);
 
-  vector<MPI_Datatype> SendTypes(world.size()), ReceiveTypes(world.size());
+  std::vector<MPI_Datatype> SendTypes(world.size()), ReceiveTypes(world.size());
   for (int i = 0; i < world.size(); i++)
   {
     MPI_Aint p;
@@ -115,7 +115,7 @@ void VectorAllToAll(MpiWorker_t &world, vector<vector<T>> &SendVecs, vector<vect
     MPI_Type_create_hindexed(1, &ReceiveSizes[i], &p, dtype, &ReceiveTypes[i]);
     MPI_Type_commit(&ReceiveTypes[i]);
   }
-  vector<int> Counts(world.size(), 1), Disps(world.size(), 0);
+  std::vector<int> Counts(world.size(), 1), Disps(world.size(), 0);
   MPI_Alltoallw(MPI_BOTTOM, Counts.data(), Disps.data(), SendTypes.data(), MPI_BOTTOM, Counts.data(), Disps.data(),
                 ReceiveTypes.data(), world.Communicator);
 
@@ -127,8 +127,8 @@ void VectorAllToAll(MpiWorker_t &world, vector<vector<T>> &SendVecs, vector<vect
 }
 
 template <class Particle_T, class InParticleIterator_T, class OutParticleIterator_T>
-void MyAllToAll(MpiWorker_t &world, vector<InParticleIterator_T> InParticleIterator,
-                const vector<HBTInt> &InParticleCount, vector<OutParticleIterator_T> OutParticleIterator,
+void MyAllToAll(MpiWorker_t &world, std::vector<InParticleIterator_T> InParticleIterator,
+                const std::vector<HBTInt> &InParticleCount, std::vector<OutParticleIterator_T> OutParticleIterator,
                 MPI_Datatype MPI_Particle_T, const HBTInt chunksize = 1024 * 1024)
 /*break the task into smaller pieces to avoid message size overflow
  * allocate a temporary buffer of type Particle_T to copy from InParticleIterator, send around, and copy out to
@@ -147,20 +147,20 @@ void MyAllToAll(MpiWorker_t &world, vector<InParticleIterator_T> InParticleItera
   if (0 == Nloop)
     return;
   // prepare loop size
-  vector<HBTInt> SendParticleCounts(world.size()), RecvParticleCounts(world.size()), SendParticleDisps(world.size()),
+  std::vector<HBTInt> SendParticleCounts(world.size()), RecvParticleCounts(world.size()), SendParticleDisps(world.size()),
     RecvParticleDisps(world.size());
-  vector<HBTInt> SendParticleRemainder(world.size());
+  std::vector<HBTInt> SendParticleRemainder(world.size());
   for (int rank = 0; rank < world.size(); rank++)
   {
     SendParticleCounts[rank] = InParticleCount[rank] / Nloop + 1; // distribute remainder to first few loops
     SendParticleRemainder[rank] = InParticleCount[rank] % Nloop;
   }
-  // 	cout<<"transmitting.."<<Nloop<<" loops: ";
+
   // transmit
-  vector<Particle_T> SendBuffer(chunksize + world.size()), RecvBuffer;
+  std::vector<Particle_T> SendBuffer(chunksize + world.size()), RecvBuffer;
   for (HBTInt iloop = 0; iloop < Nloop; iloop++)
   {
-    // 	  cout<<iloop<<" ";
+
     // header
     for (int rank = 0; rank < world.size(); rank++)
     {
@@ -198,7 +198,7 @@ void MyAllToAll(MpiWorker_t &world, vector<InParticleIterator_T> InParticleItera
       auto &it_part = OutParticleIterator[rank];
       for (auto it_buff = buff_begin; it_buff != buff_end; ++it_buff) // unpack
       {
-        *it_part = move(*it_buff);
+        *it_part = std::move(*it_buff);
         ++it_part;
       }
     }
@@ -221,7 +221,7 @@ void MyBcast(MpiWorker_t &world, InParticleIterator_T InParticleIterator, OutPar
     return;
   int buffersize = ParticleCount / Nloop + 1, nremainder = ParticleCount % Nloop;
   // transmit
-  vector<Particle_T> buffer(buffersize);
+  std::vector<Particle_T> buffer(buffersize);
   for (HBTInt iloop = 0; iloop < Nloop; iloop++)
   {
     if (iloop == nremainder) // switch sendcount from n+1 to n
@@ -233,14 +233,14 @@ void MyBcast(MpiWorker_t &world, InParticleIterator_T InParticleIterator, OutPar
     {
       for (auto it_buff = buffer.begin(); it_buff != buffer.end(); ++it_buff)
       {
-        *it_buff = move(*InParticleIterator);
+        *it_buff = std::move(*InParticleIterator);
         ++InParticleIterator;
       }
     }
     MPI_Bcast(buffer.data(), buffersize, MPI_Particle_T, root, world.Communicator);
     for (auto it_buff = buffer.begin(); it_buff != buffer.end(); ++it_buff) // unpack
     {
-      *OutParticleIterator = move(*it_buff);
+      *OutParticleIterator = std::move(*it_buff);
       ++OutParticleIterator;
     }
   }

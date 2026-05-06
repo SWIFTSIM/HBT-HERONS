@@ -13,7 +13,7 @@ int main(int argc, char **argv)
   mpi::communicator world;
 
 #define MSG_LEN 100
-  vector<int> sendbuf(MSG_LEN, 1), recvbuf(MSG_LEN);
+  std::vector<int> sendbuf(MSG_LEN, 1), recvbuf(MSG_LEN);
 
   if (world.rank() == 0)
     world.send(1, 0, sendbuf.data(), sendbuf.size());
@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     world.recv(0, 0, recvbuf.data(), recvbuf.size());
 
   if (world.rank() == 1)
-    cout << recvbuf.size() << " elements received: " << recvbuf[0] << "," << recvbuf[1] << "...\n";
+    std::cout << recvbuf.size() << " elements received: " << recvbuf[0] << "," << recvbuf[1] << "...\n";
 
   return 0;
 }

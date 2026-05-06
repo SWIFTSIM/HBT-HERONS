@@ -4,13 +4,13 @@
 using namespace std;
 int main()
 {
-  vector<int> x(10, 1);
+  std::vector<int> x(10, 1);
   int s = 0;
   s = accumulate(x.begin(), x.end(), s);
-  cout << s << endl;
+  std::cout << s << std::endl;
 
   s = accumulate(x.begin() + 1, x.begin() + 5, s);
-  cout << s << endl;
+  std::cout << s << std::endl;
 
   int init = 100;
   int numbers[] = {10, 20, 30};

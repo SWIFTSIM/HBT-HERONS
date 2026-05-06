@@ -21,13 +21,13 @@ enum class SubReaderDepth_t
 };
 
 class Subhalo_t;
-typedef vector<Subhalo_t> SubhaloList_t;
+typedef std::vector<Subhalo_t> SubhaloList_t;
 
 class Subhalo_t
 {
 public:
-  typedef vector<Particle_t> ParticleList_t;
-  typedef vector<HBTInt> SubIdList_t;
+  typedef std::vector<Particle_t> ParticleList_t;
+  typedef std::vector<HBTInt> SubIdList_t;
   HBTInt TrackId;
   HBTInt Nbound;
   float Mbound;
@@ -92,8 +92,8 @@ public:
 
   /* Binding/potential energies of the particles bound to the subhalo. They are a separate instance from ParticleList_t
    * because they do not need communicating before unbinding. */
-  vector<float> ParticleBindingEnergies;
-  vector<float> ParticlePotentialEnergies;
+  std::vector<float> ParticleBindingEnergies;
+  std::vector<float> ParticlePotentialEnergies;
 
   SubIdList_t NestedSubhalos; // list of sub-in-subs.
 
@@ -169,7 +169,7 @@ public:
   void CountParticleTypes();
   HBTInt KickNullParticles();
   void CountParticles();
-  void LevelUpDetachedMembers(vector<Subhalo_t> &Subhalos);
+  void LevelUpDetachedMembers(std::vector<Subhalo_t> &Subhalos);
   // for merger
   void MergeTo(Subhalo_t &host);
   bool IsTrapped()
@@ -187,7 +187,7 @@ public:
 #ifdef CHECK_TRACER_INDEX
     if (TracerId != Particles[TracerIndex].Id)
     {
-      cerr << "Tracer particle ID is incorrect!" << endl;
+      cerr << "Tracer particle ID is incorrect!" << std::endl;
       abort();
     }
 #endif
@@ -206,7 +206,7 @@ public:
     }
 #endif
   }
-  vector<HBTInt> GetMostBoundTracerIds(HBTInt n);
+  std::vector<HBTInt> GetMostBoundTracerIds(HBTInt n);
 
 private:
   /* To determine number of most bound tracer particles used to estimate the
@@ -232,10 +232,10 @@ private:
   void CountEmptyGroups();
   /*avoid operating on the Mem_* below; use the public VectorViews whenever possible; only operate the Mem_* variables
    * when adjusting memory*/
-  vector<MemberList_t> Mem_SubGroups; // list of subhaloes inside each host halo, with the storage of each subgroup
+  std::vector<MemberList_t> Mem_SubGroups; // list of subhaloes inside each host halo, with the storage of each subgroup
                                       // mapped to a location in AllMembers
 public:
-  vector<HBTInt> AllMembers; // the complete list of all the subhaloes in SubGroups. (contains local subhaloid, i.e.,
+  std::vector<HBTInt> AllMembers; // the complete list of all the subhaloes in SubGroups. (contains local subhaloid, i.e.,
                              // the index of subhaloes in the local SubhaloSnapshot_t). do not resize this vector
                              // manually. resize only with ResizeAllMembers() function.
   VectorView_t<MemberList_t>
@@ -244,7 +244,7 @@ public:
                  // for the normal groups.
   HBTInt NBirth; // newly born halos, excluding fake halos
   HBTInt NFake;  // Fake (unbound) halos with no progenitors
-  vector<vector<HBTInt>> SubGroupsOfHeads; // list of top-level subhaloes in each halo
+  std::vector<std::vector<HBTInt>> SubGroupsOfHeads; // list of top-level subhaloes in each halo
 
   MemberShipTable_t() : Mem_SubGroups(), AllMembers(), SubGroups(), SubGroupsOfHeads(), NBirth(0), NFake(0)
   {
@@ -293,12 +293,12 @@ private:
   void GlobalizeTrackReferences();
   void NestSubhalos(MpiWorker_t &world);
   void MaskSubhalos();
-  vector<int> RootNestSize; // buffer variable for temporary use.
+  std::vector<int> RootNestSize; // buffer variable for temporary use.
   void FillDepthRecursive(HBTInt subid, int depth);
   void FillDepth();
   void SetNestedParentIds();
 
-  void HandleTracerlessSubhalos(MpiWorker_t &world, vector<Subhalo_t> &LocalSubhalos);
+  void HandleTracerlessSubhalos(MpiWorker_t &world, std::vector<Subhalo_t> &LocalSubhalos);
 
   /* Methods to print information of how the analysis of each output is going. */
   void PrintHostStatistics(MpiWorker_t &world);
@@ -329,8 +329,8 @@ public:
       H5Tclose(H5T_SubhaloInMem);
     My_Type_free(&MPI_HBT_SubhaloShell_t);
   }
-  string GetSubDir();
-  void GetSubFileName(string &filename, int iFile, const string &ftype = "Sub");
+  std::string GetSubDir();
+  void GetSubFileName(std::string &filename, int iFile, const std::string &ftype = "Sub");
   void Load(MpiWorker_t &world, int snapshot_index, const SubReaderDepth_t depth = SubReaderDepth_t::SubParticles);
   void Save(MpiWorker_t &world);
 

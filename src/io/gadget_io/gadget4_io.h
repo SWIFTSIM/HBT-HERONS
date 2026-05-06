@@ -87,7 +87,7 @@ class Gadget4Reader_t
   void ReadGroupLen(int ifile, HBTInt *buf);
   void ReadGroupLenPerType(int ifile, std::array<HBTInt, TypeMax> *buf);
   HBTInt ReadGroupFileTotParticles(int ifile);
-  void LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &Particles);
+  void LoadParticleHosts(MpiWorker_t &world, std::vector<Particle_t> &Particles);
   void CreateHaloSegments(const std::vector<Particle_t> &SnapshotParticles, std::vector<Halo_t> &Halos);
 
   /* Custom MPI datatypes for easier communication. */

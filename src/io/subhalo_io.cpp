@@ -98,17 +98,17 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   H5Tclose(H5T_HBTxyz);
 }
 
-string SubhaloSnapshot_t::GetSubDir()
+std::string SubhaloSnapshot_t::GetSubDir()
 {
-  stringstream formater;
-  formater << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << SnapshotId;
+  std::stringstream formater;
+  formater << HBTConfig.SubhaloPath << "/" << std::setw(3) << std::setfill('0') << SnapshotId;
   return formater.str();
 }
 
-void SubhaloSnapshot_t::GetSubFileName(string &filename, int iFile, const string &ftype)
+void SubhaloSnapshot_t::GetSubFileName(std::string &filename, int iFile, const std::string &ftype)
 {
-  stringstream formater;
-  formater << GetSubDir() << "/" + ftype + "Snap_" << setw(3) << setfill('0') << SnapshotId << "." << iFile
+  std::stringstream formater;
+  formater << GetSubDir() << "/" + ftype + "Snap_" << std::setw(3) << std::setfill('0') << SnapshotId << "." << iFile
            << ".hdf5"; // or use snapshotid
   filename = formater.str();
 }
@@ -118,7 +118,7 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
   if (snapshot_index < HBTConfig.MinSnapshotIndex)
   {
     if (world.rank() == 0)
-      cout << "Skipping empty snapshot " << snapshot_index << "\n";
+      std::cout << "Skipping empty snapshot " << snapshot_index << "\n";
     return;
   }
   SetSnapshotIndex(snapshot_index);
@@ -127,7 +127,7 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
   HBTInt TotNumberOfSubs;
   if (world.rank() == 0)
   {
-    string filename;
+    std::string filename;
     GetSubFileName(filename, 0);
     hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
@@ -160,10 +160,10 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
   {
     if (NumSubsAll_loaded != TotNumberOfSubs)
     {
-      ostringstream msg;
+      std::ostringstream msg;
       msg << "Error reading SubSnap " << snapshot_index << ": total number of subhaloes expected=" << TotNumberOfSubs
-          << ", loaded=" << NumSubsAll_loaded << endl;
-      throw runtime_error(msg.str().c_str());
+          << ", loaded=" << NumSubsAll_loaded << std::endl;
+      throw std::runtime_error(msg.str().c_str());
     }
     std::cout << TotNumberOfSubs << " subhalos loaded from snapshot " << SnapshotId << " (SnapshotIndex = " \
               << snapshot_index << ")" << std::endl;
@@ -188,7 +188,7 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
 void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
 { // Read iFile for current snapshot.
 
-  string filename;
+  std::string filename;
   GetSubFileName(filename, iFile);
   hid_t dset, file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
   HBTInt snapshot_id;
@@ -216,7 +216,7 @@ void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
   if (nsubhalos)
   {
     Subhalo_t *NewSubhalos = &Subhalos[nsubhalos_old];
-    vector<hvl_t> vl(dims[0]);
+    std::vector<hvl_t> vl(dims[0]);
     vl.resize(nsubhalos);
     hid_t H5T_HBTIntArr = H5Tvlen_create(H5T_HBTInt);
     if (depth == SubReaderDepth_t::SubParticles || depth == SubReaderDepth_t::SrcParticles)
@@ -271,7 +271,7 @@ void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
 void SubhaloSnapshot_t::Save(MpiWorker_t &world)
 {
   /* Create folder where to save files */
-  string subdir = GetSubDir();
+  std::string subdir = GetSubDir();
   mkdir(subdir.c_str(), 0755);
 
   /* Decide how many ranks per node write simultaneously */
@@ -335,7 +335,7 @@ void SubhaloSnapshot_t::WriteSourceFiles(MpiWorker_t &world, const int &number_r
 void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsAll)
 {
   /* Create file */
-  string filename;
+  std::string filename;
   GetSubFileName(filename, iFile);
   hid_t file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -368,7 +368,7 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
   writeStringAttribute(header, commit_hash, "Git_commit");
   H5Gclose(header);
 
-  vector<hvl_t> vl(Subhalos.size());
+  std::vector<hvl_t> vl(Subhalos.size());
   hsize_t dim_sub[] = {Subhalos.size()};
   // now write the particle list for each subhalo
   if (HBTConfig.SaveBoundParticleProperties)
@@ -452,7 +452,7 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
     H5Tclose(H5T_FloatArr);
   }
 
-  vector<HBTInt> IdBuffer;
+  std::vector<HBTInt> IdBuffer;
   {
     HBTInt NumberOfParticles = 0;
     for (HBTInt i = 0; i < Subhalos.size(); i++)
@@ -478,7 +478,7 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
 void SubhaloSnapshot_t::WriteSourceSubfile(int iFile, int nfiles)
 {
   /* Create file */
-  string filename;
+  std::string filename;
   GetSubFileName(filename, iFile, "Src");
   hid_t file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -496,8 +496,8 @@ void SubhaloSnapshot_t::WriteSourceSubfile(int iFile, int nfiles)
 
   /* Create the particle vector arrays here, which is different to vl in the
    * WriteBoundSubfile, due to cleaning Particle vectors  */
-  vector<hvl_t> vl(Subhalos.size());
-  vector<HBTInt> IdBuffer;
+  std::vector<hvl_t> vl(Subhalos.size());
+  std::vector<HBTInt> IdBuffer;
   {
     HBTInt NumberOfParticles = 0;
     for (HBTInt i = 0; i < Subhalos.size(); i++)

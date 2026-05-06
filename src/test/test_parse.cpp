@@ -27,16 +27,16 @@ int main(int argc, char **argv)
   }
   HBTConfig.BroadCast(world, 0, snapshot_start, snapshot_end);
 
-  cout << HBTConfig.SnapshotPath << " from " << world.rank() << " of " << world.size() << " on " << env.processor_name()
-       << endl;
-  cout << HBTConfig.SnapshotIdList << " from " << world.rank() << " of " << world.size() << " on "
-       << env.processor_name() << endl;
-  cout << HBTConfig.IsSet[2] << " from " << world.rank() << " of " << world.size() << " on " << env.processor_name()
-       << endl;
-  cout << HBTConfig.GroupParticleIdMask << " from " << world.rank() << " of " << world.size() << " on "
-       << env.processor_name() << endl;
+  std::cout << HBTConfig.SnapshotPath << " from " << world.rank() << " of " << world.size() << " on " << env.processor_name()
+       << std::endl;
+  std::cout << HBTConfig.SnapshotIdList << " from " << world.rank() << " of " << world.size() << " on "
+       << env.processor_name() << std::endl;
+  std::cout << HBTConfig.IsSet[2] << " from " << world.rank() << " of " << world.size() << " on " << env.processor_name()
+       << std::endl;
+  std::cout << HBTConfig.GroupParticleIdMask << " from " << world.rank() << " of " << world.size() << " on "
+       << env.processor_name() << std::endl;
   long x = 0x1234567123456789;
-  cout << hex << (x & HBTConfig.GroupParticleIdMask) << "," << (x & 0x00000003FFFFFFFF) << endl;
+  std::cout << hex << (x & HBTConfig.GroupParticleIdMask) << "," << (x & 0x00000003FFFFFFFF) << std::endl;
 
   return 0;
 }

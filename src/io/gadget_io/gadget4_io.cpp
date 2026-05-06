@@ -1,4 +1,3 @@
-using namespace std;
 #include <iostream>
 #include <numeric>
 #include <sstream>
@@ -100,10 +99,10 @@ void Gadget4Reader_t::SetSnapshot(int snapshotId)
   SnapshotId = snapshotId;
   if (HBTConfig.SnapshotNameList.empty())
   {
-    stringstream formatter;
+    std::stringstream formatter;
     if (HBTConfig.SnapshotDirBase.length() > 0)
-      formatter << HBTConfig.SnapshotDirBase << "_" << setw(3) << setfill('0') << snapshotId << "/";
-    formatter << HBTConfig.SnapshotFileBase << "_" << setw(3) << setfill('0') << snapshotId;
+      formatter << HBTConfig.SnapshotDirBase << "_" << std::setw(3) << std::setfill('0') << snapshotId << "/";
+    formatter << HBTConfig.SnapshotFileBase << "_" << std::setw(3) << std::setfill('0') << snapshotId;
     SnapshotName = formatter.str();
   }
   else
@@ -134,7 +133,7 @@ std::string Gadget4Reader_t::GetGroupFileName(int ifile)
   if (HBTConfig.SnapshotDirBase.length() > 0)
   {
     /* If only FoF was run. */
-    formatter << HBTConfig.HaloPath << "groups_" << setw(3) << setfill('0') << SnapshotId << "/fof_tab_" << snap_idname << "." << ifile << ".hdf5";
+    formatter << HBTConfig.HaloPath << "groups_" << std::setw(3) << std::setfill('0') << SnapshotId << "/fof_tab_" << snap_idname << "." << ifile << ".hdf5";
     bool is_valid_file = is_it_valid(formatter.str());
 
     if(is_valid_file)
@@ -143,7 +142,7 @@ std::string Gadget4Reader_t::GetGroupFileName(int ifile)
     std::stringstream().swap(formatter); // Empty stringstream
 
     /* Subfind or Subfind-HBT was also run. */
-    formatter << HBTConfig.HaloPath << "groups_" << setw(3) << setfill('0') << SnapshotId << "/fof_subhalo_tab_" << snap_idname << "." << ifile << ".hdf5";
+    formatter << HBTConfig.HaloPath << "groups_" << std::setw(3) << std::setfill('0') << SnapshotId << "/fof_subhalo_tab_" << snap_idname << "." << ifile << ".hdf5";
   }
   else
   {
@@ -205,11 +204,11 @@ Gadget4Header_t Gadget4Reader_t::ReadHeader(int ifile)
   int DM_softening_class;
   ReadAttribute(file, "Parameters", "SofteningClassOfPartType1", H5T_NATIVE_INT, &DM_softening_class);
 
-  stringstream DM_comoving_softening_dataset;
+  std::stringstream DM_comoving_softening_dataset;
   DM_comoving_softening_dataset << "SofteningComovingClass" << DM_softening_class;
   ReadAttribute(file, "Parameters", DM_comoving_softening_dataset.str().c_str(), H5T_NATIVE_DOUBLE, &HeaderThisFile.DM_comoving_softening);
 
-  stringstream DM_max_softening_dataset;
+  std::stringstream DM_max_softening_dataset;
   DM_max_softening_dataset << "SofteningComovingClass" << DM_softening_class;
   ReadAttribute(file, "Parameters", DM_max_softening_dataset.str().c_str(), H5T_NATIVE_DOUBLE, &HeaderThisFile.DM_maximum_physical_softening);
 
@@ -290,8 +289,8 @@ void Gadget4Reader_t::CompileSnapshotParticleOffsets(int NumberFiles)
   }
 }
 
-HBTInt Gadget4Reader_t::CompileGroupFileOffsets(vector<HBTInt> &nhalo_per_groupfile,
-                                                vector<HBTInt> &offsethalo_per_groupfile)
+HBTInt Gadget4Reader_t::CompileGroupFileOffsets(std::vector<HBTInt> &nhalo_per_groupfile,
+                                                std::vector<HBTInt> &offsethalo_per_groupfile)
 {
   HBTInt offset = 0, nhalo_total;
   int nfiles = nhalo_per_groupfile.size();
@@ -353,7 +352,7 @@ void Gadget4Reader_t::ReadSnapshot(int FirstFileIndex, int CurrentFileIndex, Par
                                  + OffsetPreviousParticleTypes \
                                  + OffsetParticlesPerTypePerFile[CurrentFileIndex][PartType] - OffsetParticlesPerTypePerFile[FirstFileIndex][PartType];
 
-    stringstream grpname;
+    std::stringstream grpname;
     grpname << "PartType" << PartType;
 
     if (!H5Lexists(file, grpname.str().c_str(), H5P_DEFAULT))
@@ -384,7 +383,7 @@ void Gadget4Reader_t::ReadSnapshot(int FirstFileIndex, int CurrentFileIndex, Par
       HBTReal aexp;
       ReadAttribute(particle_data, "Velocities", "a_scaling", H5T_HBTReal, &aexp);
 
-      vector<HBTxyz> v(NumberParticlesThisTypeToRead);
+      std::vector<HBTxyz> v(NumberParticlesThisTypeToRead);
       ReadDataset(particle_data, "Velocities", H5T_HBTReal, v.data());
 
 #pragma omp parallel for
@@ -395,7 +394,7 @@ void Gadget4Reader_t::ReadSnapshot(int FirstFileIndex, int CurrentFileIndex, Par
 
     /* Particle IDs */
     {
-      vector<HBTInt> id(NumberParticlesThisTypeToRead);
+      std::vector<HBTInt> id(NumberParticlesThisTypeToRead);
       ReadDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data());
 #pragma omp parallel for
       for (int i = 0; i < NumberParticlesThisTypeToRead; i++)
@@ -405,7 +404,7 @@ void Gadget4Reader_t::ReadSnapshot(int FirstFileIndex, int CurrentFileIndex, Par
     /* Particle masses */
     if (Header.mass[PartType] == 0)
     {
-      vector<HBTReal> m(NumberParticlesThisTypeToRead);
+      std::vector<HBTReal> m(NumberParticlesThisTypeToRead);
       ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
 #pragma omp parallel for
       for (int i = 0; i < NumberParticlesThisTypeToRead; i++)
@@ -423,7 +422,7 @@ void Gadget4Reader_t::ReadSnapshot(int FirstFileIndex, int CurrentFileIndex, Par
 #ifdef HAS_THERMAL_ENERGY
     if (PartType == 0)
     {
-      vector<HBTReal> u(NumberParticlesThisTypeToRead);
+      std::vector<HBTReal> u(NumberParticlesThisTypeToRead);
       ReadDataset(particle_data, "InternalEnergy", H5T_HBTReal, u.data());
 #pragma omp parallel for
       for (int i = 0; i < NumberParticlesThisTypeToRead; i++)
@@ -489,7 +488,7 @@ void Gadget4Reader_t::ReadGroupLenPerType(int ifile, std::array<HBTInt, TypeMax>
   H5Fclose(file);
 }
 
-void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles,
+void Gadget4Reader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, std::vector<Particle_t> &Particles,
                                    Cosmology_t &Cosmology)
 {
   SetSnapshot(snapshotId);
@@ -809,11 +808,11 @@ struct HaloPartitioner_t
       local_halo_sizes.resize(nhalos);
 
       if (nhalos > 0)
-        local_halo_sizes[0] = min(HaloOffsets[first_halo + 1], ProcOffsets[iproc + 1]) - ProcOffsets[iproc];
+        local_halo_sizes[0] = std::min(HaloOffsets[first_halo + 1], ProcOffsets[iproc + 1]) - ProcOffsets[iproc];
       for (HBTInt i = 1; i < nhalos - 1; i++)
         local_halo_sizes[i] = HaloSizes[i + first_halo];
       if (nhalos > 1)
-        local_halo_sizes.back() = min(HaloSizes[last_halo], ProcOffsets[iproc + 1] - HaloOffsets[last_halo]);
+        local_halo_sizes.back() = std::min(HaloSizes[last_halo], ProcOffsets[iproc + 1] - HaloOffsets[last_halo]);
     }
   }
 
@@ -1092,7 +1091,7 @@ void Gadget4Reader_t::LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &p
   HBTConfig.GroupLoadedFullParticle = true;
 }
 
-bool IsGadget4Group(const string &GroupFileFormat)
+bool IsGadget4Group(const std::string &GroupFileFormat)
 {
   return GroupFileFormat.substr(0, 7) == "gadget4";
 }
