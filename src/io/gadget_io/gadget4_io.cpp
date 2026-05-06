@@ -609,6 +609,20 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
     }
   }
 
+  /* Sanity check: the sum of all halo sizes per type across ranks should equal
+   * the total number of particles in haloes. */
+  {
+    HBTInt np_local = 0;
+    for (HBTInt halo_i = 0; halo_i < NumberGroupsInRank; halo_i++)
+      np_local += std::accumulate(LocalHaloSizesPerType[halo_i].begin(), LocalHaloSizesPerType[halo_i].end(), 0);
+
+    HBTInt np_allproc = 0;
+    MPI_Reduce(&np_local, &np_allproc, 1, MPI_HBT_INT, MPI_SUM, root_node, world.Communicator);
+
+    if (world.rank() == root_node)
+      assert(np_allproc == TotalNumberGroupParticles);
+  }
+
 #ifndef NDEBUG
   /* Sanity check: the sum of each particle type part of the halo should be equal to
    * the total number. */
@@ -677,17 +691,6 @@ void Gadget4Reader_t::LoadHaloSizes(MpiWorker_t &world)
     }
   }
 #endif
-
-  /* Sanity check: the sum of all halo sizes should equal the total number of particles
-   * in haloes. */
-  {
-    HBTInt np_local = std::accumulate(LocalHaloSizes.begin(), LocalHaloSizes.end(), 0);
-    HBTInt np_allproc = 0;
-
-    MPI_Reduce(&np_local, &np_allproc, 1, MPI_HBT_INT, MPI_SUM, root_node, world.Communicator);
-    if (world.rank() == root_node)
-      assert(np_allproc == TotalNumberGroupParticles);
-  }
 }
 
 /* Gathers in the root MPI rank how many particles each MPI rank has. Also, how
