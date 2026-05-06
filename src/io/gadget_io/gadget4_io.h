@@ -41,55 +41,80 @@ void create_Gadget4Header_MPI_type(MPI_Datatype &dtype);
 class Gadget4Reader_t
 {
   int SnapshotId;
-  string SnapshotName;
-  const HBTInt NullGroupId = std::numeric_limits<HBTInt>::max();
-
-  const int root_node = 0;
-  // snap tab:
-  vector<HBTInt> np_file;
-  vector<HBTInt> offset_file;
-  vector<HBTInt> ProcLen;
-  void CollectProcSizes(MpiWorker_t &world, const ParticleSnapshot_t &PartSnap);
-  void CollectProcSizes(MpiWorker_t &world, const std::vector<Particle_t> &Particles);
-
-  // group tab:
-  HBTInt TotNumPartInGroups;
-  vector<HBTInt> HaloSizesAll; // only significant on root proc
-  void LoadHaloSizes(MpiWorker_t &world);
-
-  Gadget4Header_t Header; // this is snapshot header, not necessarily filled when loading groups
-  void ReadHeader(int ifile, Gadget4Header_t &header);
-  int ReadGroupFileCounts(int ifile);
-  HBTInt ReadGroupFileTotParticles(int ifile);
-  HBTInt CompileFileOffsets(int nfiles);
-  HBTInt CompileGroupFileOffsets(vector<HBTInt> &nhalo_per_groupfile, vector<HBTInt> &offsethalo_per_groupfile);
-  void ReadSnapshot(int ifile, Particle_t *ParticlesInFile);
-  void ReadGroupLen(int ifile, HBTInt *buf);
-  void GetFileName(int ifile, string &filename);
-  void GetGroupFileName(int ifile, string &filename);
+  std::string SnapshotName;
   void SetSnapshot(int snapshotId);
-  void GetParticleCountInFile(hid_t file, int np[]);
-  void LoadParticleProperties(MpiWorker_t &world, vector<Particle_t> &Particles);
-  void LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &Particles);
 
-  MPI_Datatype MPI_Gadget4Header_t;
+  /* Constants. TODO: extend these constants to the rest of the I/O readers. */
+  const HBTInt NullGroupId = std::numeric_limits<HBTInt>::max();
+  const int root_node = 0;
+
+  /* File paths and number of subfiles. */
+  int ReadGroupFileCounts(int ifile);
+  std::string GetGroupFileName(int ifile);
+  std::string GetSnapshotFileName(int ifile);
+
+  /* Header and miscellaneous options*/
+  Gadget4Header_t Header;
+  Gadget4Header_t ReadHeader(int ifile);
+
+  /* Particle count information. */
+  std::vector<HBTInt> NumberParticlesPerRank;
+  std::vector<HBTInt> NumberParticlesPerFile;
+  std::vector<HBTInt> OffsetParticlesPerFile;
+  std::vector<HBTInt> NumberParticlesPerTypeThisRank;
+  std::vector<std::array<HBTInt, TypeMax>> NumberParticlesPerTypePerRank;
+  std::vector<std::array<HBTInt, TypeMax>> NumberParticlesPerTypePerFile;
+  std::vector<std::array<HBTInt, TypeMax>> OffsetParticlesPerTypePerFile;
+
+  void CompileSnapshotParticleOffsets(int NumberFiles);
+  void GetParticleCountInFile(hid_t file, HBTInt np[]);
+  void GetNumberParticlesPerRank(MpiWorker_t &world, const std::vector<Particle_t> &Particles);
+
+  void LoadParticleProperties(MpiWorker_t &world, std::vector<Particle_t> &Particles);
+  void ReadSnapshot(int FirstFileIndex, int CurrentFileIndex, Particle_t *ParticlesOfThisType);
+
+  /* FoF group information. */
+  HBTInt TotalNumberGroupParticles;
+
+  /* These two vectors are only significant in root MPI rank. */
+  std::vector<HBTInt> AllHaloSizes;
+  std::vector<std::array<HBTInt, TypeMax>> AllHaloSizesPerType;
+
+
+  /* Loading FOF halo information. */
+  void LoadHaloSizes(MpiWorker_t &world);
+  HBTInt CompileGroupFileOffsets(std::vector<HBTInt> &nhalo_per_groupfile, std::vector<HBTInt> &offsethalo_per_groupfile);
+  void ReadGroupLen(int ifile, HBTInt *buf);
+  void ReadGroupLenPerType(int ifile, std::array<HBTInt, TypeMax> *buf);
+  HBTInt ReadGroupFileTotParticles(int ifile);
+  void LoadParticleHosts(MpiWorker_t &world, vector<Particle_t> &Particles);
+  void CreateHaloSegments(const std::vector<Particle_t> &SnapshotParticles, std::vector<Halo_t> &Halos);
+
+  /* Custom MPI datatypes for easier communication. */
+  MPI_Datatype MPI_HBT_INT_ARRAY, MPI_GADGET4_HEADER;
+  MPI_Datatype INT_ARRAY_MPI_datatype();
+  MPI_Datatype GADGET4_HEADER_MPI_datatype();
 
 public:
 
   Gadget4Reader_t()
   {
-    create_Gadget4Header_MPI_type(MPI_Gadget4Header_t);
+    MPI_HBT_INT_ARRAY = INT_ARRAY_MPI_datatype();
+    MPI_GADGET4_HEADER = GADGET4_HEADER_MPI_datatype();
   }
+
   ~Gadget4Reader_t()
   {
-    My_Type_free(&MPI_Gadget4Header_t);
+    My_Type_free(&MPI_HBT_INT_ARRAY);
+    My_Type_free(&MPI_GADGET4_HEADER);
   }
 
-  void LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles, Cosmology_t &Cosmology);
-  void LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &partsnap, vector<Halo_t> &Halos);
+  void LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &partsnap, std::vector<Halo_t> &Halos);
+  void LoadSnapshot(MpiWorker_t &world, int snapshotId, std::vector<Particle_t> &Particles, Cosmology_t &Cosmology);
+
 };
 
-extern bool IsGadget4Group(const string &GroupFileFormat);
+extern bool IsGadget4Group(const std::string &GroupFileFormat);
 } // namespace Gadget4Reader
 
 #endif // GADGET4_IO_INCLUDED
