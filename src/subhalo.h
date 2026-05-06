@@ -187,7 +187,7 @@ public:
 #ifdef CHECK_TRACER_INDEX
     if (TracerId != Particles[TracerIndex].Id)
     {
-      cerr << "Tracer particle ID is incorrect!" << std::endl;
+      std::cerr << "Tracer particle ID is incorrect!" << std::endl;
       abort();
     }
 #endif
