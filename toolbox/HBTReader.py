@@ -812,13 +812,24 @@ class HBTReader:
         Identify how each subhalo in the simulation merged with others and store
         for later use.
         """
-        if not hasattr(self, "__mask_disrupted_subhaloes") or not hasattr(self, "__mask_sunk_subhaloes"):
 
-            subhalo_data = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=['SnapshotOfDeath', 'SnapshotOfSink'])
+        if not hasattr(self, "_HBTReader__mask_disrupted_subhaloes") or not hasattr(self, "_HBTReader__mask_sunk_subhaloes"):
 
-            # Identify subhaloes that disrupted or underwent unresolved sinking.
-            self.__mask_disrupted_subhaloes = ( subhalo_data['SnapshotOfDeath'] != -1) & \
-                                              ((subhalo_data['SnapshotOfSink']  == -1) | (subhalo_data['SnapshotOfSink'] > subhalo_data['SnapshotOfDeath']))
-            # Identify subhaloes that sunk
-            self.__mask_sunk_subhaloes = (subhalo_data['SnapshotOfDeath'] != -1) & \
-                                         (subhalo_data['SnapshotOfSink']  == subhalo_data['SnapshotOfDeath'])
+            try: # New output version
+                subhalo_data = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=['SnapshotOfDeath', 'SnapshotOfSink'])
+
+                # Identify subhaloes that disrupted or underwent unresolved sinking.
+                self.__mask_disrupted_subhaloes = ( subhalo_data['SnapshotOfDeath'] != -1) & \
+                                                ((subhalo_data['SnapshotOfSink']  == -1) | (subhalo_data['SnapshotOfSink'] > subhalo_data['SnapshotOfDeath']))
+                # Identify subhaloes that sunk
+                self.__mask_sunk_subhaloes = (subhalo_data['SnapshotOfDeath'] != -1) & \
+                                             (subhalo_data['SnapshotOfSink']  == subhalo_data['SnapshotOfDeath'])
+            except: # Deprecated output version
+                subhalo_data = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=['SnapshotIndexOfDeath', 'SnapshotIndexOfSink'])
+
+                # Identify subhaloes that disrupted or underwent unresolved sinking.
+                self.__mask_disrupted_subhaloes = ( subhalo_data['SnapshotIndexOfDeath'] != -1) & \
+                                                  ((subhalo_data['SnapshotIndexOfSink']  == -1) | (subhalo_data['SnapshotIndexOfSink'] > subhalo_data['SnapshotIndexOfDeath']))
+                # Identify subhaloes that sunk
+                self.__mask_sunk_subhaloes = (subhalo_data['SnapshotIndexOfDeath'] != -1) & \
+                                             (subhalo_data['SnapshotIndexOfSink']  == subhalo_data['SnapshotIndexOfDeath'])
