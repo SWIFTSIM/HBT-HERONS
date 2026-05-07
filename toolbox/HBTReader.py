@@ -812,7 +812,8 @@ class HBTReader:
         Identify how each subhalo in the simulation merged with others and store
         for later use.
         """
-        if not hasattr(self, "__mask_disrupted_subhaloes") or not hasattr(self, "__mask_sunk_subhaloes"):
+
+        if not hasattr(self, "_HBTReader__mask_disrupted_subhaloes") or not hasattr(self, "_HBTReader__mask_sunk_subhaloes"):
 
             try: # New output version
                 subhalo_data = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=['SnapshotOfDeath', 'SnapshotOfSink'])
