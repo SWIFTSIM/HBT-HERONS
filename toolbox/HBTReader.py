@@ -351,6 +351,8 @@ class HBTReader:
     def GetSinkProgenitors(self, TrackId):
         """
         Returns the TrackId of subhaloes that sunk into the subhalo of interest.
+        The first call to this function may be slow because additional operations
+        need to made.
 
         Parameters
         ==========
@@ -369,18 +371,31 @@ class HBTReader:
         # loaded if not already.
         self.__load_merger_snapshot_information()
 
-        if not hasattr(self, "_HBTReader__SinkTrackId"):
-            self.__SinkTrackId = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=['SinkTrackId'])['SinkTrackId']
-        mask_progenitors = self.__SinkTrackId == TrackId
+        # Build dictionary to enable faster progenitor look up
+        if not hasattr(self, "_HBTReader__sink_progenitor_map"):
 
-        if self.__sorted_catalogues:
-            return np.flatnonzero(mask_progenitors & self.__mask_sunk_subhaloes)
-        else:
-            return np.sort(self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=["TrackId"])["TrackId"][mask_progenitors & self.__mask_sunk_subhaloes])
+            # Load and keep only subhaloes that underwent sinking.
+            sink_subhaloes = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=["TrackId", "SinkTrackId"])[self.__mask_sunk_subhaloes]
+
+            # Order by SinkTrackId and then TrackId
+            sink_subhaloes.sort(order=["SinkTrackId", "TrackId"])
+
+            # A quick way to obtain several progenitors for a given descendant
+            unique_descendants, progenitor_slicing_index = np.unique(sink_subhaloes["SinkTrackId"], return_index=True)
+            progenitor_slicing_index = np.append(progenitor_slicing_index, len(sink_subhaloes))
+
+            # Create dictionary between descendant and progenitor.
+            self.__sink_progenitor_map = {}
+            for i, descendant in enumerate(unique_descendants):
+                self.__sink_progenitor_map[descendant] = sink_subhaloes["TrackId"][progenitor_slicing_index[i]:progenitor_slicing_index[i+1]]
+
+        return self.__sink_progenitor_map.get(TrackId, np.empty(0, int))
 
     def GetDisruptionProgenitors(self, TrackId):
         """
         Returns the TrackId of subhaloes that disrupted into the subhalo of interest.
+        The first call to this function may be slow because additional operations
+        need to made.
 
         Parameters
         ==========
@@ -399,14 +414,25 @@ class HBTReader:
         # loaded if not already.
         self.__load_merger_snapshot_information()
 
-        if not hasattr(self, "_HBTReader__DescendantTrackId"):
-            self.__DescendantTrackId = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=['DescendantTrackId'])['DescendantTrackId']
-        mask_progenitors = self.__DescendantTrackId == TrackId
+        # Build dictionary to enable faster progenitor look up
+        if not hasattr(self, "_HBTReader__disruption_progenitor_map"):
 
-        if self.__sorted_catalogues:
-            return np.flatnonzero(mask_progenitors & self.__mask_disrupted_subhaloes)
-        else:
-            return np.sort(self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=["TrackId"])["TrackId"][mask_progenitors & self.__mask_disrupted_subhaloes])
+            # Load and keep only subhaloes that underwent disruption.
+            disruption_subhaloes = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=["TrackId", "DescendantTrackId"])[self.__mask_disrupted_subhaloes]
+
+            # Order by SinkTrackId and then TrackId
+            disruption_subhaloes.sort(order=["DescendantTrackId", "TrackId"])
+
+            # A quick way to obtain several progenitors for a given descendant
+            unique_descendants, progenitor_slicing_index = np.unique(disruption_subhaloes["DescendantTrackId"], return_index=True)
+            progenitor_slicing_index = np.append(progenitor_slicing_index, len(disruption_subhaloes))
+
+            # Create dictionary between descendant and progenitor.
+            self.__disruption_progenitor_map = {}
+            for i, descendant in enumerate(unique_descendants):
+                self.__disruption_progenitor_map[descendant] = disruption_subhaloes["TrackId"][progenitor_slicing_index[i]:progenitor_slicing_index[i+1]]
+
+        return self.__disruption_progenitor_map.get(TrackId, np.empty(0, int))
 
     def GetAllProgenitors(self, TrackId, only_direct_progenitors=False):
         """
@@ -816,16 +842,18 @@ class HBTReader:
         if not hasattr(self, "_HBTReader__mask_disrupted_subhaloes") or not hasattr(self, "_HBTReader__mask_sunk_subhaloes"):
 
             try: # New output version
-                subhalo_data = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=['SnapshotOfDeath', 'SnapshotOfSink'])
+                required_fields = ['SnapshotOfDeath', 'SnapshotOfSink']
+                subhalo_data = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=required_fields)
 
                 # Identify subhaloes that disrupted or underwent unresolved sinking.
                 self.__mask_disrupted_subhaloes = ( subhalo_data['SnapshotOfDeath'] != -1) & \
-                                                ((subhalo_data['SnapshotOfSink']  == -1) | (subhalo_data['SnapshotOfSink'] > subhalo_data['SnapshotOfDeath']))
+                                                  ((subhalo_data['SnapshotOfSink']  == -1) | (subhalo_data['SnapshotOfSink'] > subhalo_data['SnapshotOfDeath']))
                 # Identify subhaloes that sunk
                 self.__mask_sunk_subhaloes = (subhalo_data['SnapshotOfDeath'] != -1) & \
                                              (subhalo_data['SnapshotOfSink']  == subhalo_data['SnapshotOfDeath'])
             except: # Deprecated output version
-                subhalo_data = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=['SnapshotIndexOfDeath', 'SnapshotIndexOfSink'])
+                required_fields = ['SnapshotIndexOfDeath', 'SnapshotIndexOfSink']
+                subhalo_data = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=required_fields)
 
                 # Identify subhaloes that disrupted or underwent unresolved sinking.
                 self.__mask_disrupted_subhaloes = ( subhalo_data['SnapshotIndexOfDeath'] != -1) & \
