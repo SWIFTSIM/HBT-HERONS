@@ -369,7 +369,7 @@ class HBTReader:
         # loaded if not already.
         self.__load_merger_snapshot_information()
 
-        if not hasattr(self, "SinkTrackId"):
+        if not hasattr(self, "_HBTReader__SinkTrackId"):
             self.__SinkTrackId = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=['SinkTrackId'])['SinkTrackId']
         mask_progenitors = self.__SinkTrackId == TrackId
 
@@ -399,7 +399,7 @@ class HBTReader:
         # loaded if not already.
         self.__load_merger_snapshot_information()
 
-        if not hasattr(self, "__DescendantTrackId"):
+        if not hasattr(self, "_HBTReader__DescendantTrackId"):
             self.__DescendantTrackId = self.LoadSubhaloProperties(self.SnapshotIdList.max(), properties=['DescendantTrackId'])['DescendantTrackId']
         mask_progenitors = self.__DescendantTrackId == TrackId
 
