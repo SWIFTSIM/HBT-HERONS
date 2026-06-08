@@ -86,8 +86,8 @@ Depth  = subhaloes["Depth"]
 ParentTrackId = subhaloes["NestedParentTrackId"]
 
 # Select the most massive subhalo in the box and its host halo
-TargetTrackId = Mbound.argmax()
-HostHaloId = subhaloes["HostHaloId"][TargetTrackId]
+most_massive_idx = Mbound.argmax()
+HostHaloId = subhaloes["HostHaloId"][most_massive_idx]
 
 # Select all subhaloes that share the same host halo (including central)
 subhaloes_in_halo = subhaloes["HostHaloId"] == HostHaloId
