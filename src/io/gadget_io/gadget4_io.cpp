@@ -971,7 +971,8 @@ void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, std::vector<Particle
     auto FirstParticleThisType = Particles.begin() + std::accumulate(NumberParticlesPerTypeThisRank.begin(), NumberParticlesPerTypeThisRank.begin() + PartType, 0);
     auto LastParticleThisType  = Particles.begin() + std::accumulate(NumberParticlesPerTypeThisRank.begin(), NumberParticlesPerTypeThisRank.begin() + PartType + 1, 0);
 
-#pragma omp parallel for default(shared)
+    HBTInt LocalNumberParticlesAssignedThisType = 0;
+#pragma omp parallel for default(shared) reduction(+:LocalNumberParticlesAssignedThisType)
     for (size_t halo_i = 0; halo_i < LocalHaloSizesThisType.size(); halo_i++)
     {
       /* The range of particles that belong to the current halo segment. */
@@ -984,9 +985,10 @@ void Gadget4Reader_t::LoadParticleHosts(MpiWorker_t &world, std::vector<Particle
       for (auto particle_it = start_particle; particle_it != end_particle; ++particle_it)
       {
         particle_it->HostId = halo_i + FirstHaloThisRank;
-        LocalNumberParticlesAssigned++;
+        LocalNumberParticlesAssignedThisType++;
       }
     }
+    LocalNumberParticlesAssigned += LocalNumberParticlesAssignedThisType;
   }
 
   /* Sanity check */
