@@ -13,3 +13,17 @@ If you use HBT-HERONS catalogues in your work, please cite the following papers:
  * [Assessing subhalo finders in cosmological hydrodynamical simulations](https://ui.adsabs.harvard.edu/abs/2025arXiv250206932F/abstract)
  * [HBT+: an improved code for finding subhaloes and building merger trees in cosmological simulations](https://ui.adsabs.harvard.edu/abs/2018MNRAS.474..604H/abstract)
  * [Resolving subhaloes' lives with the Hierarchical Bound-Tracing algorithm](https://ui.adsabs.harvard.edu/abs/2012MNRAS.427.2437H/abstract)
+
+## Documentation
+
+The documentation is built with [MkDocs](https://www.mkdocs.org/) using the Material theme. Install the required packages with:
+
+```bash
+pip install mkdocs mkdocs-material mkdocs-video
+```
+
+To build the static site run:
+
+```bash
+mkdocs build   # build static site into ./site/
+```
