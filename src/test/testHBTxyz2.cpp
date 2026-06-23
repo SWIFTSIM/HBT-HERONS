@@ -66,13 +66,13 @@ int main()
   std::cout << x << y << z << a << "\n";
 
   a = b;
-  cout << a << b << &a << "," << &b << endl;
-  vector<HBTxyz> v;
+  std::cout << a << b << &a << "," << &b << std::endl;
+  std::vector<HBTxyz> v;
   float data[] = {1, 2, 3, 4, 5, 6};
   //   v.assign((float (*)[3])data, (float (*)[3])data+2);
   v.resize(2);
   copy(data, data + 6, (HBTReal *)v.data());
-  cout << v[0] << v[1] << endl;
-  cout << &a << ',' << a.data() << endl;
+  std::cout << v[0] << v[1] << std::endl;
+  std::cout << &a << ',' << a.data() << std::endl;
   return 0;
 }

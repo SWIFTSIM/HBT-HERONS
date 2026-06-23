@@ -1,4 +1,3 @@
-using namespace std;
 #include <assert.h>
 #include <chrono>
 #include <cstdio>

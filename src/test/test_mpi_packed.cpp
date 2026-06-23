@@ -18,17 +18,15 @@ int main(int argc, char **argv)
   {
     position = 0;
     MPI_Pack(&a, 2, MPI_INT, buff, BUF_LEN, &position, MPI_COMM_WORLD);
-    // 	cout<<position<<endl;
     MPI_Pack(j, MSG_LEN, MPI_INT, buff, BUF_LEN, &position, MPI_COMM_WORLD);
-    // 	cout<<position<<endl;
     MPI_Send(&position, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
     MPI_Send(buff, position, MPI_PACKED, 1, 0, MPI_COMM_WORLD);
-    cout << position << endl;
+    std::cout << position << std::endl;
   }
   else /* RECEIVER CODE */
   {
     MPI_Recv(&position, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    cout << position << endl;
+    std::cout << position << std::endl;
     MPI_Recv(buff, position, MPI_PACKED, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   }
 

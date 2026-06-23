@@ -11,7 +11,7 @@ namespace mpi = boost::mpi;
 struct TestStruct_t
 {
   int a;
-  vector<int> c;
+  std::vector<int> c;
   double b;
   TestStruct_t() : a(0), b(0), c(2, 1)
   {
@@ -28,7 +28,7 @@ private:
   }
 };
 BOOST_IS_MPI_DATATYPE(TestStruct_t)
-std::ostream &operator<<(std::ostream &o, vector<TestStruct_t> &x)
+std::ostream &operator<<(std::ostream &o, std::vector<TestStruct_t> &x)
 {
   for (auto &&a : x)
   {
@@ -48,21 +48,21 @@ int main(int argc, char **argv)
   mpi::communicator world;
 
 #define MSG_LEN 3
-  vector<TestStruct_t> sendbuf(MSG_LEN), recvbuf;
+  std::vector<TestStruct_t> sendbuf(MSG_LEN), recvbuf;
 
   if (world.rank() == 0)
   {
     sendbuf[1].a = 1;
     sendbuf[2].b = 2;
     sendbuf[1].c.push_back(-1);
-    cout << sendbuf << endl;
+    std::cout << sendbuf << std::endl;
     world.send(1, 0, sendbuf);
   }
   else if (world.rank() == 1)
     world.recv(0, 0, recvbuf);
 
   if (world.rank() == 1)
-    cout << recvbuf.size() << " elements received: " << recvbuf << "\n";
+    std::cout << recvbuf.size() << " elements received: " << recvbuf << "\n";
 
   return 0;
 }

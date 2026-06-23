@@ -78,7 +78,7 @@ void RestoreParticleOrder(OrderedParticleList_T &P)
     auto &p = P[i];
     auto &j = p.Order;
     while (i != j)
-      swap(p, P[j]);
+      std::swap(p, P[j]);
   }
 }
 } // namespace ParticleExchangeComp
@@ -93,17 +93,17 @@ class ParticleExchanger_t
   MPI_Datatype MPI_HBTParticle_t;
   MpiWorker_t &world;
   const ParticleSnapshot_t &snap;
-  vector<Halo_T> &InHalos;
+  std::vector<Halo_T> &InHalos;
 
-  vector<HBTInt> HaloSizes, HaloOffsets;
+  std::vector<HBTInt> HaloSizes, HaloOffsets;
 
-  vector<RemoteParticle_t> LocalParticles;
-  vector<OrderedParticle_t> RoamParticles;
-  typedef vector<RemoteParticle_t>::iterator LocalParticleIterator_t;
-  typedef vector<OrderedParticle_t>::iterator RoamParticleIterator_t;
-  vector<LocalParticleIterator_t> LocalIterators;
-  vector<RoamParticleIterator_t> RoamIterators;
-  vector<HBTInt> LocalSizes, RoamSizes;
+  std::vector<RemoteParticle_t> LocalParticles;
+  std::vector<OrderedParticle_t> RoamParticles;
+  typedef std::vector<RemoteParticle_t>::iterator LocalParticleIterator_t;
+  typedef std::vector<OrderedParticle_t>::iterator RoamParticleIterator_t;
+  std::vector<LocalParticleIterator_t> LocalIterators;
+  std::vector<RoamParticleIterator_t> RoamIterators;
+  std::vector<HBTInt> LocalSizes, RoamSizes;
 
   void CollectParticles();
   void SendParticles();
@@ -112,7 +112,7 @@ class ParticleExchanger_t
   void RestoreParticles();
 
 public:
-  ParticleExchanger_t(MpiWorker_t &world, const ParticleSnapshot_t &snap, vector<Halo_T> &InHalos);
+  ParticleExchanger_t(MpiWorker_t &world, const ParticleSnapshot_t &snap, std::vector<Halo_T> &InHalos);
   ~ParticleExchanger_t()
   {
     My_Type_free(&MPI_HBTParticle_t);
@@ -122,7 +122,7 @@ public:
 
 template <class Halo_T>
 ParticleExchanger_t<Halo_T>::ParticleExchanger_t(MpiWorker_t &world, const ParticleSnapshot_t &snap,
-                                                 vector<Halo_T> &InHalos)
+                                                 std::vector<Halo_T> &InHalos)
   : world(world), snap(snap), InHalos(InHalos), LocalParticles(), RoamParticles()
 {
   Particle_t().create_MPI_type(MPI_HBTParticle_t);
@@ -147,7 +147,7 @@ void ParticleExchanger_t<Halo_T>::CollectParticles()
   {
     for (auto &&p : h.Particles)
     {
-      LocalParticles.emplace_back(move(p), np++);
+      LocalParticles.emplace_back(std::move(p), np++);
     }
     h.Particles.clear(); // or hard clear to save memory?
   }
@@ -231,7 +231,7 @@ void ParticleExchanger_t<Halo_T>::RecvParticles()
 {
   MyAllToAll<Particle_t, RoamParticleIterator_t, LocalParticleIterator_t>(world, RoamIterators, RoamSizes,
                                                                           LocalIterators, MPI_HBTParticle_t);
-  vector<OrderedParticle_t>().swap(RoamParticles);
+  std::vector<OrderedParticle_t>().swap(RoamParticles);
 
   for (int rank = 0; rank < world.size(); rank++)
   {
@@ -254,7 +254,7 @@ void ParticleExchanger_t<Halo_T>::RestoreParticles()
     it = it_end;
   }
   assert(it == LocalParticles.end());
-  vector<RemoteParticle_t>().swap(LocalParticles);
+  std::vector<RemoteParticle_t>().swap(LocalParticles);
 
   for (auto &&h : InHalos)
     h.KickNullParticles();
@@ -271,82 +271,47 @@ void ParticleExchanger_t<Halo_T>::Exchange()
 }
 
 template <class Halo_T>
-void DecideTargetProcessor(int NumProc, vector<Halo_T> &InHalos, vector<IdRank_t> &TargetRank)
+void DecideTargetProcessor(int NumProc, std::vector<Halo_T> &InHalos, std::vector<IdRank_t> &TargetRank)
 {
-  /* Get halo particle counts and total count */
-  vector<HBTInt> InHaloSizes(InHalos.size());
-  HBTInt TotalParticles = 0;
-  for (HBTInt haloid = 0; haloid < InHalos.size(); haloid++)
-  {
-    InHaloSizes[haloid] = InHalos[haloid].Particles.size();
-    TotalParticles += InHalos[haloid].Particles.size();
-  }
+  auto dims = ClosestFactors(NumProc, 3);
+  HBTxyz step;
+  for (int i = 0; i < 3; i++)
+    step[i] = HBTConfig.BoxSize / dims[i];
 
-  HBTInt MaxPartPerRank = TotalParticles / NumProc;
-  int ThisRank = 0;
-  vector<HBTInt> ParticlesOnRank(NumProc, 0);
+#pragma omp parallel for
   for (HBTInt i = 0; i < InHalos.size(); i++)
   {
+    InHalos[i].AverageCoordinates();
     TargetRank[i].Id = i;
-    // We do a round-robin over the ranks. However, if the next rank in the round-robin is
-    // full (MaxPartPerRank) we skip to the next one. If a rank is empty MaxPartPerRank is
-    // ignored so that we can always assign at least one halo per rank so that the biggest
-    // halos can be assigned.
-    for (int TriedRanks = 0; TriedRanks < NumProc; TriedRanks++)
-    {
-      if((ParticlesOnRank[ThisRank] + InHaloSizes[i] < MaxPartPerRank) || (ParticlesOnRank[ThisRank] == 0))
-      {
-        TargetRank[i].Rank = ThisRank;
-        ParticlesOnRank[ThisRank] += InHaloSizes[i];
-        ThisRank++; // Next group will start with next rank.
-        ThisRank %= NumProc;
-        break;
-      }
-      ThisRank++;
-      ThisRank %= NumProc;
-
-      if(TriedRanks == NumProc)
-      {
-        // Tried all ranks for this halo and couldn't find a place - abort.
-        // This should be impossible.
-        stringstream error_message;
-        error_message << "Failed to distribute group with ID " << i << "." << endl;
-        error_message << "It has " << InHaloSizes[i] << " particles." << endl;
-        error_message << "Max particles per rank (summed over assigned groups) is set to " << MaxPartPerRank << "." << endl;
-        error_message << "When trying to assign this group, particle load on ranks so far is:" << endl;
-        for(int rank = 0; rank < NumProc; rank++)
-          error_message << "  Rank " << rank << ": " << ParticlesOnRank[rank] << endl;
-
-        throw runtime_error(error_message.str());
-      }
-    }
+    TargetRank[i].Rank = AssignCell(InHalos[i].ComovingAveragePosition, step, dims);
   }
 }
 
 template <class Halo_T>
-void ParticleSnapshot_t::ExchangeHalos(MpiWorker_t &world, vector<Halo_T> &InHalos, vector<Halo_T> &OutHalos,
+void ParticleSnapshot_t::ExchangeHalos(MpiWorker_t &world, std::vector<Halo_T> &InHalos, std::vector<Halo_T> &OutHalos,
                                        MPI_Datatype MPI_Halo_Shell_Type) const
 {
-  typedef typename vector<Halo_T>::iterator HaloIterator_t;
+  typedef typename std::vector<Halo_T>::iterator HaloIterator_t;
   typedef HaloParticleIterator_t<HaloIterator_t> ParticleIterator_t;
 
+  //   cout<<"Query particle..."<<flush;
   { // query particles
     ParticleExchanger_t<Halo_T> Exchanger(world, *this, InHalos);
     Exchanger.Exchange();
   }
 
-  vector<IdRank_t> TargetRank(InHalos.size());
+  std::vector<IdRank_t> TargetRank(InHalos.size());
   DecideTargetProcessor(world.size(), InHalos, TargetRank);
 
-  /* Distribute halo shells, which contain all but the particle information. */
-  vector<int> SendHaloCounts(world.size(), 0), RecvHaloCounts(world.size()), SendHaloDisps(world.size()),
+  // distribute halo shells
+  std::vector<int> SendHaloCounts(world.size(), 0), RecvHaloCounts(world.size()), SendHaloDisps(world.size()),
     RecvHaloDisps(world.size());
   sort(TargetRank.begin(), TargetRank.end(), CompareRank);
-  vector<Halo_T> InHalosSorted(InHalos.size());
-  vector<HBTInt> InHaloSizes(InHalos.size());
+  std::vector<Halo_T> InHalosSorted(InHalos.size());
+  std::vector<HBTInt> InHaloSizes(InHalos.size());
   for (HBTInt haloid = 0; haloid < InHalos.size(); haloid++)
   {
-    InHalosSorted[haloid] = move(InHalos[TargetRank[haloid].Id]);
+    InHalosSorted[haloid] = std::move(InHalos[TargetRank[haloid].Id]);
     SendHaloCounts[TargetRank[haloid].Rank]++;
     InHaloSizes[haloid] = InHalosSorted[haloid].Particles.size();
   }
@@ -358,7 +323,7 @@ void ParticleSnapshot_t::ExchangeHalos(MpiWorker_t &world, vector<Halo_T> &InHal
   MPI_Alltoallv(InHalosSorted.data(), SendHaloCounts.data(), SendHaloDisps.data(), MPI_Halo_Shell_Type, &NewHalos[0],
                 RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_Halo_Shell_Type, world.Communicator);
   // resize receivehalos
-  vector<HBTInt> OutHaloSizes(NumNewHalos);
+  std::vector<HBTInt> OutHaloSizes(NumNewHalos);
   MPI_Alltoallv(InHaloSizes.data(), SendHaloCounts.data(), SendHaloDisps.data(), MPI_HBT_INT, OutHaloSizes.data(),
                 RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_HBT_INT, world.Communicator);
   for (HBTInt i = 0; i < NumNewHalos; i++)
@@ -369,8 +334,8 @@ void ParticleSnapshot_t::ExchangeHalos(MpiWorker_t &world, vector<Halo_T> &InHal
     MPI_Datatype MPI_HBT_Particle;
     Particle_t().create_MPI_type(MPI_HBT_Particle);
     // create combined iterator for each bunch of haloes
-    vector<ParticleIterator_t> InParticleIterator(world.size());
-    vector<ParticleIterator_t> OutParticleIterator(world.size());
+    std::vector<ParticleIterator_t> InParticleIterator(world.size());
+    std::vector<ParticleIterator_t> OutParticleIterator(world.size());
     for (int rank = 0; rank < world.size(); rank++)
     {
       InParticleIterator[rank].init(InHalosSorted.begin() + SendHaloDisps[rank],
@@ -378,7 +343,7 @@ void ParticleSnapshot_t::ExchangeHalos(MpiWorker_t &world, vector<Halo_T> &InHal
       OutParticleIterator[rank].init(NewHalos + RecvHaloDisps[rank],
                                      NewHalos + RecvHaloDisps[rank] + RecvHaloCounts[rank]);
     }
-    vector<HBTInt> InParticleCount(world.size(), 0);
+    std::vector<HBTInt> InParticleCount(world.size(), 0);
     for (HBTInt i = 0; i < InHalosSorted.size(); i++)
       InParticleCount[TargetRank[i].Rank] += InHalosSorted[i].Particles.size();
 

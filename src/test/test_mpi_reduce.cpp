@@ -17,7 +17,7 @@ int main(int argc, char **argv)
   else
     MPI_Reduce(&x, &x, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
-  cout << "thread " << myrank << ": " << x << endl;
+  std::cout << "thread " << myrank << ": " << x << std::endl;
 
   MPI_Finalize();
   return 0;

@@ -22,7 +22,7 @@ public:
   {
     return i;
   }
-  void restore_id(vector<LocatedParticle_t> &particles) const
+  void restore_id(std::vector<LocatedParticle_t> &particles) const
   {
     for (auto &&p : particles)
       p.index = restore_id(p.index);
@@ -68,8 +68,8 @@ class LinkedlistPara_t
 { // built and searched in parallel. can be searched in serial as well. lower efficiency than Linkedlist_t, especially
   // when built with larger number of threads.
 private:
-  vector<LinkedlistBase_t> LLs;
-  vector<PositionSampleLattice_t> Samples;
+  std::vector<LinkedlistBase_t> LLs;
+  std::vector<PositionSampleLattice_t> Samples;
 
 public:
   LinkedlistPara_t(int ndiv, PositionData_t *data, HBTReal boxsize = 0., bool periodic = false);
@@ -173,8 +173,8 @@ public:
 class Linkedlist_t : public LinkedlistBase_t
 { // built in parallel
 private:
-  vector<LinkedlistBase_t> LLs;
-  vector<PositionSampleBlock_t> Samples;
+  std::vector<LinkedlistBase_t> LLs;
+  std::vector<PositionSampleBlock_t> Samples;
   void merge();
 
 public:
@@ -193,6 +193,6 @@ public:
   void parallel_build(int ndiv, PositionData_t *data, HBTReal boxsize = 0., bool periodic = false);
 };
 
-extern void LinkedlistLinkGroup(HBTReal radius, const Snapshot_t &snapshot, vector<HBTInt> &GrpLen,
-                                vector<HBTInt> &GrpTags, int ndiv = 256);
+extern void LinkedlistLinkGroup(HBTReal radius, const Snapshot_t &snapshot, std::vector<HBTInt> &GrpLen,
+                                std::vector<HBTInt> &GrpTags, int ndiv = 256);
 #endif

@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
         // To do more accurate checks we need to determine which particles
         // should have been used for the calculations. First store the indexes
         // of tracer type particles.
-        vector<int> part_index(0);
+        std::vector<int> part_index(0);
         int NumPart = 0;
         for (int i = 0; i < sub.Nbound; i += 1)
         {

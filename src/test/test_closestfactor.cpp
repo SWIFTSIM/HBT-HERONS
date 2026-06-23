@@ -5,7 +5,7 @@
 int main(int argc, char **argv)
 {
 #define test(x, y)                                                                                                     \
-  cout << x << "," << y << " : " << ClosestFactors(x, y) << endl;                                                      \
+  std::cout << x << "," << y << " : " << ClosestFactors(x, y) << std::endl;                                                      \
   ;
   /*
 test(10,3);

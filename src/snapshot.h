@@ -104,7 +104,7 @@ struct Particle_t
 #endif
   }
 };
-extern ostream &operator<<(ostream &o, Particle_t &p);
+extern std::ostream &operator<<(std::ostream &o, Particle_t &p);
 
 class Snapshot_t : public SnapshotNumber_t
 {
@@ -123,10 +123,10 @@ public:
   {
     return 0.;
   }
-  void SphericalOverdensitySize(float &Mvir, float &Rvir, HBTReal VirialFactor, const vector<HBTReal> &RSorted,
+  void SphericalOverdensitySize(float &Mvir, float &Rvir, HBTReal VirialFactor, const std::vector<HBTReal> &RSorted,
                                 HBTReal ParticleMass) const;
-  void SphericalOverdensitySize(float &Mvir, float &Rvir, HBTReal VirialFactor, const vector<RadMassVel_t> &prof) const;
-  void SphericalOverdensitySize2(float &Mvir, float &Rvir, HBTReal VirialFactor, const vector<HBTReal> &RSorted,
+  void SphericalOverdensitySize(float &Mvir, float &Rvir, HBTReal VirialFactor, const std::vector<RadMassVel_t> &prof) const;
+  void SphericalOverdensitySize2(float &Mvir, float &Rvir, HBTReal VirialFactor, const std::vector<HBTReal> &RSorted,
                                  HBTReal ParticleMass) const;
   void RelativeVelocity(const HBTxyz &targetPos, const HBTxyz &targetVel, const HBTxyz &refPos, const HBTxyz &refVel,
                         HBTxyz &relativeVel) const;
@@ -153,7 +153,7 @@ public:
   HBTInt *Ids;
   HBTInt N;
   Snapshot_t &Snapshot;
-  SnapshotView_t(vector<HBTInt> &ids, Snapshot_t &fullsnapshot)
+  SnapshotView_t(std::vector<HBTInt> &ids, Snapshot_t &fullsnapshot)
     : Ids(ids.data()), N(ids.size()), Snapshot(fullsnapshot), Snapshot_t(fullsnapshot){};
   SnapshotView_t(VectorView_t<HBTInt> &ids, Snapshot_t &fullsnapshot)
     : Ids(ids.data()), N(ids.size()), Snapshot(fullsnapshot), Snapshot_t(fullsnapshot){};
@@ -187,17 +187,17 @@ public:
 
 class ParticleSnapshot_t : public Snapshot_t
 {
-  typedef vector<HBTInt> IndexList_t;
+  typedef std::vector<HBTInt> IndexList_t;
 
   FlatIndexTable_t<HBTInt, HBTInt> FlatHash;
   MappedIndexTable_t<HBTInt, HBTInt> MappedHash;
   IndexTable_t<HBTInt, HBTInt> *ParticleHash;
 
   void ExchangeParticles(MpiWorker_t &world);
-  vector<HBTInt> PartitionParticles(MpiWorker_t &world);
+  std::vector<HBTInt> PartitionParticles(MpiWorker_t &world);
 
 public:
-  vector<Particle_t> Particles;
+  std::vector<Particle_t> Particles;
   HBTInt NumberOfParticlesOnAllNodes;
 
   ParticleSnapshot_t()
@@ -246,7 +246,7 @@ public:
   void AverageVelocity(HBTxyz &CoV, const HBTInt Particles[], HBTInt NumPart) const;
 
   template <class Halo_T>
-  void ExchangeHalos(MpiWorker_t &world, vector<Halo_T> &InHalos, vector<Halo_T> &OutHalos,
+  void ExchangeHalos(MpiWorker_t &world, std::vector<Halo_T> &InHalos, std::vector<Halo_T> &OutHalos,
                      MPI_Datatype MPI_Halo_Shell_Type) const;
 };
 inline HBTInt ParticleSnapshot_t::size() const

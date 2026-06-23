@@ -1,6 +1,4 @@
-using namespace std;
 #include <iostream>
-// #include <iomanip>
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -24,14 +22,14 @@ inline int GetGrid(HBTReal x, HBTReal step, int dim)
     i = dim - 1;
   return i;
 }
-inline int AssignCell(HBTxyz &Pos, const HBTReal step[3], const vector<int> &dims)
+inline int AssignCell(HBTxyz &Pos, const HBTReal step[3], const std::vector<int> &dims)
 {
 #define GRIDtoRank(g0, g1, g2) (((g0) * dims[1] + (g1)) * dims[2] + (g2))
 #define GID(i) GetGrid(Pos[i], step[i], dims[i])
   return GRIDtoRank(GID(0), GID(1), GID(2));
 }
 
-vector<HBTInt> ParticleSnapshot_t::PartitionParticles(MpiWorker_t &world)
+std::vector<HBTInt> ParticleSnapshot_t::PartitionParticles(MpiWorker_t &world)
 {
   return sort_by_hash(Particles, world.size());
 }
@@ -56,15 +54,15 @@ void ParticleSnapshot_t::ExchangeParticles(MpiWorker_t &world)
     MPI_Allreduce(&np, &NumberOfParticlesOnAllNodes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
   }
 
-  vector<HBTInt> SendOffsets = PartitionParticles(world);
+  std::vector<HBTInt> SendOffsets = PartitionParticles(world);
   SendOffsets.push_back(Particles.size());
-  vector<HBTInt> SendSizes(world.size(), 0);
+  std::vector<HBTInt> SendSizes(world.size(), 0);
   for (int i = 0; i < world.size(); i++)
     SendSizes[i] = SendOffsets[i + 1] - SendOffsets[i];
 
-  vector<HBTInt> ReceiveSizes(world.size(), 0), ReceiveOffsets(world.size());
+  std::vector<HBTInt> ReceiveSizes(world.size(), 0), ReceiveOffsets(world.size());
   MPI_Alltoall(SendSizes.data(), 1, MPI_HBT_INT, ReceiveSizes.data(), 1, MPI_HBT_INT, world.Communicator);
-  vector<Particle_t> ReceivedParticles;
+  std::vector<Particle_t> ReceivedParticles;
   ReceivedParticles.resize(CompileOffsets(ReceiveSizes, ReceiveOffsets));
 
 #ifndef NDEBUG

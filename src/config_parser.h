@@ -14,9 +14,9 @@
 
 namespace PhysicalConst
 { // initialized after reading parameter file.
-extern HBTReal G;
-extern HBTReal H0;
-} // namespace PhysicalConst
+  extern HBTReal G;
+  extern HBTReal H0;
+}
 
 #define NumberOfCompulsaryConfigEntries 7
 class Parameter_t
@@ -24,20 +24,20 @@ class Parameter_t
 public:
   // remember to update SetParameterValue() and DumpParameters() accordingly if you change any parameter definition.
   /*compulsory parameters*/
-  string SnapshotPath;
-  string HaloPath;
-  string SubhaloPath;
-  string SnapshotFileBase;
+  std::string SnapshotPath;
+  std::string HaloPath;
+  std::string SubhaloPath;
+  std::string SnapshotFileBase;
   int MaxSnapshotIndex;
   HBTReal BoxSize; // to check the unit of snapshot according to the BoxSize in header
   HBTReal SofteningHalo;
   HBTReal MaxPhysicalSofteningHalo;
-  vector<bool> IsSet;
+  std::vector<bool> IsSet;
 
   /*optional*/
-  string SnapshotDirBase;
-  string SnapshotFormat;
-  string GroupFileFormat;
+  std::string SnapshotDirBase;
+  std::string SnapshotFormat;
+  std::string GroupFileFormat;
   int MaxConcurrentIO;
   int MinSnapshotIndex;
   int MinNumPartOfSub;
@@ -59,10 +59,10 @@ public:
   bool MergeTrappedSubhalos; // whether to MergeTrappedSubhalos, see code paper for more info.
   bool PotentialEstimateUpscaleMassesPerType;
 
-  vector<int> SnapshotIdList;
-  vector<int> TracerParticleTypes;
-  vector<int> DoNotSubsampleParticleTypes; /* Which particles types cannot be subsampled. */
-  vector<string> SnapshotNameList;
+  std::vector<int> SnapshotIdList;
+  std::vector<int> TracerParticleTypes;
+  std::vector<int> DoNotSubsampleParticleTypes; /* Which particles types cannot be subsampled. */
+  std::vector<std::string> SnapshotNameList;
 
   HBTReal MajorProgenitorMassRatio;
   HBTReal BoundMassPrecision;
@@ -142,14 +142,14 @@ public:
     /* Tracer-related parameters. If unset, only use collisionless particles (DM
      * + Stars) as tracer. Here we assume they correspond to particle types 1
      * and 4, respectively. */
-    TracerParticleTypes = vector<int>{1, 4};
+    TracerParticleTypes = std::vector<int>{1, 4};
     TracerParticleBitMask = 0;
     for (int i : TracerParticleTypes)
       TracerParticleBitMask += 1 << i;
 
     /* We default to not subsampling black holes, since they are generally very
      * massive relative to all other particle types. */
-    DoNotSubsampleParticleTypes = vector<int>{5};
+    DoNotSubsampleParticleTypes = std::vector<int>{5};
     DoNotSubsampleParticleBitMask = 0;
     for (int i : DoNotSubsampleParticleTypes)
       DoNotSubsampleParticleBitMask += 1 << i;
@@ -172,7 +172,7 @@ public:
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);
-  void SetParameterValue(const string &line);
+  void SetParameterValue(const std::string &line);
 
   /* Functions that will check if the input parameter file contains all required
    * parameters and that they have valid values. */
@@ -193,25 +193,25 @@ public:
   HBTReal GetCurrentSoftening(HBTReal ScaleFactor); // NOTE: perhaps makes more sense to include in gravity tree...
 
 private:
-  bool TryCompulsoryParameterValue(string ParameterName, stringstream &ParameterValue);
-  bool TrySingleValueParameter(string ParameterName, stringstream &ParameterValue);
-  bool TryMultipleValueParameter(string ParameterName, stringstream &ParameterValues);
+  bool TryCompulsoryParameterValue(std::string ParameterName, std::stringstream &ParameterValue);
+  bool TrySingleValueParameter(std::string ParameterName, std::stringstream &ParameterValue);
+  bool TryMultipleValueParameter(std::string ParameterName, std::stringstream &ParameterValues);
 };
 
 extern Parameter_t HBTConfig;
 extern void ParseHBTParams(int argc, char **argv, Parameter_t &config, int &snapshot_start, int &snapshot_end);
-inline void trim_leading_garbage(string &s, const string &garbage_list)
+inline void trim_leading_garbage(std::string &s, const std::string &garbage_list)
 {
   int pos = s.find_first_not_of(garbage_list); // look for any good staff
-  if (string::npos != pos)
+  if (std::string::npos != pos)
     s.erase(0, pos); // s=s.substr(pos);
   else               // no good staff, clear everything
     s.clear();
 }
-inline void trim_trailing_garbage(string &s, const string &garbage_list)
+inline void trim_trailing_garbage(std::string &s, const std::string &garbage_list)
 {
   int pos = s.find_first_of(garbage_list);
-  if (string::npos != pos)
+  if (std::string::npos != pos)
     s.erase(pos);
 }
 

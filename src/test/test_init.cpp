@@ -22,15 +22,6 @@ int main()
   {
     myclass c = myclass(), d;
     myclass a(0, 1, 2); // every thread executes the initializer
-#pragma omp single
-    {
-      //   cout<<c.x<<','<<c.y<<','<<c.z<<endl;
-      //   cout<<d.x<<','<<d.y<<','<<d.z<<endl;
-    }
   }
-  /*output:
-    0,1,4196688
-    0,1,4196128
-    */
   return 0;
 }

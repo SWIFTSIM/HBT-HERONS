@@ -24,7 +24,7 @@ int main(int argc, char **argv)
         int x = work(i, j);
   }
   t1 = time(NULL);
-  cout << "outer for:" << t1 - t0 << endl;
+  std::cout << "outer for:" << t1 - t0 << std::endl;
 
   t0 = time(NULL);
 #pragma omp parallel num_threads(4)
@@ -35,7 +35,7 @@ int main(int argc, char **argv)
         int x = work(i, j);
   }
   t1 = time(NULL);
-  cout << "inner for:" << t1 - t0 << endl;
+  std::cout << "inner for:" << t1 - t0 << std::endl;
 
   t0 = time(NULL);
   int x;
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     for (int j = 0; j < i; j++)
       x += work(i, j);
   t1 = time(NULL);
-  cout << "serial:" << t1 - t0 << endl;
+  std::cout << "serial:" << t1 - t0 << std::endl;
 
   t0 = time(NULL);
 #pragma omp parallel num_threads(4)
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 #pragma omp taskwait
   }
   t1 = time(NULL);
-  cout << "task nowait: " << t1 - t0 << endl; // slow, because it's too fine-grained..
+  std::cout << "task nowait: " << t1 - t0 << std::endl; // slow, because it's too fine-grained..
 
 #pragma omp parallel num_threads(4)
   {
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
         int x = work(i, j);
   }
   t1 = time(NULL);
-  cout << "task: " << t1 - t0 << endl; // slowest!
+  std::cout << "task: " << t1 - t0 << std::endl; // slowest!
 
   return 0;
 }

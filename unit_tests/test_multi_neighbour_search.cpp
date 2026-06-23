@@ -85,7 +85,7 @@ void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTInt nr_ngb, HBTReal boxs
 {
   std::cout << "Start test with N=" << N << ", Nsearch = " << Nsearch << ", boxsize = " << boxsize;
   if(periodic)std::cout << " (periodic)";
-  std::cout << endl;
+  std::cout << std::endl;
 
   // Make a random snapshot
   RandomSnapshot_t snap(N, boxsize, rng);
@@ -112,13 +112,13 @@ void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTInt nr_ngb, HBTReal boxs
   std::vector<std::vector<HBTInt>> ngb_idx(Nsearch);
 
   // Carry out the search
-  cout << "  Finding neighbours using octree" << std::endl;
+  std::cout << "  Finding neighbours using octree" << std::endl;
   for(HBTInt i=0; i<Nsearch; i+=1)
     ngb_idx[i] = tree.NearestNeighbours(centre[i], nr_ngb, 0.01);
 
   // Now check the results by brute force:
   // There should be no points closer than the neighbours we found.
-  cout << "  Checking neighbour distances" << std::endl;
+  std::cout << "  Checking neighbour distances" << std::endl;
   for(HBTInt i=0; i<Nsearch; i+=1) {
 
     // Compute distance to the most distant identified neighbour of this centre
@@ -153,7 +153,7 @@ void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTInt nr_ngb, HBTReal boxs
       }
     }
   }
-  cout << "  Test done." << std::endl;
+  std::cout << "  Test done." << std::endl;
 }
 
 
@@ -191,5 +191,5 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-  std::cout << "All tests done." << endl;
+  std::cout << "All tests done." << std::endl;
 }

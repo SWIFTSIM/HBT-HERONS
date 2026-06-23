@@ -4,7 +4,7 @@
 template <class HaloIterator>
 class HaloParticleIterator_t
 {
-  typedef vector<Particle_t>::iterator particle_iterator;
+  typedef std::vector<Particle_t>::iterator particle_iterator;
   HaloIterator FirstHalo, EndHalo, CurrHalo;
   particle_iterator CurrPart;
 
@@ -58,7 +58,7 @@ template <class HaloIterator>
 class HaloNestIterator_t
 {
   typedef HBTInt NestMember_t;
-  typedef vector<NestMember_t>::iterator nest_iterator;
+  typedef std::vector<NestMember_t>::iterator nest_iterator;
   HaloIterator FirstHalo, EndHalo, CurrHalo;
   nest_iterator CurrPart;
 

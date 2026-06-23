@@ -24,8 +24,8 @@ struct GroupV4Header_t
   int flag_doubleprecision; // long? no, but padding may exist
 };
 
-extern void Load(MpiWorker_t &world, int SnapshotId, vector<Halo_t> &Halos);
-extern bool IsGadgetGroup(const string &GroupFileFormat);
+extern void Load(MpiWorker_t &world, int SnapshotId, std::vector<Halo_t> &Halos);
+extern bool IsGadgetGroup(const std::string &GroupFileFormat);
 
 } // namespace GadgetGroup
 

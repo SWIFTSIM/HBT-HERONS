@@ -69,7 +69,7 @@ void SubhaloSnapshot_t::ReassignParticles(MpiWorker_t &world, HaloSnapshot_t &ha
   // Check if particle reassignment is enabled
   if(!HBTConfig.ReassignParticles) {
     if (world.rank() == 0)
-      cout << "  Not reassigning particles\n";
+      std::cout << "  Not reassigning particles\n";
     return;
   }
 

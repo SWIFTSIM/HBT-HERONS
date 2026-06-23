@@ -7,13 +7,13 @@
 #include "snapshot.h"
 #include <exception>
 
-class OctTreeExceeded_t : public exception
+class OctTreeExceeded_t : public std::exception
 {
 private:
-  string msg;
+  std::string msg;
 
 public:
-  OctTreeExceeded_t(const string &message)
+  OctTreeExceeded_t(const std::string &message)
   {
     msg = message;
   }
@@ -50,10 +50,10 @@ class OctTree_t
 protected:
   typedef CellT OctTreeCell_t;
   /*the storage*/
-  vector<OctTreeCell_t> Cells;
+  std::vector<OctTreeCell_t> Cells;
   OctTreeCell_t *Nodes; /* =Cells-NumberOfParticles. the nodes are labelled from 0 to NumPart+NumNodes-1, so that
                            nodeid=0~NumPart-1 are particles, and nodeid>=NumPart are cells */
-  vector<HBTInt> NextnodeFromParticle; /* next node for each particle. Particles are the first NumPart nodes, and cells
+  std::vector<HBTInt> NextnodeFromParticle; /* next node for each particle. Particles are the first NumPart nodes, and cells
                                           are the remaining nodes.*/
   const Snapshot_t *Snapshot;
   HBTInt NumberOfParticles; // alias to Snapshot->GetSize().
