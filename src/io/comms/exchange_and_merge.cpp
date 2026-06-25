@@ -21,16 +21,18 @@ struct HaloFragment_t
 {
   HBTInt HaloId;
   HBTInt NumberParticles;
+  double TotalMass;
   HBTxyz ComovingAveragePosition;
   int OriginalRank;
   int OriginalOrder;
+  int ReceivedOrder;
   int TargetRank;
 };
 
 static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
 {
   HaloFragment_t p;
-#define NumAttr 6
+#define NumAttr 8
   MPI_Datatype oldtypes[NumAttr];
   int blockcounts[NumAttr];
   MPI_Aint offsets[NumAttr], origin, extent;
@@ -50,9 +52,11 @@ static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
   }
   RegisterAttr(HaloId, MPI_HBT_INT, 1);
   RegisterAttr(NumberParticles, MPI_HBT_INT, 1);
+  RegisterAttr(TotalMass, MPI_DOUBLE, 1);
   RegisterAttr(ComovingAveragePosition[0], MPI_HBT_REAL, 3);
   RegisterAttr(OriginalRank, MPI_INT, 1);
   RegisterAttr(OriginalOrder, MPI_INT, 1);
+  RegisterAttr(ReceivedOrder, MPI_INT, 1);
   RegisterAttr(TargetRank, MPI_INT, 1);
 #undef RegisterAttr
   assert(i == NumAttr);
@@ -96,26 +100,12 @@ inline bool CompHaloFragment_HaloId(const HaloFragment_t &a, const HaloFragment_
   return a.HaloId < b.HaloId;
 }
 
-/* Sorts by particle number descending, then by HaloId ascending for reproducibility */
-inline bool CompHaloFragment_Size_HaloId(const HaloFragment_t &a, const HaloFragment_t &b)
-{
-  if (a.NumberParticles > b.NumberParticles)
-    return true;
-  if (a.NumberParticles < b.NumberParticles)
-    return false;
-
-  return CompHaloFragment_HaloId(a,b);
-}
 
 inline bool CompHaloFragment_OriginalOrder(const HaloFragment_t &a, const HaloFragment_t &b)
 {
   return a.OriginalOrder < b.OriginalOrder;
 }
 
-inline bool CompHaloFragment_OriginalRank(const HaloFragment_t &a, const HaloFragment_t &b)
-{
-  return a.OriginalRank < b.OriginalRank;
-}
 
 inline bool CompHaloInfo_TargetRank(const HaloFragment_t &a, const HaloFragment_t &b)
 {
@@ -131,7 +121,7 @@ inline bool CompHaloId(const Halo_t &a, const Halo_t &b)
  * ranks. Each FoF group may be split across multiple ranks as disjoint fragments;
  * this function collects and merges those fragments. Returns a vector where each
  * FoF group appears exactly once, with its total particle count and COM. */
-std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const std::vector<Halo_t> &Halos)
+static std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const std::vector<Halo_t> &Halos)
 {
   /* Compute the COM and particle count of each local FoF fragment. */
   std::vector<HaloFragment_t> DisjointHaloFragments(Halos.size());
@@ -139,9 +129,10 @@ std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const std::vec
   {
     DisjointHaloFragments[fragment_i].HaloId = Halos[fragment_i].HaloId;
     DisjointHaloFragments[fragment_i].NumberParticles = Halos[fragment_i].Particles.size();
-    AveragePosition(DisjointHaloFragments[fragment_i].ComovingAveragePosition,
-                    Halos[fragment_i].Particles.data(),
-                    Halos[fragment_i].Particles.size());
+    DisjointHaloFragments[fragment_i].TotalMass =
+      AveragePosition(DisjointHaloFragments[fragment_i].ComovingAveragePosition,
+                      Halos[fragment_i].Particles.data(),
+                      Halos[fragment_i].Particles.size());
 
     /* Route each fragment to a home rank via HaloId hash for accumulation. */
     DisjointHaloFragments[fragment_i].OriginalRank = world.rank();
@@ -172,6 +163,7 @@ std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const std::vec
   struct HaloAccumulator
   {
     HBTInt TotalParticles = 0;
+    double TotalMass = 0.;
     double COM[3] = {0., 0., 0.};
     double Origin[3] = {0., 0., 0.};
     bool IsFirst = true;
@@ -187,8 +179,9 @@ std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const std::vec
         acc.Origin[j] = frag.ComovingAveragePosition[j];
       acc.IsFirst = false;
     }
-    double weight = frag.NumberParticles;
+    double weight = frag.TotalMass;
     acc.TotalParticles += frag.NumberParticles;
+    acc.TotalMass += frag.TotalMass;
     for (int j = 0; j < 3; j++)
     {
       double offset = frag.ComovingAveragePosition[j] - acc.Origin[j];
@@ -206,9 +199,10 @@ std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const std::vec
     HaloAccumulator &acc = kv.second;
     MergedHaloFragments[out_i].HaloId = kv.first;
     MergedHaloFragments[out_i].NumberParticles = acc.TotalParticles;
+    MergedHaloFragments[out_i].TotalMass = acc.TotalMass;
     for (int j = 0; j < 3; j++)
     {
-      double com = acc.COM[j] / acc.TotalParticles + acc.Origin[j];
+      double com = acc.COM[j] / acc.TotalMass + acc.Origin[j];
       if (HBTConfig.PeriodicBoundaryOn)
         com = position_modulus(com, HBTConfig.BoxSize);
       MergedHaloFragments[out_i].ComovingAveragePosition[j] = com;
@@ -386,11 +380,9 @@ static std::vector<IdRank_t> CommunicateTaskAssignment(MpiWorker_t &world,
                 ProbingHaloFragments.data(), RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_HaloFragment_t,
                 world.Communicator);
 
-  /* At the home rank: record received position in OriginalRank (repurposed here as
-   * a received-order index) so we can restore order for the reverse alltoallv.
-   * OriginalOrder still carries the original Halos index from the sender. */
+  /* Record received position so we can restore order for the reverse alltoallv. */
   for(size_t i = 0; i < ProbingHaloFragments.size(); i++)
-    ProbingHaloFragments[i].OriginalRank = i;
+    ProbingHaloFragments[i].ReceivedOrder = i;
 
   /* Build a map from HaloId to target rank for O(1) lookup. */
   std::unordered_map<HBTInt, int> HaloIdToRank;
@@ -401,8 +393,9 @@ static std::vector<IdRank_t> CommunicateTaskAssignment(MpiWorker_t &world,
   for (auto &frag : ProbingHaloFragments)
     frag.TargetRank = HaloIdToRank.at(frag.HaloId);
 
-  /* Restore received order (stored in OriginalRank) before sending back. */
-  std::sort(ProbingHaloFragments.begin(), ProbingHaloFragments.end(), CompHaloFragment_OriginalRank);
+  /* Restore received order before sending back. */
+  std::sort(ProbingHaloFragments.begin(), ProbingHaloFragments.end(),
+            [](const HaloFragment_t &a, const HaloFragment_t &b){ return a.ReceivedOrder < b.ReceivedOrder; });
   MPI_Alltoallv(ProbingHaloFragments.data() , RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_HaloFragment_t,
                 DisjointHaloFragments.data(), SendHaloCounts.data(), SendHaloDisps.data(), MPI_HaloFragment_t,
                 world.Communicator);
