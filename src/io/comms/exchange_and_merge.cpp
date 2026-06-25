@@ -30,7 +30,7 @@ struct HaloFragment_t
 static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
 {
   HaloFragment_t p;
-#define NumAttr 13
+#define NumAttr 6
   MPI_Datatype oldtypes[NumAttr];
   int blockcounts[NumAttr];
   MPI_Aint offsets[NumAttr], origin, extent;
@@ -55,7 +55,7 @@ static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
   RegisterAttr(OriginalOrder, MPI_INT, 1);
   RegisterAttr(TargetRank, MPI_INT, 1);
 #undef RegisterAttr
-  assert(i <= NumAttr);
+  assert(i == NumAttr);
 
   MPI_Type_create_struct(i, blockcounts, offsets, oldtypes, &dtype);
   MPI_Type_create_resized(dtype, (MPI_Aint)0, extent, &dtype);
@@ -231,6 +231,11 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
   GlobalNumHalos[world.rank()] = LocalHaloSizes.size();
   MPI_Allreduce(MPI_IN_PLACE, GlobalNumHalos.data(), world.size(), MPI_HBT_INT, MPI_SUM, world.Communicator);
 
+  for (int r = 0; r < world.size(); r++)
+    if (GlobalNumHalos[r] > INT_MAX)
+      throw std::runtime_error("Error: in SpatialAssignmentWithRebalancing(). The number of halos in a single rank "
+                               "is larger than INT_MAX, causing MPI overflow. Please use more MPI ranks. Aborting.\n");
+
   HBTInt NHalosTotal = GlobalNumHalos[0];
   std::vector<int> vector_offset(world.size(), 0);
   for(int i = 1; i < world.size(); i++)
@@ -239,9 +244,6 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
     NHalosTotal += GlobalNumHalos[i];
   }
 
-  if (GlobalNumHalos[world.rank()] > INT_MAX)
-    throw std::runtime_error("Error: in SpatialAssignmentWithRebalancing(). The number of halos in a single rank "
-                             "is larger than INT_MAX, causing MPI overflow. Please use more MPI ranks. Aborting.\n");
   if (NHalosTotal > INT_MAX)
     throw std::runtime_error("Error: in SpatialAssignmentWithRebalancing(). The total number of halos "
                              "is larger than INT_MAX, causing MPI overflow. Please use more MPI ranks. Aborting.\n");
