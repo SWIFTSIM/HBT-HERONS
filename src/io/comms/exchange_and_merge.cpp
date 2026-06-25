@@ -25,14 +25,13 @@ struct HaloFragment_t
   HBTxyz ComovingAveragePosition;
   int OriginalRank;
   int OriginalOrder;
-  int ReceivedOrder;
   int TargetRank;
 };
 
 static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
 {
   HaloFragment_t p;
-#define NumAttr 8
+#define NumAttr 7
   MPI_Datatype oldtypes[NumAttr];
   int blockcounts[NumAttr];
   MPI_Aint offsets[NumAttr], origin, extent;
@@ -56,7 +55,6 @@ static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
   RegisterAttr(ComovingAveragePosition[0], MPI_HBT_REAL, 3);
   RegisterAttr(OriginalRank, MPI_INT, 1);
   RegisterAttr(OriginalOrder, MPI_INT, 1);
-  RegisterAttr(ReceivedOrder, MPI_INT, 1);
   RegisterAttr(TargetRank, MPI_INT, 1);
 #undef RegisterAttr
   assert(i == NumAttr);
@@ -380,10 +378,6 @@ static std::vector<IdRank_t> CommunicateTaskAssignment(MpiWorker_t &world,
                 ProbingHaloFragments.data(), RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_HaloFragment_t,
                 world.Communicator);
 
-  /* Record received position so we can restore order for the reverse alltoallv. */
-  for(size_t i = 0; i < ProbingHaloFragments.size(); i++)
-    ProbingHaloFragments[i].ReceivedOrder = i;
-
   /* Build a map from HaloId to target rank for O(1) lookup. */
   std::unordered_map<HBTInt, int> HaloIdToRank;
   HaloIdToRank.reserve(HaloTaskAssignment.size());
@@ -393,10 +387,8 @@ static std::vector<IdRank_t> CommunicateTaskAssignment(MpiWorker_t &world,
   for (auto &frag : ProbingHaloFragments)
     frag.TargetRank = HaloIdToRank.at(frag.HaloId);
 
-  /* Restore received order before sending back. */
-  std::sort(ProbingHaloFragments.begin(), ProbingHaloFragments.end(),
-            [](const HaloFragment_t &a, const HaloFragment_t &b){ return a.ReceivedOrder < b.ReceivedOrder; });
-  MPI_Alltoallv(ProbingHaloFragments.data() , RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_HaloFragment_t,
+  /* ProbingHaloFragments is still in received order so send it back directly. */
+  MPI_Alltoallv(ProbingHaloFragments.data(), RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_HaloFragment_t,
                 DisjointHaloFragments.data(), SendHaloCounts.data(), SendHaloDisps.data(), MPI_HaloFragment_t,
                 world.Communicator);
   MPI_Type_free(&MPI_HaloFragment_t);
