@@ -219,8 +219,8 @@ std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const std::vec
   return MergedHaloFragments;
 }
 
-/* Assigns each FoF group to an MPI rank. Starts from the spatial cell-based
- * assignment used in master (preserving locality and inter-snapshot stability),
+/* Assigns each FoF group to an MPI rank. Starts a the spatial cell-based
+ * assignment (preserving locality and inter-snapshot stability),
  * then greedily moves FoFs from the most overloaded rank to the most underloaded
  * rank until all ranks are within a tolerance of the mean particle count. */
 static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world,
@@ -269,7 +269,7 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
     for(size_t i = 0; i < GlobalHaloSizes.size(); i++)
       GlobalHaloSizes[i].OriginalOrder = i;
 
-    /* Initial assignment: map each FoF's COM to a spatial cell, same as master. */
+    /* Initial assignment: map each FoF's COM to a spatial cell. */
     auto dims = ClosestFactors(NumProc, 3);
     HBTxyz step;
     for (int j = 0; j < 3; j++)
@@ -448,11 +448,11 @@ static void MergeHaloFragments(std::vector<Halo_t> &Halos)
   auto it1 = Halos.begin();
   for (auto it2 = it1 + 1; it2 != Halos.end(); ++it2)
   {
-    if (it2->HaloId == it1->HaloId)
+    if (it2->HaloId == it1->HaloId) // Piece of the same FoF, we can merge them
     {
       it1->Particles.insert(it1->Particles.end(), it2->Particles.begin(), it2->Particles.end());
     }
-    else
+    else // This piece is the start of a different FoF
     {
       ++it1;
       if (it2 != it1)
@@ -465,7 +465,10 @@ static void MergeHaloFragments(std::vector<Halo_t> &Halos)
   {
     h.AverageCoordinates();
 
-    /* Sort particles by ID for reproducible results regardless of MPI rank count. */
+    /* Sort particles by ID to get reproducible Particle vectors regardless of
+     * the number of MPI ranks that we use. Important because Halos.Particles is
+     * swapped with the Subhalo_t.Particles vector, which will lead to unbinding
+     * differences if we do subsampling and change number of MPI ranks. */
     std::sort(h.Particles.begin(), h.Particles.end(), ParticleExchangeComp::CompParticleId);
   }
 }
