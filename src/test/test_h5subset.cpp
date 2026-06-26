@@ -75,12 +75,12 @@ int main(void)
 
     dataset.write(data, PredType::NATIVE_INT);
 
-    cout << endl << "Data Written to File:" << endl;
+    std::cout << std::endl << "Data Written to File:" << std::endl;
     for (j = 0; j < DIM0; j++)
     {
       for (i = 0; i < DIM1; i++)
-        cout << " " << data[j][i];
-      cout << endl;
+        std::cout << " " << data[j][i];
+      std::cout << std::endl;
     }
 
     dataspace.close();
@@ -130,10 +130,10 @@ int main(void)
     // Write a subset of data to the dataset, then read the
     // entire dataset back from the file.
 
-    cout << endl << "Write subset to file specifying: " << endl;
+    std::cout << std::endl << "Write subset to file specifying: " << std::endl;
 #define PRT(x) x[0] << "x" << x[1]
-    cout << "  offset=" << PRT(offset) << " stride=" << PRT(stride) << " count=" << PRT(count)
-         << " block=" << PRT(block) << endl;
+    std::cout << "  offset=" << PRT(offset) << " stride=" << PRT(stride) << " count=" << PRT(count)
+         << " block=" << PRT(block) << std::endl;
     for (j = 0; j < DIM0_SUB; j++)
     {
       for (i = 0; i < DIM1_SUB; i++)
@@ -142,27 +142,27 @@ int main(void)
 
     dataset.write(sdata, PredType::NATIVE_INT, memspace, dataspace);
     dataset.read(rdata, PredType::NATIVE_INT);
-    cout << endl << "Data in File after Subset is Written:" << endl;
+    std::cout << std::endl << "Data in File after Subset is Written:" << std::endl;
     for (i = 0; i < DIM0; i++)
     {
       for (j = 0; j < DIM1; j++)
-        cout << " " << rdata[i][j];
-      cout << endl;
+        std::cout << " " << rdata[i][j];
+      std::cout << std::endl;
     }
-    cout << endl;
+    std::cout << std::endl;
 
     offset[0] = 1;
     offset[1] = 0;
     dataspace.selectHyperslab(H5S_SELECT_SET, count, offset, stride, block);
     dataset.read(sdata, PredType::NATIVE_INT, memspace, dataspace);
-    cout << "Data read into Subset:" << endl;
+    std::cout << "Data read into Subset:" << std::endl;
     for (i = 0; i < DIM0_SUB; i++)
     {
       for (j = 0; j < DIM1_SUB; j++)
-        cout << " " << sdata[i][j];
-      cout << endl;
+        std::cout << " " << sdata[i][j];
+      std::cout << std::endl;
     }
-    cout << endl;
+    std::cout << std::endl;
     // It is not necessary to close these objects because close() will
     // be called when the object instances are going out of scope.
     dataspace.close();

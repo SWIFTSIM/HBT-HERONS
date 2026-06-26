@@ -10,7 +10,7 @@ int main(int argc, char **argv)
     n = atoi(argv[1]);
 #pragma omp parallel num_threads(3)
   {
-    static vector<int> x(3, 1); // by default, x is private, and is initialized properly
+    static std::vector<int> x(3, 1); // by default, x is private, and is initialized properly
     int y[n];                   // this is allowed by C99 and g++
     for (int i = 0; i < n; i++)
       y[i] = 1;
@@ -19,8 +19,8 @@ int main(int argc, char **argv)
 #pragma omp barrier
 #pragma omp critical
     {
-      cout << "(" << x[0] << "," << x[1] << "," << x[2] << ")  ";
-      cout << "(" << y[0] << "," << y[1] << "," << y[2] << ")" << endl;
+      std::cout << "(" << x[0] << "," << x[1] << "," << x[2] << ")  ";
+      std::cout << "(" << y[0] << "," << y[1] << "," << y[2] << ")" << std::endl;
     }
   }
   return 0;

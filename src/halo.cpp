@@ -13,9 +13,6 @@
 #include "mymath.h"
 #include "particle_exchanger.h"
 
-// #include <cstdio>
-// #include <cstdlib>
-
 void create_MPI_Halo_Id_type(MPI_Datatype &MPI_HBTHalo_Id_t)
 {
   /*to create the struct containing only haloid*/
@@ -95,8 +92,8 @@ class HaloParticleKeyList_t : public KeyList_t<HBTInt, HBTInt>
 {
   typedef HBTInt Index_t;
   typedef HBTInt Key_t;
-  vector<HBTInt> ParticleIds;
-  vector<HBTInt> HaloIds; // local haloid
+  std::vector<HBTInt> ParticleIds;
+  std::vector<HBTInt> HaloIds; // local haloid
 public:
   HaloParticleKeyList_t(HaloSnapshot_t &snap)
   {
@@ -155,7 +152,7 @@ HBTInt Halo_t::KickNullParticles()
     if (it->Id != SpecialConst::NullParticleId) // there will be consumed particles
     {
       if (it != it_save)
-        *it_save = move(*it);
+        *it_save = std::move(*it);
       ++it_save;
     }
   }

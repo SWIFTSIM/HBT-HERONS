@@ -222,7 +222,7 @@ inline HBTInt GetLocalHostId(HBTInt pid, const HaloSnapshot_t &halo_snap, const 
 
 /* Identify and store the particle IDs of the most bound NumTracerHostFinding
  * collisionless tracers. Used to identify host FOF groups. */
-void GetTracerIds(vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhalo)
+void GetTracerIds(std::vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhalo)
 {
   /* Initialise vector. This will make it so the code knows when to stop looking
    * for tracers, since orphans will have all but the first with NullParticleId */
@@ -248,14 +248,14 @@ void GetTracerIds(vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhal
   }
 
   /* Sanity checks */
-  assert(BoundRanking == min((int)Subhalo.Particles.size(),
+  assert(BoundRanking == std::min((int)Subhalo.Particles.size(),
                              HBTConfig.NumTracerHostFinding)); // We found all expected particles
 }
 
 /* Identify which FOF is host to the particles. If we have a value of -2, that
  * means the particle was not found in the particle information available to the
  * local rank. */
-bool GetTracerHosts(vector<HBTInt>::iterator particle_hosts, vector<HBTInt>::const_iterator particle_ids,
+bool GetTracerHosts(std::vector<HBTInt>::iterator particle_hosts, std::vector<HBTInt>::const_iterator particle_ids,
                     const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap)
 {
   /* Initialise vector. This will make it so the code knows when to stop looking
@@ -291,10 +291,10 @@ bool GetTracerHosts(vector<HBTInt>::iterator particle_hosts, vector<HBTInt>::con
  * NumTracerHostFinding most bound collisionless particles. This decision is
  * weighted by the binding energy ranking the particles had in the previous
  * output. */
-HBTInt DecideLocalHostId(vector<HBTInt>::const_iterator particle_hosts)
+HBTInt DecideLocalHostId(std::vector<HBTInt>::const_iterator particle_hosts)
 {
   /* To store unique host candidates, and the matching score. */
-  unordered_map<HBTInt, float> CandidateHosts;
+  std::unordered_map<HBTInt, float> CandidateHosts;
 
   /* Iterate over the particle list, and weight each candidate score by how
    * bound was the particle is */
@@ -328,10 +328,10 @@ HBTInt DecideLocalHostId(vector<HBTInt>::const_iterator particle_hosts)
  * NumTracerHostFinding most bound collisionless particles. This decision is
  * weighted by the binding energy ranking the particles had in the previous
  * output. Used during search across multiple tasks.*/
-IdRank_t DecideLocalHostId(vector<IdRank_t>::const_iterator particle_hosts)
+IdRank_t DecideLocalHostId(std::vector<IdRank_t>::const_iterator particle_hosts)
 {
   /* To store unique host candidates, their rank, and the matching score. */
-  unordered_map<HBTInt, float> CandidateHosts, CandidateHostRank;
+  std::unordered_map<HBTInt, float> CandidateHosts, CandidateHostRank;
 
   /* Iterate over the particle list, and weight each candidate score by how
    * bound was the particle is */
@@ -376,18 +376,18 @@ IdRank_t DecideLocalHostId(vector<IdRank_t>::const_iterator particle_hosts)
   return HostIdRank;
 }
 
-void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap, vector<Subhalo_t> &Subhalos,
-                    vector<Subhalo_t> &LocalSubhalos)
+void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap, std::vector<Subhalo_t> &Subhalos,
+                    std::vector<Subhalo_t> &LocalSubhalos)
 {
 #pragma omp parallel for
   for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
   {
     /* Create a list of tracer particle IDs*/
-    vector<HBTInt> TracerParticleIds(HBTConfig.NumTracerHostFinding);
+    std::vector<HBTInt> TracerParticleIds(HBTConfig.NumTracerHostFinding);
     GetTracerIds(TracerParticleIds.begin(), Subhalos[subid]);
 
     /* Identify which FOFs those IDs are located in. */
-    vector<HBTInt> TracerHosts(HBTConfig.NumTracerHostFinding);
+    std::vector<HBTInt> TracerHosts(HBTConfig.NumTracerHostFinding);
     bool MakeDecision = GetTracerHosts(TracerHosts.begin(), TracerParticleIds.cbegin(), halo_snap, part_snap);
 
     /* If we found all tracers in the current rank, make a host decision.
@@ -402,23 +402,23 @@ void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &p
     if (Subhalos[subid].HostHaloId < 0) // Move all subhaloes
     {
       if (subid > nsub)
-        Subhalos[nsub] = move(Subhalos[subid]); // there should be a default move assignement operator.
+        Subhalos[nsub] = std::move(Subhalos[subid]); // there should be a default move assignement operator.
       nsub++;
     }
     else
-      LocalSubhalos.push_back(move(Subhalos[subid]));
+      LocalSubhalos.push_back(std::move(Subhalos[subid]));
   }
   Subhalos.resize(nsub);
 }
 
 void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap,
-                    VectorView_t<Subhalo_t> &Subhalos, vector<Subhalo_t> &LocalSubhalos,
+                    VectorView_t<Subhalo_t> &Subhalos, std::vector<Subhalo_t> &LocalSubhalos,
                     MPI_Datatype MPI_Subhalo_Shell_Type)
 /*scatter Subhalos from process root to LocalSubhalos in every other process
  Note Subalos are "moved", so are in a unspecified state upon return.*/
 {
   int thisrank = world.rank();
-  vector<HBTInt> TrackParticleIds;
+  std::vector<HBTInt> TrackParticleIds;
   HBTInt NumSubhalos;
 
   // broadcast trackparticles
@@ -426,15 +426,15 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   {
     NumSubhalos = Subhalos.size();
     if (NumSubhalos * HBTConfig.NumTracerHostFinding > INT_MAX)
-      throw runtime_error("Error: in FindOtherHosts(), sending more subhaloes than INT_MAX will cause MPI message to "
-                          "overflow. Please try more MPI threads. aborting.\n");
+      throw std::runtime_error("Error: in FindOtherHosts(), sending more subhaloes than INT_MAX will cause MPI message to "
+                               "overflow. Please try more MPI threads. aborting.\n");
   }
   MPI_Bcast(&NumSubhalos, 1, MPI_HBT_INT, root, world.Communicator);
 
   /* Create vector to hold the IDs of particles to look out for. We assign a
    * conservative value of NumTracerHostFinding particles per subhalo, even
    * though we may have orphans in the mix (only require one entry) */
-  vector<HBTInt> TracerParticleIds(NumSubhalos * HBTConfig.NumTracerHostFinding);
+  std::vector<HBTInt> TracerParticleIds(NumSubhalos * HBTConfig.NumTracerHostFinding);
 
   /* Populate the vectors with the ParticleIDs of tracers belonging to the subhaloes
    * of the root task */
@@ -449,7 +449,7 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   MPI_Bcast(TracerParticleIds.data(), TracerParticleIds.size(), MPI_HBT_INT, root, world.Communicator);
 
   /* To find hosts in the current task  */
-  vector<IdRank_t> LocalHostRankPairs(NumSubhalos * HBTConfig.NumTracerHostFinding, IdRank_t{-2, thisrank});
+  std::vector<IdRank_t> LocalHostRankPairs(NumSubhalos * HBTConfig.NumTracerHostFinding, IdRank_t{-2, thisrank});
 
 #pragma omp parallel for if (NumSubhalos > 20)
   for (HBTInt i = 0; i < NumSubhalos; i++)
@@ -457,7 +457,7 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
     unsigned long long offset = HBTConfig.NumTracerHostFinding * i; // Start of subhalo
 
     /* Identify which FOFs those IDs are located in. */
-    vector<HBTInt> TracerHosts(HBTConfig.NumTracerHostFinding);
+    std::vector<HBTInt> TracerHosts(HBTConfig.NumTracerHostFinding);
     GetTracerHosts(TracerHosts.begin(), TracerParticleIds.cbegin() + offset, halo_snap, part_snap);
 
     /* Copy over to the vector-struct */
@@ -466,12 +466,12 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   }
 
   /* Communicate to all tasks */
-  vector<IdRank_t> GlobalHostRankPairs(NumSubhalos * HBTConfig.NumTracerHostFinding);
+  std::vector<IdRank_t> GlobalHostRankPairs(NumSubhalos * HBTConfig.NumTracerHostFinding);
   MPI_Allreduce(LocalHostRankPairs.data(), GlobalHostRankPairs.data(), LocalHostRankPairs.size(), MPI_HBTRankPair,
                 MPI_MAXLOC, world.Communicator);
 
   /* Score each candidate, and identify the rank it lives in */
-  vector<IdRank_t> GlobalHostIds(NumSubhalos);
+  std::vector<IdRank_t> GlobalHostIds(NumSubhalos);
 #pragma omp parallel for if (NumSubhalos > 20)
   for (HBTInt i = 0; i < NumSubhalos; i++)
   {
@@ -483,11 +483,11 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   // send particles and nests; no scatterw, do it manually
   MPI_Datatype MPI_HBT_Particle;
   Particle_t().create_MPI_type(MPI_HBT_Particle);
-  vector<vector<int>> SendSizes(world.size()), SendNestSizes(world.size());
-  vector<MPI_Request> Req0, Req1, ReqNest0, ReqNest1;
+  std::vector<std::vector<int>> SendSizes(world.size()), SendNestSizes(world.size());
+  std::vector<MPI_Request> Req0, Req1, ReqNest0, ReqNest1;
   if (thisrank == root)
   {
-    vector<vector<MPI_Aint>> SendBuffers(world.size()), SendNestBuffers(world.size());
+    std::vector<std::vector<MPI_Aint>> SendBuffers(world.size()), SendNestBuffers(world.size());
     for (HBTInt subid = 0; subid < NumSubhalos; subid++) // packing
     {
       int rank = GlobalHostIds[subid].Rank;
@@ -530,8 +530,8 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
     }
   }
   // receive on every process, including root
-  vector<MPI_Aint> ReceiveBuffer, ReceiveNestBuffer;
-  vector<int> ReceiveSize, ReceiveNestSize;
+  std::vector<MPI_Aint> ReceiveBuffer, ReceiveNestBuffer;
+  std::vector<int> ReceiveSize, ReceiveNestSize;
   int NumNewSubs;
   MPI_Status stat;
   MPI_Probe(root, 0, world.Communicator, &stat);
@@ -584,8 +584,8 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   }
 
   // copy other properties
-  vector<int> Counts(world.size()), Disps(world.size());
-  vector<Subhalo_t> TmpHalos;
+  std::vector<int> Counts(world.size()), Disps(world.size());
+  std::vector<Subhalo_t> TmpHalos;
   if (world.rank() == root)
   { // reuse GlobalHostIds for sorting
     for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
@@ -597,7 +597,7 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
     stable_sort(GlobalHostIds.begin(), GlobalHostIds.end(), CompareRank);
     TmpHalos.resize(Subhalos.size());
     for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
-      TmpHalos[subid] = move(Subhalos[GlobalHostIds[subid].Id]);
+      TmpHalos[subid] = std::move(Subhalos[GlobalHostIds[subid].Id]);
     // 		Subhalos[GlobalHostIds[subid].n].MoveTo(TmpHalos[subid], false);
     for (int rank = 0; rank < world.size(); rank++)
       Counts[rank] = SendSizes[rank].size();
@@ -608,8 +608,8 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
 }
 
 void FindOtherHostsSafely(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_snap,
-                          const ParticleSnapshot_t &part_snap, vector<Subhalo_t> &Subhalos,
-                          vector<Subhalo_t> &LocalSubhalos, MPI_Datatype MPI_Subhalo_Shell_Type)
+                          const ParticleSnapshot_t &part_snap, std::vector<Subhalo_t> &Subhalos,
+                          std::vector<Subhalo_t> &LocalSubhalos, MPI_Datatype MPI_Subhalo_Shell_Type)
 /*break Subhalos into small chunks and then FindOtherHosts() for them, to avoid overflow in MPI message size*/
 {
   const int MaxChunkSize = 1024 * 1024;
@@ -665,7 +665,7 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
   ParallelizeHaloes = halo_snap.NumPartOfLargestHalo < 0.1 * halo_snap.TotNumberOfParticles; // no dominating objects
 
   /* To hold subhaloes with updated information. */
-  vector<Subhalo_t> LocalSubhalos;
+  std::vector<Subhalo_t> LocalSubhalos;
   LocalSubhalos.reserve(Subhalos.size());
 
   /* Creates ParticleID - HostHalo information, local to the task. */
@@ -693,7 +693,7 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
 /* This function iterates over Subhalos and assigns a default HostHaloId (-1) to all Subhalos
  * whose tracer particles were not found. If any such cases are present in the simulation, a
  * warning is printed. */
-void SubhaloSnapshot_t::HandleTracerlessSubhalos(MpiWorker_t &world, vector<Subhalo_t> &LocalSubhalos)
+void SubhaloSnapshot_t::HandleTracerlessSubhalos(MpiWorker_t &world, std::vector<Subhalo_t> &LocalSubhalos)
 {
   HBTInt NumberTracerlessSubhalos = 0;
 
@@ -793,7 +793,7 @@ void SubhaloSnapshot_t::DecideCentrals(const HaloSnapshot_t &halo_snap)
           }
         }
         if (icenter)
-          swap(List[0], List[icenter]);
+          std::swap(List[0], List[icenter]);
       }
     }
   }
@@ -919,11 +919,11 @@ void SubhaloSnapshot_t::AssignNewTrackIds(MpiWorker_t &world, const HaloSnapshot
    * MPI_Gatherv. If we have more new subhaloes than INT_MAX per rank or across
    * all ranks, an overflow will happen. */
   if (MemberTable.NBirth > INT_MAX)
-    throw runtime_error("Error: in AssignNewTrackIds(). The number of new subhaloes in a single rank is larger than INT_MAX. "
-                        "It will cause required MPI communications to overflow. Please try more MPI threads. Aborting.\n");
+    throw std::runtime_error("Error: in AssignNewTrackIds(). The number of new subhaloes in a single rank is larger than INT_MAX. "
+                             "It will cause required MPI communications to overflow. Please try more MPI threads. Aborting.\n");
   if (TotalNBirth > INT_MAX)
-    throw runtime_error("Error: in AssignNewTrackIds(). The number of new subhaloes across all ranks is larger than INT_MAX. "
-                        "It will cause required MPI communications to overflow. Please try more MPI threads. Aborting.\n");
+    throw std::runtime_error("Error: in AssignNewTrackIds(). The number of new subhaloes across all ranks is larger than INT_MAX. "
+                             "It will cause required MPI communications to overflow. Please try more MPI threads. Aborting.\n");
   // NOTE: I suspect this will never trigger, since forming INT_MAX new subhaloes
   // in a single snapshot is extremely unlikely. IF it does happen, we can split
   // MPI communication into chunks to handle this.
@@ -975,7 +975,7 @@ void SubhaloSnapshot_t::PurgeMostBoundParticles()
   for (HBTInt i = -1; i < MemberTable.SubGroups.size(); i++)
   {
     auto &Group = MemberTable.SubGroups[i];
-    unordered_set<HBTInt> ExclusionList;
+    std::unordered_set<HBTInt> ExclusionList;
     {
       HBTInt np = 0;
       for (auto &&subid : Group)
@@ -996,7 +996,7 @@ void SubhaloSnapshot_t::PurgeMostBoundParticles()
             {
               copyHBTxyz(subhalo.ComovingMostBoundPosition, p.ComovingPosition);
               copyHBTxyz(subhalo.PhysicalMostBoundVelocity, p.GetPhysicalVelocity());
-              swap(subhalo.Particles[0], p);
+              std::swap(subhalo.Particles[0], p);
               break;
             }
           }
@@ -1044,7 +1044,7 @@ void SubhaloSnapshot_t::LocalizeNestedIds(MpiWorker_t &world)
   TrackHash.Fill(Ids, SpecialConst::NullTrackId);
 
   // collect lost tracks
-  vector<HBTInt> DissociatedTracks;
+  std::vector<HBTInt> DissociatedTracks;
   for (auto &&subhalo : Subhalos)
   {
     auto &nests = subhalo.NestedSubhalos;
@@ -1067,13 +1067,13 @@ void SubhaloSnapshot_t::LocalizeNestedIds(MpiWorker_t &world)
   }
 
   // distribute, locate and levelup DissociatedTracks
-  vector<HBTInt> ReceivedTracks;
+  std::vector<HBTInt> ReceivedTracks;
   for (int root = 0; root < world.size(); root++)
   {
     HBTInt stacksize = DissociatedTracks.size();
     MPI_Bcast(&stacksize, 1, MPI_HBT_INT, root, world.Communicator);
     ReceivedTracks.resize(stacksize);
-    MyBcast<HBTInt, vector<HBTInt>::iterator, vector<HBTInt>::iterator>(
+    MyBcast<HBTInt, std::vector<HBTInt>::iterator, std::vector<HBTInt>::iterator>(
       world, DissociatedTracks.begin(), ReceivedTracks.begin(), stacksize, MPI_HBT_INT, root);
     if (world.rank() != root)
     {
@@ -1173,7 +1173,7 @@ void SubhaloSnapshot_t::LevelUpDetachedSubhalos()
  * assign rank=0 to subhaloes that has drifted away from the hosthalo of its host-subhalo.
  */
 {
-  vector<char> IsHeadSub(Subhalos.size());
+  std::vector<char> IsHeadSub(Subhalos.size());
 // record head list first, since the ranks are modified during LevelUpDetachedMembers().
 #pragma omp parallel
   {
@@ -1204,7 +1204,7 @@ void SubhaloSnapshot_t::LevelUpDetachedSubhalos()
   }
 }
 
-void Subhalo_t::LevelUpDetachedMembers(vector<Subhalo_t> &Subhalos)
+void Subhalo_t::LevelUpDetachedMembers(std::vector<Subhalo_t> &Subhalos)
 {
   HBTInt isave = 0;
   for (HBTInt i = 0; i < NestedSubhalos.size(); i++)
@@ -1233,7 +1233,7 @@ void Subhalo_t::LevelUpDetachedMembers(vector<Subhalo_t> &Subhalos)
 class SubhaloMasker_t
 {
 public:
-  unordered_set<HBTInt> ExclusionList;
+  std::unordered_set<HBTInt> ExclusionList;
 
   SubhaloMasker_t(HBTInt np_guess)
   {
@@ -1241,7 +1241,7 @@ public:
   }
   /* This routine masks particles by giving preference to subhaloes deeper in
    * the hierarchy. */
-  void Mask(HBTInt subid, vector<Subhalo_t> &Subhalos, int SnapshotId)
+  void Mask(HBTInt subid, std::vector<Subhalo_t> &Subhalos, int SnapshotId)
   {
     auto &subhalo = Subhalos[subid];
     for (auto nestedid :
@@ -1262,14 +1262,14 @@ public:
       if (insert_status.second) // inserted, meaning not excluded
       {
         if (it != it_save)
-          *it_save = move(*it);
+          *it_save = std::move(*it);
         ++it_save;
       }
     }
     subhalo.Particles.resize(it_save - it_begin);
   }
 
-  HBTInt EstimateListSize(HBTInt subid, vector<Subhalo_t> &Subhalos,
+  HBTInt EstimateListSize(HBTInt subid, std::vector<Subhalo_t> &Subhalos,
                           const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
   {
 
@@ -1285,7 +1285,7 @@ public:
     return TotalSize;
   }
 
-  void CleanSource(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
+  void CleanSource(HBTInt subid, std::vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
   {
     /* Mask the 10 most bound tracer particles of every resolved subhalo in the
      * tree. We do this to not encounter issues during host finding. */
@@ -1298,7 +1298,7 @@ public:
 
   /* This routine masks particles by giving priority to subhaloes shallower
    * in the hierarchy. */
-  void MaskTopBottom(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
+  void MaskTopBottom(HBTInt subid, std::vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
   {
     /* We perform the masking first */
     auto &subhalo = Subhalos[subid];
@@ -1355,7 +1355,7 @@ public:
 
   /* This routine masks particles by giving priority to subhaloes deeper
    * in the hierarchy. */
-  void MaskBottomTop(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
+  void MaskBottomTop(HBTInt subid, std::vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
   {
     auto &subhalo = Subhalos[subid];
 
@@ -1387,7 +1387,7 @@ public:
       if (insert_status.second) // inserted, meaning not excluded
       {
         if (it != it_save)
-          *it_save = move(*it);
+          *it_save = std::move(*it);
         ++it_save;
       }
       /* Bound particle excluded; we will need to update Nbound. */

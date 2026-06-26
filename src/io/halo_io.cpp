@@ -15,16 +15,23 @@
 #include "../mymath.h"
 #include "./apostle_io/apostle_io.h"
 #include "./gadget_io/gadget_group_io.h"
+#include "./gadget_io/gadget4_io.h"
 #include "./swiftsim_io/swiftsim_io.h"
 
-void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
+void HaloSnapshot_t::Load(MpiWorker_t &world, const ParticleSnapshot_t &partsnap)
 {
+  int snapshot_index = partsnap.GetSnapshotIndex();
   SetSnapshotIndex(snapshot_index);
 
-  string GroupFileFormat = HBTConfig.GroupFileFormat;
+  std::string GroupFileFormat = HBTConfig.GroupFileFormat;
 
   if (GadgetGroup::IsGadgetGroup(GroupFileFormat))
-    GadgetGroup::Load(world, SnapshotId, Halos);
+  {
+    if (Gadget4Reader::IsGadget4Group(GroupFileFormat))
+      Gadget4Reader::Gadget4Reader_t().LoadGroups(world, partsnap, Halos); // only this needs partsnap
+    else
+      GadgetGroup::Load(world, SnapshotId, Halos);
+  }
   else if (IsApostleGroup(GroupFileFormat))
     ApostleReader_t().LoadGroups(world, SnapshotId, Halos);
   else if (IsSwiftSimGroup(GroupFileFormat))
@@ -36,7 +43,7 @@ void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
      * MyGroupReader(world, SnapshotId, Halos) */
   }
   else
-    throw(runtime_error("unknown GroupFileFormat " + GroupFileFormat));
+    throw(std::runtime_error("Unknown GroupFileFormat " + GroupFileFormat));
 
   NumPartOfLargestHalo = 0;
   TotNumberOfParticles = 0;
@@ -78,8 +85,8 @@ int main(int argc, char **argv)
   if (halo.Halos.size() > 1)
   {
     auto &h = halo.Halos[1];
-    cout << " Halo 1 from thread " << world.rank() << ":"
-         << "id=" << h.HaloId << "," << h.Particles.size() << ", " << h.Particles[5] << endl;
+    std::cout << " Halo 1 from thread " << world.rank() << ":"
+         << "id=" << h.HaloId << "," << h.Particles.size() << ", " << h.Particles[5] << std::endl;
   }
 
   MPI_Finalize();

@@ -85,7 +85,7 @@ void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTReal boxsize, bool perio
 {
   std::cout << "Start test with N=" << N << ", Nsearch = " << Nsearch << ", boxsize = " << boxsize;
   if(periodic)std::cout << " (periodic)";
-  std::cout << endl;
+  std::cout << std::endl;
 
   // Make a random snapshot
   RandomSnapshot_t snap(N, boxsize, rng);
@@ -112,7 +112,7 @@ void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTReal boxsize, bool perio
   std::vector<HBTInt> ngb_idx(Nsearch);
 
   // Carry out the search
-  cout << "  Finding neighbours using octree" << std::endl;
+  std::cout << "  Finding neighbours using octree" << std::endl;
   for(HBTInt i=0; i<Nsearch; i+=1) {
     ngb_idx[i] = tree.NearestNeighbour(centre[i], 0.01);
     verify(ngb_idx[i] >= 0);
@@ -121,7 +121,7 @@ void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTReal boxsize, bool perio
 
   // Now check the results by brute force:
   // There should be no points closer than the neighbour we found.
-  cout << "  Checking neighbour distances" << std::endl;
+  std::cout << "  Checking neighbour distances" << std::endl;
   for(HBTInt i=0; i<Nsearch; i+=1) {
 
     // Compute distance (squared) to the identified neighbour
@@ -139,7 +139,7 @@ void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTReal boxsize, bool perio
     }
   }
 
-  cout << "  Test done." << std::endl;
+  std::cout << "  Test done." << std::endl;
 }
 
 
@@ -171,5 +171,5 @@ int main(int argc, char *argv[]) {
           test_neighbour_search(N, Nsearch, boxsize, /* periodic = */ true, rng);
         }
     }
-  std::cout << "All tests done." << endl;
+  std::cout << "All tests done." << std::endl;
 }

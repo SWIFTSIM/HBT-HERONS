@@ -15,7 +15,7 @@
 class Halo_t
 {
 public:
-  typedef vector<Particle_t> ParticleList_t;
+  typedef std::vector<Particle_t> ParticleList_t;
   ParticleList_t Particles;
   HBTInt HaloId;
   HBTxyz ComovingAveragePosition;
@@ -39,7 +39,7 @@ extern void create_MPI_Halo_Id_type(MPI_Datatype &MPI_HBTHalo_Id_t);
 
 class HaloSnapshot_t : public Snapshot_t
 {
-  typedef vector<Halo_t> HaloList_t;
+  typedef std::vector<Halo_t> HaloList_t;
   MPI_Datatype MPI_HBT_HaloId_t; // MPI datatype ignoring the particle list
   void BuildMPIDataType();
 
@@ -54,9 +54,9 @@ public:
     BuildMPIDataType();
   }
 
-  HaloSnapshot_t(MpiWorker_t &world, int snapshot_index) : HaloSnapshot_t()
+  HaloSnapshot_t(MpiWorker_t &world, const ParticleSnapshot_t &partsnap) : HaloSnapshot_t()
   {
-    Load(world, snapshot_index);
+    Load(world, partsnap);
   }
 
   ~HaloSnapshot_t()
@@ -64,7 +64,8 @@ public:
     // 	Clear();
     My_Type_free(&MPI_HBT_HaloId_t);
   }
-  void Load(MpiWorker_t &world, int snapshot_index);
+
+  void Load(MpiWorker_t &world, const ParticleSnapshot_t &partsnap);
   void Clear();
   void UpdateParticles(MpiWorker_t &world, const ParticleSnapshot_t &snapshot);
   //   void ParticleIndexToId();

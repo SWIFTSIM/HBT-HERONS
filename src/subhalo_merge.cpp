@@ -107,14 +107,14 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
   /* Initalize variables used to accumulate position, velocity, mass etc */
   HBTInt NumPart = 0;
   double msum = 0;
-  vector<double> pos(3, 0), pos2(3, 0);
-  vector<double> vel(3, 0), vel2(3, 0);
+  std::vector<double> pos(3, 0), pos2(3, 0);
+  std::vector<double> vel(3, 0), vel2(3, 0);
 
   /* How many particles we will use */
   HBTInt CoreSize = GetCoreSize();
 
   // Use first particle as reference point for box wrap
-  vector<double> origin(3, 0);
+  std::vector<double> origin(3, 0);
   if (HBTConfig.PeriodicBoundaryOn)
     for (int j = 0; j < 3; j++)
       origin[j] = Particles[0].ComovingPosition[j];
@@ -195,7 +195,7 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
    * as we are guaranteed to not have duplicates between these two objects. */
   HBTInt np_new = host.Particles.size() + Nbound;
 
-  unordered_set<HBTInt> UniqueIds(np_new);
+  std::unordered_set<HBTInt> UniqueIds(np_new);
   for (auto &&p : host.Particles)
     UniqueIds.insert(p.Id);
   host.Particles.reserve(np_new);

@@ -26,7 +26,7 @@ struct GadgetHeader_t
 
 class GadgetReader_t
 {
-  vector<Particle_t> &Particles;
+  std::vector<Particle_t> &Particles;
   Cosmology_t &Cosmology;
 
   int SnapshotId;
@@ -34,17 +34,17 @@ class GadgetReader_t
   bool NeedByteSwap;
   int IntTypeSize;
   int RealTypeSize;
-  vector<HBTInt> NumberOfParticleInFiles;
-  vector<HBTInt> OffsetOfParticleInFiles;
+  std::vector<HBTInt> NumberOfParticleInFiles;
+  std::vector<HBTInt> OffsetOfParticleInFiles;
   void ReadGadgetFile(int ifile);
   void LoadGadgetHeader(int ifile = 0);
   bool ReadGadgetFileHeader(FILE *fp, GadgetHeader_t &header);
   HBTInt ReadGadgetNumberOfParticles(int ifile);
-  void GetGadgetFileName(int ifile, string &filename);
+  void GetGadgetFileName(int ifile, std::string &filename);
   void Load(MpiWorker_t &world);
 
 public:
-  GadgetReader_t(MpiWorker_t &world, int snapshot_id, vector<Particle_t> &particles, Cosmology_t &cosmology);
+  GadgetReader_t(MpiWorker_t &world, int snapshot_id, std::vector<Particle_t> &particles, Cosmology_t &cosmology);
 };
 
 #endif

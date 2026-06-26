@@ -33,7 +33,7 @@ void MappedIndexTable_t<Key_t, Index_t>::Fill(const KeyList_t<Key_t, Index_t> &K
 template <class Key_t, class Index_t>
 void MappedIndexTable_t<Key_t, Index_t>::Clear()
 {
-  vector<Pair_t>().swap(Map);
+  std::vector<Pair_t>().swap(Map);
   NumQueryCrit = 0;
 }
 template <class Key_t, class Index_t>

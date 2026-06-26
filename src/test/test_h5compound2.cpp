@@ -26,10 +26,10 @@ const int RANK = 1;
 
 #define ShowField(s, f)                                                                                                \
   {                                                                                                                    \
-    cout << endl << "Field " << #f << " : " << endl;                                                                   \
+    std::cout << std::endl << "Field " << #f << " : " << std::endl;                                                                   \
     for (int i = 0; i < LENGTH; i++)                                                                                   \
-      cout << s[i].f << " ";                                                                                           \
-    cout << endl;                                                                                                      \
+      std::cout << s[i].f << " ";                                                                                           \
+    std::cout << std::endl;                                                                                                      \
   }
 
 int main(void)
@@ -49,17 +49,17 @@ int main(void)
   CompType mtype2;
   mtype2.copy(mtype);
   mtype2.pack();
-  cout << mtype.getSize() << "," << mtype2.getSize() << endl;
+  std::cout << mtype.getSize() << "," << mtype2.getSize() << std::endl;
 
   hsize_t dim[] = {LENGTH};
-  vector<s_t> datain(LENGTH);
+  std::vector<s_t> datain(LENGTH);
   for (int i = 0; i < LENGTH; i++) /* init data*/
   {
     datain[i].a = i;
     datain[i].b = i * i;
     datain[i].c = -i;
   }
-  cout << "==========Data initialized=============\n";
+  std::cout << "==========Data initialized=============\n";
   ShowField(datain, a);
   ShowField(datain, b);
   ShowField(datain, c);
@@ -75,11 +75,11 @@ int main(void)
   /*read back*/
   H5File file(FILE_NAME, H5F_ACC_RDONLY);
   DataSet dset(file.openDataSet(DATASET_NAME));
-  vector<s_t> dataout(LENGTH);
+  std::vector<s_t> dataout(LENGTH);
 
   dset.read(dataout.data(), mtype);
 
-  cout << "\n===========Data Read==========\n";
+  std::cout << "\n===========Data Read==========\n";
   ShowField(dataout, a);
   ShowField(dataout, b);
   ShowField(dataout, c);
@@ -88,10 +88,10 @@ int main(void)
   btype.insertMember("b", 0, PredType::NATIVE_FLOAT);
   float b[LENGTH];
   dset.read(b, btype);
-  cout << "b \n";
+  std::cout << "b \n";
   for (int i = 0; i < LENGTH; i++)
-    cout << b[i] << " ";
-  cout << endl;
+    std::cout << b[i] << " ";
+  std::cout << std::endl;
   /*Output:
   ==========Data initialized=============
 

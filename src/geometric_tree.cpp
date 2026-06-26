@@ -216,7 +216,7 @@ void GeoTree_t::Search(const HBTxyz &searchcenter, HBTReal radius, ParticleColle
 double GeoTree_t::SphDensity(const HBTxyz &cen, HBTReal &hguess)
 {
   LocatedParticleCollector_t collector(NumNeighbourSPH * 2);
-  vector<LocatedParticle_t> &founds = collector.Founds;
+  std::vector<LocatedParticle_t> &founds = collector.Founds;
   Search(cen, hguess, collector);
   int numngb = founds.size();
   while (numngb < NumNeighbourSPH)

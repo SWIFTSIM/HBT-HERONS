@@ -12,7 +12,6 @@ int main()
     printf("Thread %d: i=%d\n", ithread, i);
     if (1 == ithread)
       sleep(2);
-// #pragma omp barrier
 #pragma omp for // this will start to create tasks
     for (int j = 0; j < i; j++)
     { // the team of threads will loop through j together, distributing j-tasks.

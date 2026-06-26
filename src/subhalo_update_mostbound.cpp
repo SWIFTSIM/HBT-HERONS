@@ -25,7 +25,7 @@ void SubhaloSnapshot_t::UpdateMostBoundPosition(MpiWorker_t &world, const Partic
 
   // Make an array containing only zero sized subhalos and set each subhalo
   // to contain one particle with it's most bound particle ID.
-  vector<Subhalo_t> ZeroSizeSubhalo(nr_zero);
+  std::vector<Subhalo_t> ZeroSizeSubhalo(nr_zero);
   nr_zero = 0;
   for (auto &&sub : Subhalos)
   {
@@ -34,7 +34,7 @@ void SubhaloSnapshot_t::UpdateMostBoundPosition(MpiWorker_t &world, const Partic
       if (sub.MostBoundParticleId == SpecialConst::NullParticleId)
       {
         // I think this should be impossible: all tracks should have been resolved initially
-        cout << "Zero size subhalo has never been assigned a most bound particle ID!" << endl;
+        std::cout << "Zero size subhalo has never been assigned a most bound particle ID!" << std::endl;
         MPI_Abort(MPI_COMM_WORLD, 1);
       }
       ZeroSizeSubhalo[nr_zero] = sub;

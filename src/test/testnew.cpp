@@ -1,6 +1,5 @@
 #include <iostream>
 #include <new>
-// #include "../datatypes.h"
 class GB
 {
   long data[1024 * 1024 * 1024];

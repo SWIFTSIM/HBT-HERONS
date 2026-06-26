@@ -1,6 +1,5 @@
 #include "mpi_wrapper.h"
 #include <sstream>
-// using namespace std;
 
 void MpiWorker_t::SyncAtomBool(bool &x, int root)
 {
@@ -10,9 +9,9 @@ void MpiWorker_t::SyncAtomBool(bool &x, int root)
   MPI_Bcast(&y, 1, MPI_CHAR, root, Communicator);
   x = y;
 }
-void MpiWorker_t::SyncVectorBool(vector<bool> &x, int root)
+void MpiWorker_t::SyncVectorBool(std::vector<bool> &x, int root)
 {
-  vector<char> y;
+  std::vector<char> y;
   if (rank() == root)
     y.assign(x.begin(), x.end());
   SyncContainer(y, MPI_CHAR, root);
@@ -20,13 +19,13 @@ void MpiWorker_t::SyncVectorBool(vector<bool> &x, int root)
     x.assign(y.begin(), y.end());
 }
 
-void MpiWorker_t::SyncVectorString(vector<string> &x, int root)
+void MpiWorker_t::SyncVectorString(std::vector<std::string> &x, int root)
 {
-  string buffer;
+  std::string buffer;
 
   if (rank() == root)
   {
-    ostringstream file;
+    std::ostringstream file;
     for (auto &s : x)
       file << s << '\n';
     buffer = file.str();
@@ -37,8 +36,8 @@ void MpiWorker_t::SyncVectorString(vector<string> &x, int root)
   if (rank() != root)
   {
     x.clear();
-    istringstream file(buffer);
-    string s;
+    std::istringstream file(buffer);
+    std::string s;
     while (getline(file, s))
       x.push_back(s);
   }

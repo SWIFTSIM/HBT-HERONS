@@ -3,7 +3,6 @@
 #ifndef HASH_HEADER_INCLUDED
 #define HASH_HEADER_INCLUDED
 
-// #include "datatypes.h"
 #include <exception>
 #include <string>
 
@@ -16,7 +15,7 @@ public:
   virtual Index_t size() const = 0;
 };
 
-class InvalidPIdException_t : public exception
+class InvalidPIdException_t : public std::exception
 {
 private:
   HBTInt PId;
@@ -28,7 +27,7 @@ public:
   };
   const char *what() const throw()
   {
-    stringstream msg;
+    std::stringstream msg;
     msg << "Invalid Particle Id " << PId << " for index lookup\n";
     return msg.str().c_str();
   };
@@ -95,8 +94,8 @@ public:
 private:
   HBTInt NumQueryCrit;
   typedef IndexTable_t<Key_t, Index_t> BaseClass_t;
-  vector<Pair_t> Map;
-  typedef typename vector<Pair_t>::const_iterator MapIter_t;
+  std::vector<Pair_t> Map;
+  typedef typename std::vector<Pair_t>::const_iterator MapIter_t;
   template <class ParticleIdList_T>
   void GetIndicesRecursive(ParticleIdList_T &particles, HBTInt imin, HBTInt imax, MapIter_t MapBegin,
                            MapIter_t MapEnd) const;

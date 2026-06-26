@@ -22,16 +22,16 @@
 #define VecNorm(x) VecDot(x, x)
 
 extern int GetGrid(HBTReal x, HBTReal step, int dim);
-extern int AssignCell(const HBTxyz &Pos, const HBTxyz &step, const vector<int> &dims);
+extern int AssignCell(const HBTxyz &Pos, const HBTxyz &step, const std::vector<int> &dims);
 
 template <class T>
-void VectorFree(vector<T> &x)
+void VectorFree(std::vector<T> &x)
 {
-  vector<T>().swap(x);
+  std::vector<T>().swap(x);
 }
 
 template <class T, class T2>
-size_t CompileOffsets(const vector<T> &Counts, vector<T2> &Offsets)
+size_t CompileOffsets(const std::vector<T> &Counts, std::vector<T2> &Offsets)
 {
   size_t offset = 0;
   Offsets.resize(Counts.size());
@@ -57,7 +57,7 @@ size_t CompileOffsets(CountIterator_t CountBegin, CountIterator_t CountEnd, Offs
 }
 
 template <class T, class UnaryPredicate>
-inline void RemoveFromVector(vector<T> &v, UnaryPredicate p)
+inline void RemoveFromVector(std::vector<T> &v, UnaryPredicate p)
 {
   v.erase(remove_if(v.begin(), v.end(), p), v.end());
 }
@@ -77,20 +77,20 @@ private:
     return itick < 0 ? itick + Size() : itick;
   }
 public:
-  vector<chrono::high_resolution_clock::time_point> tickers;
-  vector<string> names;
+  std::vector<std::chrono::high_resolution_clock::time_point> tickers;
+  std::vector<std::string> names;
   Timer_t() {tickers.reserve(20);}
 
   /* Every rank store the time without waiting for other ranks to finish. */
-  void Tick(string name)
+  void Tick(std::string name)
   {
-    tickers.push_back(chrono::high_resolution_clock::now());
+    tickers.push_back(std::chrono::high_resolution_clock::now());
     names.push_back(name);
   }
 
   /* We only store the time once all ranks reach the barrier, i.e. synchronised
    * ticking. */
-  void Tick(string name, MPI_Comm comm)
+  void Tick(std::string name, MPI_Comm comm)
   {
     MPI_Barrier(comm);
     Tick(name);
@@ -123,9 +123,9 @@ public:
     itick = FixTickNum(itick);
     itick0 = FixTickNum(itick0);
     if (itick < itick0)
-      swap(itick, itick0);
+      std::swap(itick, itick0);
 
-    return chrono::duration_cast<chrono::duration<double>>(tickers[itick] - tickers[itick0]).count();
+    return std::chrono::duration_cast<std::chrono::duration<double>>(tickers[itick] - tickers[itick0]).count();
   }
 
   double SaveSnapshotTiming(const std::string SubhaloPath, const int SnapshotIndex, const int SnapshotId)
@@ -162,31 +162,26 @@ extern Timer_t global_timer;
     fflush(stderr);                                                                                                    \
     exit(1);                                                                                                           \
   }
-// #ifdef PERIODIC_BDR
-// #define NEAREST(x) (((x)>BOXHALF)?((x)-BOXSIZE):(((x)<-BOXHALF)?((x)+BOXSIZE):(x)))
-/*this macro can well manipulate boundary condition because
- * usually a halo is much smaller than boxhalf
- * so that any distance within the halo should be smaller than boxhalf */
-// #endif
+
 #define get_bit(x, k) (((x) & (1 << k)) >> k)
 extern int count_pattern_files(char *filename_pattern);
-// extern std::ostream& operator << (std::ostream& o, HBTxyz &a);
 extern void swap_Nbyte(void *data2swap, size_t nel, size_t mbyte);
 extern size_t SkipFortranBlock(FILE *fp, bool NeedByteSwap);
+
 template <class T, std::size_t N>
-ostream &operator<<(ostream &o, const array<T, N> &arr)
+std::ostream &operator<<(std::ostream &o, const std::array<T, N> &arr)
 {
   o << "(";
-  copy(arr.cbegin(), arr.cend(), ostream_iterator<T>(o, ", "));
+  copy(arr.cbegin(), arr.cend(), std::ostream_iterator<T>(o, ", "));
   o << ")";
   return o;
 }
 
 template <class T>
-ostream &operator<<(ostream &o, const vector<T> &vec)
+std::ostream &operator<<(std::ostream &o, const std::vector<T> &vec)
 {
   o << "(";
-  copy(vec.cbegin(), vec.cend(), ostream_iterator<T>(o, ", "));
+  copy(vec.cbegin(), vec.cend(), std::ostream_iterator<T>(o, ", "));
   o << ")";
   return o;
 }
@@ -254,7 +249,7 @@ inline HBTReal Distance(const HBTReal x[3], const HBTxyz &y)
 template <class T>
 class FortranBlock
 {
-  vector<T> Data;
+  std::vector<T> Data;
   typedef T Txyz[3];
 
 public:
@@ -312,9 +307,7 @@ public:
   }
 };
 
-extern int LargestRootFactor(int N, int dim);
-extern vector<int> ClosestFactors(int N, int dim);
+extern std::vector<int> ClosestFactors(int N, int dim);
 extern void AssignTasks(HBTInt worker_id, HBTInt nworkers, HBTInt ntasks, HBTInt &task_begin, HBTInt &task_end);
-extern void logspace(double xmin, double xmax, int N, vector<float> &x);
 
 #endif // of MYMATH_HEADER_INCLUDED

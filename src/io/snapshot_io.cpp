@@ -1,6 +1,4 @@
-using namespace std;
 #include <iostream>
-// #include <iomanip>
 #include <assert.h>
 #include <chrono>
 #include <cstdio>
@@ -15,6 +13,7 @@ using namespace std;
 #include "../snapshot.h"
 #include "./apostle_io/apostle_io.h"
 #include "./gadget_io/gadget_io.h"
+#include "./gadget_io/gadget4_io.h"
 #include "./swiftsim_io/swiftsim_io.h"
 
 void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
@@ -42,6 +41,10 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
     }
 #endif
   }
+  else if (HBTConfig.SnapshotFormat == "gadget4")
+  {
+    Gadget4Reader::Gadget4Reader_t().LoadSnapshot(world, SnapshotId, Particles, Cosmology);
+  }
   else if (HBTConfig.SnapshotFormat == "mysnapshot")
   {
     /* Insert your snapshot reader here, and include relevant information in the header
@@ -49,7 +52,7 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
      * LoadMySnapshot(SnapshotId, Particles, Cosmology); */
   }
   else
-    throw(runtime_error("unknown SnapshotFormat " + HBTConfig.SnapshotFormat));
+    throw(std::runtime_error("unknown SnapshotFormat " + HBTConfig.SnapshotFormat));
 
   global_timer.Tick("snap_io", world.Communicator);
 
@@ -72,11 +75,11 @@ int main(int argc, char **argv)
   HBTConfig.ParseConfigFile(argv[1]);
   ParticleSnapshot_t snapshot;
   snapshot.Load(HBTConfig.MaxSnapshotIndex, true);
-  cout << snapshot.GetNumberOfParticles() << endl;
-  cout << snapshot.GetParticleId(10) << endl;
-  cout << snapshot.GetComovingPosition(10) << endl;
-  cout << snapshot.GetParticleMass(10) << ',' << snapshot.GetParticleMass(100) << endl;
-  cout << snapshot.GetParticleIndex(snapshot.GetParticleId(10)) << endl;
+  std::cout << snapshot.GetNumberOfParticles() << std::endl;
+  std::cout << snapshot.GetParticleId(10) << std::endl;
+  std::cout << snapshot.GetComovingPosition(10) << std::endl;
+  std::cout << snapshot.GetParticleMass(10) << ',' << snapshot.GetParticleMass(100) << std::endl;
+  std::cout << snapshot.GetParticleIndex(snapshot.GetParticleId(10)) << std::endl;
   return 0;
 }
 #endif
