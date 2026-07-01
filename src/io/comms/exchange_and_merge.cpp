@@ -268,10 +268,13 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
       step[j] = HBTConfig.BoxSize / dims[j];
 
     std::vector<HBTInt> ParticlesOnRank(NumProc, 0);
+    HBTInt LargestHaloParticles = 0;
     for (size_t i = 0; i < GlobalHaloSizes.size(); i++)
     {
       GlobalHaloSizes[i].TargetRank = AssignCell(GlobalHaloSizes[i].ComovingAveragePosition, step, dims);
       ParticlesOnRank[GlobalHaloSizes[i].TargetRank] += GlobalHaloSizes[i].NumberParticles;
+      if (GlobalHaloSizes[i].NumberParticles > LargestHaloParticles)
+        LargestHaloParticles = GlobalHaloSizes[i].NumberParticles;
     }
 
     /* Greedy rebalancing: repeatedly move the largest FoF that fits from the most
@@ -285,12 +288,28 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
     HBTInt MeanParticles = TotalParticles / NumProc;
     const double Tolerance = 0.05;
 
+    {
+      HBTInt InitialMax = *std::max_element(ParticlesOnRank.begin(), ParticlesOnRank.end());
+      HBTInt InitialMin = *std::min_element(ParticlesOnRank.begin(), ParticlesOnRank.end());
+      std::cout << "      Starting greedy rebalancing of " << GlobalHaloSizes.size() << " FoFs across " << NumProc
+                << " ranks. Mean particles/rank = " << MeanParticles << ". Initial max/mean = "
+                << (double)InitialMax / MeanParticles << ", initial min/mean = " << (double)InitialMin / MeanParticles
+                << ". Largest single FoF has " << LargestHaloParticles << " particles ("
+                << (double)LargestHaloParticles / MeanParticles
+                << "x mean; this is a hard floor on achievable balance)." << std::endl;
+    }
+
     /* Build per-rank lists of (NumberParticles, global_index), sorted descending. */
     std::vector<std::vector<std::pair<HBTInt, int>>> RankHalos(NumProc);
     for (int i = 0; i < (int)GlobalHaloSizes.size(); i++)
       RankHalos[GlobalHaloSizes[i].TargetRank].emplace_back(GlobalHaloSizes[i].NumberParticles, i);
     for (int r = 0; r < NumProc; r++)
       std::sort(RankHalos[r].begin(), RankHalos[r].end(), std::greater<std::pair<HBTInt, int>>());
+
+    HBTInt NumberOfMoves = 0;
+    std::string StopReason = "reached tolerance";
+    auto LastHeartbeat = std::chrono::steady_clock::now();
+    const auto HeartbeatInterval = std::chrono::minutes(5);
 
     while (true)
     {
@@ -309,7 +328,10 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
         ++it;
 
       if (it == list.end())
+      {
+        StopReason = "no FoF small enough to move without overshooting";
         break;
+      }
 
       int halo_idx = it->second;
       HBTInt halo_size = it->first;
@@ -325,6 +347,28 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
         std::greater<std::pair<HBTInt, int>>()
       );
       RankHalos[R_min].insert(insert_pos, {halo_size, halo_idx});
+      NumberOfMoves++;
+
+      /* Heartbeat so a long-running loop is still visible in the log, roughly every
+       * 5 minutes. Placed here (after a move) rather than at the top of the loop, so
+       * it also reports progress if a single move is cheap but many moves are needed. */
+      auto Now = std::chrono::steady_clock::now();
+      if (Now - LastHeartbeat >= HeartbeatInterval)
+      {
+        std::cout << "      Greedy rebalancing still running: " << NumberOfMoves
+                  << " moves so far. Current max/mean = " << (double)ParticlesOnRank[R_max] / MeanParticles
+                  << " (rank " << R_max << "), min/mean = " << (double)ParticlesOnRank[R_min] / MeanParticles
+                  << " (rank " << R_min << ")." << std::endl;
+        LastHeartbeat = Now;
+      }
+    }
+
+    {
+      HBTInt FinalMax = *std::max_element(ParticlesOnRank.begin(), ParticlesOnRank.end());
+      HBTInt FinalMin = *std::min_element(ParticlesOnRank.begin(), ParticlesOnRank.end());
+      std::cout << "      Finished greedy rebalancing after " << NumberOfMoves << " moves (" << StopReason
+                << "). Final max/mean = " << (double)FinalMax / MeanParticles << ", final min/mean = "
+                << (double)FinalMin / MeanParticles << "." << std::endl;
     }
 
     /* Restore original order before scattering back. */
@@ -409,14 +453,28 @@ static std::vector<IdRank_t> CommunicateTaskAssignment(MpiWorker_t &world,
  * spatial locality. */
 static std::vector<IdRank_t> DecideTargetProcessor(MpiWorker_t &world, std::vector<Halo_t> &Halos)
 {
+  auto t0 = std::chrono::steady_clock::now();
+
   /* Collect total sizes and COMs for each unique FoF across all ranks. */
   std::vector<HaloFragment_t> HaloSizes = GetTotalHaloSizes(world, Halos);
+  auto t1 = std::chrono::steady_clock::now();
+  if (world.rank() == 0)
+    std::cout << "    Computed global FoF sizes. Took "
+              << std::chrono::duration<double>(t1 - t0).count() << " seconds." << std::endl;
 
   /* Assign a target rank to each unique FoF. */
   std::vector<IdRank_t> HaloTaskAssignment = SpatialAssignmentWithRebalancing(world, HaloSizes);
+  auto t2 = std::chrono::steady_clock::now();
+  if (world.rank() == 0)
+    std::cout << "    Assigned target ranks to FoFs. Took "
+              << std::chrono::duration<double>(t2 - t1).count() << " seconds." << std::endl;
 
   /* Propagate the assignment back to the fragment level. */
   std::vector<IdRank_t> HaloFragmentTaskAssignment = CommunicateTaskAssignment(world, HaloTaskAssignment, Halos);
+  auto t3 = std::chrono::steady_clock::now();
+  if (world.rank() == 0)
+    std::cout << "    Propagated target ranks to fragments. Took "
+              << std::chrono::duration<double>(t3 - t2).count() << " seconds." << std::endl;
 
   return HaloFragmentTaskAssignment;
 }
@@ -551,6 +609,16 @@ static void ExchangeHaloFragments(MpiWorker_t &world, std::vector<Halo_t> &InHal
  * complete FoF group. */
 void CollectHaloFragments(MpiWorker_t &world, std::vector<Halo_t> &Halos)
 {
+  if (world.rank() == 0)
+    std::cout << "  Collecting FoF fragments across ranks..." << std::endl;
+  auto start_time = std::chrono::steady_clock::now();
+
   ExchangeHaloFragments(world, Halos);
   MergeHaloFragments(Halos);
+
+  if (world.rank() == 0)
+  {
+    double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
+    std::cout << "  Finished collecting FoF fragments. Took " << elapsed << " seconds." << std::endl;
+  }
 }
