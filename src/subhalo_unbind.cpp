@@ -936,6 +936,31 @@ void SubhaloSnapshot_t::PrintTimeImbalanceStatistics(MpiWorker_t &world, Timer_t
 
   if (world.rank() == 0)
     std::cout << "Took " << MaxTime << " seconds. Maximum imbalance across ranks was " << MaxTime / AverageTime << "." << std::endl;
+
+  /* Per-rank breakdown, so imbalance can be traced back to a specific rank and
+   * FoF after the fact. Printed by every rank (not gathered), tagged with
+   * "RankStats" and the snapshot index so it can be grepped out and parsed
+   * separately from the rest of the log. */
+  {
+    HBTInt NumHalos = MemberTable.SubGroups.size();
+    HBTInt LargestHaloParticles = 0, LargestHaloNumSubhalos = 0;
+    for (HBTInt haloid = 0; haloid < NumHalos; haloid++)
+    {
+      auto &subgroup = MemberTable.SubGroups[haloid];
+      HBTInt NumParticles = 0;
+      for (auto subid : subgroup)
+        NumParticles += Subhalos[subid].Particles.size();
+      if (NumParticles > LargestHaloParticles)
+      {
+        LargestHaloParticles = NumParticles;
+        LargestHaloNumSubhalos = subgroup.size();
+      }
+    }
+    std::cout << "  RankStats snapshot=" << GetSnapshotIndex() << " rank=" << world.rank()
+              << " time=" << LocalElapsedTime << " parallelize_haloes=" << ParallelizeHaloes
+              << " largest_fof_particles=" << LargestHaloParticles
+              << " largest_fof_subhaloes=" << LargestHaloNumSubhalos << std::endl;
+  }
 }
 
 /* Print information about how many subhaloes have been sunk, disrupted, newly

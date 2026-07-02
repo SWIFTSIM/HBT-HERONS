@@ -1020,9 +1020,11 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, std::vecto
   }
 
   VectorFree(ParticleHosts);
-  ExchangeAndMerge(world, Halos);
-  global_timer.Tick("halo_comms", world.Communicator);
 
+  /* We call this function because FoF fragments are spread across MPI ranks. */
+  CollectHaloFragments(world, Halos);
+
+  global_timer.Tick("halo_comms", world.Communicator);
   HBTConfig.GroupLoadedFullParticle = true;
 }
 
