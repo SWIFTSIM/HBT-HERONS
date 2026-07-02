@@ -295,8 +295,11 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
                 << " ranks. Mean particles/rank = " << MeanParticles << ". Initial max/mean = "
                 << (double)InitialMax / MeanParticles << ", initial min/mean = " << (double)InitialMin / MeanParticles
                 << ". Largest single FoF has " << LargestHaloParticles << " particles ("
-                << (double)LargestHaloParticles / MeanParticles
-                << "x mean; this is a hard floor on achievable balance)." << std::endl;
+                << (double)LargestHaloParticles / MeanParticles << "x mean)";
+      if (LargestHaloParticles > MeanParticles)
+        std::cout << ". Since a FoF cannot be split across ranks, this alone puts a hard floor of "
+                   << (double)LargestHaloParticles / MeanParticles << "x mean on the achievable max/mean.";
+      std::cout << std::endl;
     }
 
     /* Build per-rank lists of (NumberParticles, global_index), sorted descending. */
