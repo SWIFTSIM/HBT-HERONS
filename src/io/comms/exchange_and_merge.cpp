@@ -3,8 +3,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <list>
 #include <numeric>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -302,12 +304,12 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
       std::cout << std::endl;
     }
 
-    /* Build per-rank lists of (NumberParticles, global_index), sorted descending. */
-    std::vector<std::vector<std::pair<HBTInt, int>>> RankHalos(NumProc);
+    /* Build per-rank multisets of (NumberParticles, global_index), sorted descending,
+     * so the fitting-FoF lookup, erase, and insert used below are all O(log N). */
+    using HaloEntry_t = std::pair<HBTInt, int>;
+    std::vector<std::multiset<HaloEntry_t, std::greater<HaloEntry_t>>> RankHalos(NumProc);
     for (int i = 0; i < (int)GlobalHaloSizes.size(); i++)
-      RankHalos[GlobalHaloSizes[i].TargetRank].emplace_back(GlobalHaloSizes[i].NumberParticles, i);
-    for (int r = 0; r < NumProc; r++)
-      std::sort(RankHalos[r].begin(), RankHalos[r].end(), std::greater<std::pair<HBTInt, int>>());
+      RankHalos[GlobalHaloSizes[i].TargetRank].emplace(GlobalHaloSizes[i].NumberParticles, i);
 
     HBTInt NumberOfMoves = 0;
     std::string StopReason = "reached tolerance";
@@ -326,9 +328,8 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
 
       /* Find the largest FoF on R_max satisfying 2*size < gap. */
       auto &list = RankHalos[R_max];
-      auto it = list.begin();
-      while (it != list.end() && 2 * it->first >= gap)
-        ++it;
+      HBTInt MaxFittingSize = (gap - 1) / 2;
+      auto it = list.lower_bound(HaloEntry_t(MaxFittingSize, std::numeric_limits<int>::max()));
 
       if (it == list.end())
       {
@@ -344,12 +345,7 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
       ParticlesOnRank[R_min] += halo_size;
 
       list.erase(it);
-      auto insert_pos = std::lower_bound(
-        RankHalos[R_min].begin(), RankHalos[R_min].end(),
-        std::make_pair(halo_size, halo_idx),
-        std::greater<std::pair<HBTInt, int>>()
-      );
-      RankHalos[R_min].insert(insert_pos, {halo_size, halo_idx});
+      RankHalos[R_min].emplace(halo_size, halo_idx);
       NumberOfMoves++;
 
       /* Heartbeat so a long-running loop is still visible in the log, roughly every
