@@ -84,13 +84,21 @@ int main(int argc, char **argv)
     if ((isnap == snapshot_start) && (world.rank() == 0))
       HBTConfig.DumpParameters();
 
+    if (world.rank() == 0)
+      std::cout << "Updating halo particles..." << std::endl;
     halosnap.UpdateParticles(world, partsnap);
     global_timer.Tick("update_halo", world.Communicator);
+    if (world.rank() == 0)
+      std::cout << "Updated halo particles. Took " << global_timer.GetSeconds() << " seconds." << std::endl;
 
     subsnap.SetSnapshotIndex(isnap);
+    if (world.rank() == 0)
+      std::cout << "Updating subhalo particles..." << std::endl;
     subsnap.UpdateParticles(world, partsnap);
     subsnap.UpdateMostBoundPosition(world, partsnap);
     global_timer.Tick("update_subhalo", world.Communicator);
+    if (world.rank() == 0)
+      std::cout << "Updated subhalo particles. Took " << global_timer.GetSeconds() << " seconds." << std::endl;
 
     // Don't need the particle data after this point, so save memory
     partsnap.ClearParticles();
@@ -100,14 +108,22 @@ int main(int argc, char **argv)
      * contribute to the estimate of the subgroup CoM position and velocity (used in
      * decide centrals). We do it before assign hosts since subhaloes can change FOF
      * and ranks, making the masking difficult. */
+    if (world.rank() == 0)
+      std::cout << "Cleaning tracks..." << std::endl;
     subsnap.CleanTracks();
     global_timer.Tick("clean_tracks", world.Communicator);
+    if (world.rank() == 0)
+      std::cout << "Cleaned tracks. Took " << global_timer.GetSeconds() << " seconds." << std::endl;
 
     /* We assign a FOF host to every pre-existing subhalo. All particles belonging to a
      * secondary subhalo are constrained to be within the FOF assigned to the
      * subhalo they belong to. Constraint not applied if particles are fof-less.*/
+    if (world.rank() == 0)
+      std::cout << "Assigning hosts to subhaloes..." << std::endl;
     subsnap.AssignHosts(world, halosnap, partsnap);
     global_timer.Tick("assign_hosts", world.Communicator);
+    if (world.rank() == 0)
+      std::cout << "Assigned hosts to subhaloes. Took " << global_timer.GetSeconds() << " seconds." << std::endl;
 
     /* Store the NumTracersForDescendants most bound particles of subhaloes
      * resolved in the previous output. These will be used after unbinding to
@@ -118,6 +134,8 @@ int main(int argc, char **argv)
     MergerTreeInfo merger_tree;
     merger_tree.StoreTracerIds(subsnap.Subhalos, HBTConfig.NumTracersForDescendants);
     global_timer.Tick("store_tracers", world.Communicator);
+    if (world.rank() == 0)
+      std::cout << "Stored tracer ids. Took " << global_timer.GetSeconds() << " seconds." << std::endl;
 
     /* We constrain particles to belong to FOF that hosts the subhalo they are
      * associated to. Need to do after StoringTracerIds, since this step can lead
@@ -127,8 +145,12 @@ int main(int argc, char **argv)
     /* We decide which subhaloes are the central of each FOF group. Centrals are
      * assigned all the particles in the FOF that do not belong to secondary
      * subhaloes. */
+    if (world.rank() == 0)
+      std::cout << "Preparing centrals..." << std::endl;
     subsnap.PrepareCentrals(world, halosnap);
     global_timer.Tick("prepare_centrals", world.Communicator);
+    if (world.rank() == 0)
+      std::cout << "Prepared centrals. Took " << global_timer.GetSeconds() << " seconds." << std::endl;
 
     /* Assign gas particles to the same subhalo as their nearest neighbour
        tracer type particle in the same FoF group */

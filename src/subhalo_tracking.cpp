@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <chrono>
 #include <iostream>
 #include <new>
 #include <omp.h>
@@ -669,22 +670,48 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
   LocalSubhalos.reserve(Subhalos.size());
 
   /* Creates ParticleID - HostHalo information, local to the task. */
+  if (world.rank() == 0)
+    std::cout << "    Filling particle hash..." << std::endl;
+  auto t0 = std::chrono::steady_clock::now();
   halo_snap.FillParticleHash();
+  if (world.rank() == 0)
+    std::cout << "    Filled particle hash. Took " << std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count()
+              << " seconds." << std::endl;
 
   /* Try identifying which FOF hosts local subhaloes, using local information
    * only. */
+  if (world.rank() == 0)
+    std::cout << "    Finding local hosts..." << std::endl;
+  auto t1 = std::chrono::steady_clock::now();
   FindLocalHosts(halo_snap, part_snap, Subhalos, LocalSubhalos);
+  if (world.rank() == 0)
+    std::cout << "    Found local hosts. Took " << std::chrono::duration<double>(std::chrono::steady_clock::now() - t1).count()
+              << " seconds." << std::endl;
 
   /* Those which require information from external ranks are dealt with here. */
+  if (world.rank() == 0)
+    std::cout << "    Finding hosts on other ranks (" << world.size() << " ranks to process)..." << std::endl;
+  auto t2 = std::chrono::steady_clock::now();
   for (int rank = 0; rank < world.size(); rank++)
+  {
+    if (world.rank() == 0)
+      std::cout << "      Processing subhaloes broadcast from rank " << rank << "..." << std::endl;
     FindOtherHostsSafely(world, rank, halo_snap, part_snap, Subhalos, LocalSubhalos, MPI_HBT_SubhaloShell_t);
+  }
+  if (world.rank() == 0)
+    std::cout << "    Found hosts on other ranks. Took " << std::chrono::duration<double>(std::chrono::steady_clock::now() - t2).count()
+              << " seconds." << std::endl;
 
   /* Here we will change the host halo ID of subhalos whose tracers were lost*/
+  if (world.rank() == 0)
+    std::cout << "    Handling tracerless subhaloes..." << std::endl;
   HandleTracerlessSubhalos(world, LocalSubhalos);
 
   Subhalos.swap(LocalSubhalos);
   halo_snap.ClearParticleHash();
 
+  if (world.rank() == 0)
+    std::cout << "    Building member table..." << std::endl;
   MemberTable.Build(halo_snap.Halos.size(), Subhalos, true);
 
   PrintHostStatistics(world);

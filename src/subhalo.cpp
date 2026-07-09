@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <chrono>
 #include <iostream>
 #include <new>
 #include <numeric>
@@ -119,7 +120,14 @@ void SubhaloSnapshot_t::UpdateParticles(MpiWorker_t &world, const ParticleSnapsh
 
   Cosmology = snapshot.Cosmology;
   SubhaloList_t LocalSubhalos;
+  if (world.rank() == 0)
+    std::cout << "    Exchanging subhalo particles..." << std::endl;
+  auto t_exchange0 = std::chrono::steady_clock::now();
   ExchangeSubHalos(world, Subhalos, LocalSubhalos, MPI_HBT_SubhaloShell_t, snapshot);
+  if (world.rank() == 0)
+    std::cout << "    Exchanged subhalo particles. Took "
+              << std::chrono::duration<double>(std::chrono::steady_clock::now() - t_exchange0).count() << " seconds."
+              << std::endl;
   Subhalos.swap(LocalSubhalos);
 #pragma omp parallel for
   for (HBTInt i = 0; i < Subhalos.size(); i++)
