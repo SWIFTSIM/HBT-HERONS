@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --ntasks 2
-#SBATCH --cpus-per-task=14
+#SBATCH --ntasks 4
+#SBATCH --cpus-per-task=7
 #SBATCH -J HBT_TEST
 #SBATCH -p cosma7-rp
 #SBATCH -A dp004

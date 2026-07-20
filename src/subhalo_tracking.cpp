@@ -23,6 +23,11 @@ void Subhalo_t::UpdateTrack(const Snapshot_t &epoch)
       SnapshotOfLastIsolation = epoch.GetSnapshotId();
     }
   }
+  else
+  {
+    // Subhalo is currently a satellite
+    SnapshotOfLastSatellite = epoch.GetSnapshotId();
+  }
   if (Mbound >= LastMaxMass)
   {
     SnapshotOfLastMaxMass = epoch.GetSnapshotId();
@@ -1133,6 +1138,14 @@ void SubhaloSnapshot_t::FillDepthRecursive(HBTInt subid, int depth)
 
 void SubhaloSnapshot_t::FillDepth()
 {
+  // hostless subhaloes are not reached by the recursion below, and would
+  // otherwise keep the Depth from the last snapshot they were in a FOF group
+  {
+    auto &SubGroup = MemberTable.SubGroups[-1];
+#pragma omp for
+    for (HBTInt i = 0; i < SubGroup.size(); i++)
+      Subhalos[SubGroup[i]].Depth = 0;
+  }
 #pragma omp for
   for (HBTInt grpid = 0; grpid < MemberTable.SubGroups.size(); grpid++)
     if (MemberTable.SubGroups[grpid].size())
