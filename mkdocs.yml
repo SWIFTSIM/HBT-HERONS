@@ -45,6 +45,9 @@ markdown_extensions:
   - md_in_html
   - pymdownx.blocks.caption
 
+extra_css:
+  - stylesheets/extra.css
+
 # For Latex equations
 extra_javascript:
   - javascripts/config.js
