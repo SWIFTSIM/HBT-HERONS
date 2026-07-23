@@ -12,13 +12,15 @@ We provide an example of how this works in practice [in the following page](../e
 
 If one is interested in the evolution of all of the subhaloes that contributed to the build-up of a given subhalo, then its **secondary evolutionary branches** also need to be considered. Identifying secondary evolutionary branches requires connecting disjoint main evolutionary branches, identified by their `TrackId`, at the time when their associated subhaloes first became orphans. HBT-HERONS identifies the descendants of subhaloes that have just become orphans in two different ways, depending on whether [sinking](./subhalo_sinking.md) or [disruption](./unbinding.md) lead to its conversion to an orphan subhalo.
 
-The table below summarises the three scenarios through which a subhalo becomes linked to a descendant, based on the values of `DescendantTrackId`, `SinkTrackId`, `SnapshotOfDeath` and `SnapshotOfSink`. Each scenario is described in more detail in the sections that follow.
+The table below summarises the three scenarios through which a subhalo becomes linked to a descendant, based on the values of `DescendantTrackId`, `SinkTrackId`, `SnapshotOfDeath` and `SnapshotOfSink`. In the conditions column, properties of the subhalo becoming an orphan are shown in <span class="merger-orange">orange</span>, and the `TrackId` of the subhalo it merges into is shown in <span class="merger-blue">blue</span>. Each scenario is described in more detail in the sections that follow.
 
 | Merger scenario | Description | Conditions |
 | :--------------- | :----------- | :---------- |
-| **Subhalo sinking** | Two self-bound subhalo cores become indistinguishable in phase-space. | `DescendantTrackId == SinkTrackId &&` <br> `SnapshotOfDeath == SnapshotOfSink != -1` |
-| **Subhalo disruption** | The subhalo is no longer self-bound; its descendant subhalo contains the majority of its tracer particles. | `SinkTrackId == -1 &&` <br> `SnapshotOfDeath != -1 &&` <br> `SnapshotOfSink == -1` |
-| **Unresolved sinking** | An already-disrupted subhalo remnant is later identified as having sunk into another subhalo. | `DescendantTrackId == SinkTrackId &&` <br> `-1 != SnapshotOfDeath < SnapshotOfSink != -1` |
+| **Subhalo sinking** | Two self-bound subhalo cores become indistinguishable in phase-space. | `DescendantTrackId`{: .merger-orange} == `SinkTrackId`{: .merger-orange} == `TrackId*`{: .merger-blue} &&<br> `SnapshotOfDeath`{: .merger-orange} == `SnapshotOfSink`{: .merger-orange} != -1 |
+| **Subhalo disruption** | The subhalo is no longer self-bound; its descendant subhalo contains the majority of its tracer particles. | `SinkTrackId`{: .merger-orange} == -1 &&<br> `SnapshotOfDeath`{: .merger-orange} != -1 &&<br> `SnapshotOfSink`{: .merger-orange} == -1 |
+| **Unresolved sinking** | An already-disrupted subhalo remnant is later identified as having sunk into another subhalo. | `DescendantTrackId`{: .merger-orange} == `SinkTrackId`{: .merger-orange} == `TrackId*`{: .merger-blue} &&<br> -1 != `SnapshotOfDeath`{: .merger-orange} < `SnapshotOfSink`{: .merger-orange} != -1 |
+
+\* the `TrackId` of the subhalo it merged into.
 
 We provide an example of how to use the information that HBT-HERONS outputs to find secondary evolutionary branches [in the following page](../examples/merger_trees.md#secondary-progenitors).
 
