@@ -12,13 +12,21 @@ We provide an example of how this works in practice [in the following page](../e
 
 If one is interested in the evolution of all of the subhaloes that contributed to the build-up of a given subhalo, then its **secondary evolutionary branches** also need to be considered. Identifying secondary evolutionary branches requires connecting disjoint main evolutionary branches, identified by their `TrackId`, at the time when their associated subhaloes first became orphans. HBT-HERONS identifies the descendants of subhaloes that have just become orphans in two different ways, depending on whether [sinking](./subhalo_sinking.md) or [disruption](./unbinding.md) lead to its conversion to an orphan subhalo.
 
+The table below summarises the three scenarios through which a subhalo becomes linked to a descendant, based on the values of `DescendantTrackId`, `SinkTrackId`, `SnapshotOfDeath` and `SnapshotOfSink`. Each scenario is described in more detail in the sections that follow.
+
+| Merger scenario | Description | Conditions |
+| :--------------- | :----------- | :---------- |
+| **Subhalo sinking** | Two self-bound subhalo cores become indistinguishable in phase-space. | `DescendantTrackId == SinkTrackId &&` <br> `SnapshotOfDeath == SnapshotOfSink != -1` |
+| **Subhalo disruption** | The subhalo is no longer self-bound; its descendant subhalo contains the majority of its tracer particles. | `SinkTrackId == -1 &&` <br> `SnapshotOfDeath != -1 &&` <br> `SnapshotOfSink == -1` |
+| **Unresolved sinking** | An already-disrupted subhalo remnant is later identified as having sunk into another subhalo. | `DescendantTrackId == SinkTrackId &&` <br> `-1 != SnapshotOfDeath < SnapshotOfSink != -1` |
+
 We provide an example of how to use the information that HBT-HERONS outputs to find secondary evolutionary branches [in the following page](../examples/merger_trees.md#secondary-progenitors).
 
 ### Disruption descendants
 
 At the beginning of the analysis of each simulation output, HBT-HERONS stores for each resolved subhalo the particle IDs of the `NumTracersForDescendants` most bound tracer particles from the last analysed output. If a subhalo becomes an orphan, HBT-HERONS finds which self-bound subhaloes this set of particles is now bound to.
 
-The descendant subhalo, stored in `DescendantTrackId`, is identified as the `TrackId` that contains the largest share of the tagged tracer particles of the now-orphan subhalo. Note that this may result in `DescendantTrackId = -1` if the largest share of particles are unbound.
+The descendant subhalo, stored in `DescendantTrackId`, is identified as the `TrackId` that contains the largest share of the tagged tracer particles of the now-orphan subhalo. Note that this may result in `DescendantTrackId == -1` if the largest share of particles are unbound.
 
 The subhaloes where this descendant entry should be used can be identified by `SnapshotOfDeath != SnapshotOfSink == -1`, as well as `SnapshotOfSink > SnapshotOfDeath != -1` (see [unresolved sinking](#unresolved-sinking)).
 
@@ -26,7 +34,7 @@ The subhaloes where this descendant entry should be used can be identified by `S
 
 Subhaloes that are found to overlap in phase-space with the core of another resolved subhalo of `TrackId` store this value as `SinkTrackId`. Contrary to `DescendantTrackId`, the value of `SinkTrackId` can never be `-1`, because sinking needs another existing subhalo to serve as a reference for the phase-space overlap. This means that subhaloes that have sunk can be selected via `SinkTrackId != -1` or `SnapshotOfSink != -1`.
 
-The subhaloes where this descendant entry should be used can be identified by `SnapshotOfDeath = SnapshotOfSink != -1`. Note that HBT-HERONS also computes a `DescendantTrackId` at this time because the subhalo becomes an orphan. The `DescendantTrackId` is the same as `SinkTrackId` in $\approx 99.9\%$ of sinking events, with the discrepant values explained in [unusual descendants](#unusual-descendants).
+The subhaloes where this descendant entry should be used can be identified by `SnapshotOfDeath == SnapshotOfSink != -1`. Note that HBT-HERONS also computes a `DescendantTrackId` at this time because the subhalo becomes an orphan. The `DescendantTrackId` is the same as `SinkTrackId` in $\approx 99.9\%$ of sinking events, with the discrepant values explained in [unusual descendants](#unusual-descendants).
 
 ## Important considerations
 
@@ -42,15 +50,15 @@ For these instances, we recommend using as the subhalo descendant the value prov
 
 ### Unusual descendants
 
-HBT-HERONS tries to assign `DescendantTrackId` when a subhalo first becomes an orphan, including when the orphan is created because of sinking. There are certain cases where no descendant is found (`DescendantTrackId = -1`) or when the descendant is not the same as the `SinkTrackId`.
+HBT-HERONS tries to assign `DescendantTrackId` when a subhalo first becomes an orphan, including when the orphan is created because of sinking. There are certain cases where no descendant is found (`DescendantTrackId == -1`) or when the descendant is not the same as the `SinkTrackId`.
 
 Although we make specific recommendations of which entry to use depending on how the orphan was created (`DescendantTrackId` for disruption and unresolved sinking, and `SinkTrackId` for sinking), we provide a table that gives a rough order of magnitude of how common some of these cases are. Note that the subhalo population used to populate the table is entirely made up of orphans, i.e. `SnapshotOfDeath != -1`.
 
 | <div style="width:75px">Description</div> | <div style="width:70">Mask</div> |<div style="width:100px">Statistics</div> |
 | :-------------------------------------- | :---- | :-------------------------------------------------------------------------------------------------------------- |
-| The subhalo **disrupts** but the majority of its core is not bound to any subhalo. | `DescendantTrackId = -1 &` <br>`SinkTrackId = -1`                                                      | $20\%$ of all orphan subhaloes. |
-| The subhalo **sinks** but the majority of its core is bound to a different subhalo from the one it sunk to. | `DescendantTrackId != SinkTrackId &` <br> `DescendantTrackId != -1 & SinkTrackId != -1`                                                      | $0.01\%$ of all orphan subhaloes. |
-| The subhalo **sinks** but the majority of its core is not bound to any subhalo. | `DescendantTrackId = -1 &`  <br>  `SinkTrackId != -1`                                                      |$0.0001\%$ of all orphan subhaloes.  |
+| The subhalo **disrupts** but the majority of its core is not bound to any subhalo. | `DescendantTrackId == -1 &&` <br>`SinkTrackId == -1`                                                      | $20\%$ of all orphan subhaloes. |
+| The subhalo **sinks** but the majority of its core is bound to a different subhalo from the one it sunk to. | `DescendantTrackId != SinkTrackId &&` <br> `DescendantTrackId != -1 && SinkTrackId != -1`                                                      | $0.01\%$ of all orphan subhaloes. |
+| The subhalo **sinks** but the majority of its core is not bound to any subhalo. | `DescendantTrackId == -1 &&`  <br>  `SinkTrackId != -1`                                                      |$0.0001\%$ of all orphan subhaloes.  |
 
 ### Re-resolving orphans
 
