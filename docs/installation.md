@@ -54,7 +54,7 @@ the thermal energy of gas during subhalo unbinding.
 | <div style="width:260px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :-----------------------------------------------  | :----------------------------------------------- |
 | `HBT_DM_ONLY`                    | `Off`| Enable if the simulation is dark matter only.                   |
-| `HBT_UNBIND_WITH_THERMAL_ENERGY` | `Off`| Enable to include thermal energy of gas when calculating its binding energy. If enabled, the dataset needs to be loaded from the particle outputs. |
+| `HBT_UNBIND_WITH_THERMAL_ENERGY` | `On`| Enable to include thermal energy of gas when calculating its binding energy. If enabled, the dataset needs to be loaded from the particle outputs. |
 
 ### Internal precision
 
