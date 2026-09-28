@@ -139,7 +139,110 @@ def read_hbt_particles(filenames, nr_local_subhalos, prop_name='SubhaloParticles
 
     return prop_values
 
-def sort_hbt_output(basedir, snap_nr, outdir, with_particles, with_potential_energy, with_binding_energy, snapshot_file, quiet):
+def read_swift_cell_grid(swift_cell_file, snap_nr):
+    """
+    Read the SWIFT top level cell structure from a snapshot file.
+
+    Returns the number of cells along each axis and the comoving cell size
+    converted to Mpc (to match the units of the halo centres below).
+    """
+    from virgo.util.partial_formatter import PartialFormatter
+    formatter = PartialFormatter()
+    filename = formatter.format(swift_cell_file, snap_nr=snap_nr, file_nr=None)
+    filename = filename.format(file_nr=0)
+
+    mpc_in_cgs = 3.0856775814913673e24
+    with h5py.File(filename, "r") as infile:
+        cell_dimension = infile["Cells/Meta-data"].attrs["dimension"][:].astype(np.int64)
+        cell_size = np.asarray(infile["Cells/Meta-data"].attrs["size"], dtype=np.float64)
+        length_in_cgs = float(infile["Units"].attrs["Unit length in cgs (U_L)"][0])
+        h = float(infile["Cosmology"].attrs["h"][0])
+
+    # SWIFT cell sizes are comoving and expressed in SWIFT internal length units
+    cell_size = cell_size * length_in_cgs / mpc_in_cgs
+    return cell_dimension, cell_size, h
+
+def compute_soap_index(cofp, nbound, length_in_mpch, swift_cell_file, snap_nr, quiet):
+    """
+    For each subhalo, return the index of the corresponding halo in the SOAP
+    catalogue, or -1 for subhalos which SOAP does not process (unresolved
+    "orphan" subhalos with Nbound == 0).
+
+    SOAP orders halos by (SWIFT top level cell containing the halo centre, index
+    of the halo in this TrackId-sorted catalogue); see the spatial_sort function
+    in SOAP/SOAP/core/combine_chunks.py. This routine reproduces that ordering.
+
+    The subhalos must already be sorted by TrackId and distributed over comm in
+    the usual way. cofp is the (n_local, 3) ComovingMostBoundPosition array in HBT
+    length units and length_in_mpch is the HBT Units/LengthInMpch value.
+    """
+    log("Computing SOAP catalogue index", quiet=quiet)
+
+    nr_local = len(nbound)
+    if comm.allreduce(nr_local) == 0:
+        return -np.ones(nr_local, dtype=np.int64)
+
+    # Read the SWIFT cell structure on rank 0 and broadcast
+    if comm_rank == 0:
+        cell_dimension, cell_size, h = read_swift_cell_grid(swift_cell_file, snap_nr)
+    else:
+        cell_dimension = cell_size = h = None
+    cell_dimension, cell_size, h = comm.bcast((cell_dimension, cell_size, h))
+
+    # SOAP's cell index hash assumes an equal number of cells along each axis
+    assert cell_dimension[0] == cell_dimension[1] == cell_dimension[2], \
+        "SOAP spatial sort assumes the same number of SWIFT cells on each axis"
+
+    # Convert halo centres to comoving Mpc, matching SOAP's InputHalos/HaloCentre
+    # (see cofp in SOAP/SOAP/catalogue_readers/read_hbtplus.py)
+    halo_centre = np.asarray(cofp, dtype=np.float64) * (length_in_mpch / h)
+
+    # SOAP only processes resolved subhalos
+    keep = nbound > 0
+
+    # Cell index of each halo centre (matches spatial_sort)
+    cell_indices = (halo_centre // cell_size).astype(np.int64)
+    if np.any(keep):
+        assert np.min(cell_indices[keep]) >= 0
+        for i_cell in range(3):
+            assert np.max(cell_indices[keep, i_cell]) < cell_dimension[i_cell]
+    cell_index = (
+        cell_indices[:, 0] * cell_dimension[0] ** 2
+        + cell_indices[:, 1] * cell_dimension[1]
+        + cell_indices[:, 2]
+    )
+
+    # Global index of each subhalo in this TrackId-sorted catalogue. This is the
+    # quantity SOAP stores as InputHalos/HaloCatalogueIndex and uses to break
+    # ties between halos which fall in the same cell.
+    first_local = comm.scan(nr_local) - nr_local
+    catalogue_index = np.arange(nr_local, dtype=np.int64) + first_local
+
+    # Global index among the resolved subhalos only
+    nr_local_kept = int(np.sum(keep))
+    first_local_kept = comm.scan(nr_local_kept) - nr_local_kept
+    kept_global_index = np.arange(nr_local_kept, dtype=np.int64) + first_local_kept
+
+    # Establish SOAP's ordering of the resolved subhalos by sorting on
+    # (cell_index, catalogue_index).
+    sort_key = np.zeros(
+        nr_local_kept, dtype=[("cell_index", np.int64), ("catalogue_index", np.int64)]
+    )
+    sort_key["cell_index"] = cell_index[keep]
+    sort_key["catalogue_index"] = catalogue_index[keep]
+    soap_order = psort.parallel_sort(sort_key, return_index=True, comm=comm)
+
+    # soap_order[j] is the resolved global index of the subhalo at SOAP position
+    # j, so matching each resolved subhalo against soap_order gives its position.
+    soap_index_kept = psort.parallel_match(kept_global_index, soap_order, comm=comm)
+    assert np.all(soap_index_kept >= 0)
+
+    # Scatter back into an array covering all subhalos, with -1 for orphans
+    soap_index = -np.ones(nr_local, dtype=np.int64)
+    soap_index[keep] = soap_index_kept
+    return soap_index
+
+def sort_hbt_output(basedir, snap_nr, outdir, with_particles, with_potential_energy, with_binding_energy, snapshot_file, swift_cell_file, quiet):
     """
     This reorganizes a set of HBT SubSnap files into a single file which
     contains one HDF5 dataset for each subhalo property. Subhalos are written
@@ -150,6 +253,24 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, with_potential_ene
 
     # Make a format string for the filenames
     filenames = f"{basedir}/{snap_nr:03d}/SubSnap_{snap_nr:03d}" + ".{file_nr}.hdf5"
+
+    # If we're adding the SOAP index, read the HBT length unit needed to convert
+    # halo centres into the same units SOAP uses
+    if swift_cell_file is not None:
+        if comm_rank == 0:
+            with h5py.File(filenames.format(file_nr=0), "r") as infile:
+                if "Units" in infile:
+                    length_in_mpch = float(infile["Units/LengthInMpch"][0])
+                else:
+                    length_in_mpch = None
+        else:
+            length_in_mpch = None
+        length_in_mpch = comm.bcast(length_in_mpch)
+        if length_in_mpch is None:
+            raise RuntimeError(
+                "--swift-cell-file was given but the HBT input has no Units group, "
+                "so halo centres cannot be converted to SOAP units"
+            )
 
     # Read in the input subhalos
     log(f"Reading HBT-HERONS output for snapshot {snap_nr}", quiet=quiet)
@@ -211,6 +332,14 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, with_potential_ene
             log(f"Reordering subhalo property: {name}", quiet=quiet)
             data[name] = psort.fetch_elements(data[name], order, comm=comm)
     del order
+
+    # Optionally add the index of each subhalo in the corresponding SOAP catalogue
+    if swift_cell_file is not None:
+        data["SOAPIndex"] = compute_soap_index(
+            data["ComovingMostBoundPosition"], data["Nbound"],
+            length_in_mpch, swift_cell_file, snap_nr, quiet,
+        )
+        field_names.append("SOAPIndex")
 
     if with_particles:
 
@@ -277,6 +406,12 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, with_potential_ene
             output_file["NumberOfFiles"] = (1,)
             output_file["SnapshotId"] = input_file["SnapshotId"][...]
             output_file["NumberOfSubhalosInAllFiles"] = (total_nr_subhalos,)
+            if swift_cell_file is not None:
+                output_file["Subhalos/SOAPIndex"].attrs["Description"] = (
+                    "Index of this subhalo in the corresponding SOAP catalogue, or "
+                    "-1 for subhalos not included in SOAP (orphan subhalos with "
+                    "Nbound=0)."
+                )
 
     comm.barrier()
 
@@ -292,6 +427,7 @@ if __name__ == "__main__":
     parser.add_argument("--with-potential-energy", action="store_true", help="Also copy the particle potential energies to the output")
     parser.add_argument("--with-binding-energy", action="store_true", help="Also copy the particle binding energies to the output")
     parser.add_argument("--snapshot-file", type=str, help="Format string for snapshot files (f-string using {snap_nr}, {file_nr})")
+    parser.add_argument("--swift-cell-file", type=str, help="Format string for SWIFT snapshot files (f-string using {snap_nr}, {file_nr}). If given, add a Subhalos/SOAPIndex dataset pointing to each subhalo's position in the SOAP catalogue")
     parser.add_argument("--quiet", action="store_true", help="Suppress logging")
 
     args = parser.parse_args()
