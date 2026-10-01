@@ -47,9 +47,30 @@ else
   MAX_HBT_OUTPUT=$((MAX_HBT_OUTPUT + 1))
 fi
 
+# Where logs for sorting the catalogues will be saved (Should already exist)
+SORT_LOGS_DIR="${HBT_LOGS_DIR}/sorted_catalogues"
+
+# Find the completed HBT-HERONS catalogues which do not have a sorted counterpart
+UNSORTED_OUTPUTS=()
+for ((snap = 0; snap < MAX_HBT_OUTPUT; snap++)); do
+  if [ ! -f $(printf "%s/sorted_catalogues/OrderedSubSnap_%03d.hdf5" "$HBT_FOLDER" "$snap") ]; then
+    UNSORTED_OUTPUTS+=($snap)
+  fi
+done
+
+# Sort the existing catalogues, which does not depend on any other job
+if [ ${#UNSORTED_OUTPUTS[@]} -gt 0 ]; then
+  echo "Submitting catalogue sorting job for snapshots $(IFS=,; echo "${UNSORTED_OUTPUTS[*]}")"
+  sbatch -J "SORT-${1}" \
+    --output ${SORT_LOGS_DIR}/sort_catalogues.%A.%a.out \
+    --error ${SORT_LOGS_DIR}/sort_catalogues.%A.%a.err \
+    --array=$(IFS=,; echo "${UNSORTED_OUTPUTS[*]}")%10 \
+    ${HBT_FOLDER}/submit_sort_catalogues.sh $HBT_FOLDER
+fi
+
 # No new snapshots exist. We cannot run HBT-HERONS.
-if [ $MAX_HBT_OUTPUT -eq $MAX_SNAPSHOT ]; then
-  echo "HBT-HERONS was done up to snapshot $(($MAX_HBT_OUTPUT)). SWIFT outputs exist up to snapshot $(($MAX_SNAPSHOT)). Cannot do more HBT-HERONS now. Exiting."
+if [ $MAX_HBT_OUTPUT -gt $MAX_SNAPSHOT ]; then
+  echo "HBT-HERONS was done up to snapshot $(($MAX_HBT_OUTPUT - 1)). SWIFT outputs exist up to snapshot $(($MAX_SNAPSHOT)). Cannot do more HBT-HERONS now. Exiting."
   exit 1
 fi
 
@@ -85,27 +106,36 @@ else
 fi
 
 # This executes if we still need to generate the splitting of particles
-if [ $MAX_PARTICLE_SPLIT_OUTPUT -ne $MAX_SNAPSHOT ] && [ "$SPLITS_ENABLED" -eq 1 ]; then
+if [ $MAX_PARTICLE_SPLIT_OUTPUT -le $MAX_SNAPSHOT ] && [ "$SPLITS_ENABLED" -eq 1 ]; then
   echo "Submitting splitting information from snapshots $MAX_PARTICLE_SPLIT_OUTPUT to $(($MAX_SNAPSHOT))"
   JOB_ID_SPLITS=$(sbatch --parsable \
     --output ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.out \
     --error ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.err \
-    --array=$MAX_PARTICLE_SPLIT_OUTPUT-$(($MAX_SNAPSHOT - 1))%10 \
+    --array=$MAX_PARTICLE_SPLIT_OUTPUT-$(($MAX_SNAPSHOT))%10 \
     -J "PS-${1}" \
     ${HBT_FOLDER}/submit_particle_splits.sh $HBT_FOLDER/config.txt)
 
   # Submit an HBT job with a dependency on the splitting of particles
   echo "Submitting HBT-HERONS dependency job, running from snapshots $MAX_HBT_OUTPUT to $(($MAX_SNAPSHOT))"
-  sbatch -J "HBT-${1}" \
+  JOB_ID_HBT=$(sbatch --parsable -J "HBT-${1}" \
     --dependency=afterok:$JOB_ID_SPLITS \
     --output ${HBT_LOGS_DIR}/HBT.%j.out \
     --error ${HBT_LOGS_DIR}/HBT.%J.err \
-    ${HBT_FOLDER}/submit_HBT.sh $HBT_FOLDER/config.txt $MAX_HBT_OUTPUT $(($MAX_SNAPSHOT - 1))
+    ${HBT_FOLDER}/submit_HBT.sh $HBT_FOLDER/config.txt $MAX_HBT_OUTPUT $(($MAX_SNAPSHOT)))
 else
   # We already have the splitting information, so we just need to run HBT without dependencies
   echo "Submitting HBT-HERONS job, running from snapshots $MAX_HBT_OUTPUT to $(($MAX_SNAPSHOT))"
-  sbatch -J "HBT-${1}" \
+  JOB_ID_HBT=$(sbatch --parsable -J "HBT-${1}" \
     --output ${HBT_LOGS_DIR}/HBT.%j.out \
     --error ${HBT_LOGS_DIR}/HBT.%J.err \
-    ${HBT_FOLDER}/submit_HBT.sh $HBT_FOLDER/config.txt $MAX_HBT_OUTPUT $(($MAX_SNAPSHOT))
+    ${HBT_FOLDER}/submit_HBT.sh $HBT_FOLDER/config.txt $MAX_HBT_OUTPUT $(($MAX_SNAPSHOT)))
 fi
+
+# Submit the sorting of the new catalogues, with a dependency on HBT-HERONS
+echo "Submitting catalogue sorting dependency job, running from snapshots $MAX_HBT_OUTPUT to $(($MAX_SNAPSHOT))"
+sbatch -J "SORT-${1}" \
+  --dependency=afterok:$JOB_ID_HBT \
+  --output ${SORT_LOGS_DIR}/sort_catalogues.%A.%a.out \
+  --error ${SORT_LOGS_DIR}/sort_catalogues.%A.%a.err \
+  --array=$MAX_HBT_OUTPUT-$(($MAX_SNAPSHOT))%10 \
+  ${HBT_FOLDER}/submit_sort_catalogues.sh $HBT_FOLDER

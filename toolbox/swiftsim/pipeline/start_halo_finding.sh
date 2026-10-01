@@ -17,10 +17,18 @@ HBT_FOLDER=$BASE_FOLDER/HBT-HERONS/
 # There should be an HBT folder already there. If not, a path may be wrong.
 if [ ! -d $HBT_FOLDER ]; then
     echo "No HBT-HERONS folder found in provided path. Check whether path is correct, and if so, create an HBT-HERONS folder first."
+    exit 1
+fi
+
+# The HBT folder should be empty, to avoid overwriting a previous run
+if [ -n "$(ls -A $HBT_FOLDER)" ]; then
+    echo "HBT-HERONS folder is not empty. Use continue_halo_finding.sh to continue an existing run. Exiting."
+    exit 1
 fi
 
 # Where logs for HBT will be saved
 HBT_LOGS_DIR="${HBT_FOLDER}/logs"
+mkdir $HBT_LOGS_DIR
 
 # Set permissions
 chmod ug+rw $HBT_LOGS_DIR
@@ -66,6 +74,10 @@ cp ./submission_scripts/submit_HBT.sh $HBT_FOLDER
 # path of the HBT-HERONS executable
 sed -i "s@CURRENT_PWD@${PWD}@g" $HBT_FOLDER/submit_HBT.sh
 
+# Copy the catalogue sorting submission script and create its output folders
+setup_sort_catalogues $HBT_FOLDER
+SORT_LOGS_DIR="${HBT_LOGS_DIR}/sorted_catalogues"
+
 if [ "$SPLITS_ENABLED" -eq 1 ]; then
   # Logging of particle split jobs
   PARTICLE_SPLITS_LOGS_DIR="${HBT_LOGS_DIR}/particle_splits"
@@ -93,16 +105,25 @@ if [ "$SPLITS_ENABLED" -eq 1 ]; then
 
   # Submit an HBT job with a dependency on the splitting of particles
   echo "Submitting HBT-HERONS dependency job, running from snapshots $MIN_SNAPSHOT to $(($MAX_SNAPSHOT))"
-  sbatch -J "HBT-${1}" \
+  JOB_ID_HBT=$(sbatch --parsable -J "HBT-${1}" \
     --dependency=afterok:$JOB_ID_SPLITS \
     --output ${HBT_LOGS_DIR}/HBT.%j.out \
     --error ${HBT_LOGS_DIR}/HBT.%J.err \
-    $HBT_FOLDER/submit_HBT.sh $HBT_FOLDER/config.txt $MIN_SNAPSHOT $(($MAX_SNAPSHOT))
+    $HBT_FOLDER/submit_HBT.sh $HBT_FOLDER/config.txt $MIN_SNAPSHOT $(($MAX_SNAPSHOT)))
 else
   # Submit an HBT job with a dependency on the splitting of particles
   echo "Submitting HBT-HERONS job, running from snapshots $MIN_SNAPSHOT to $(($MAX_SNAPSHOT))"
-  sbatch -J "HBT-${1}" \
+  JOB_ID_HBT=$(sbatch --parsable -J "HBT-${1}" \
     --output ${HBT_LOGS_DIR}/HBT.%j.out \
     --error ${HBT_LOGS_DIR}/HBT.%J.err \
-    $HBT_FOLDER/submit_HBT.sh $HBT_FOLDER/config.txt $MIN_SNAPSHOT $(($MAX_SNAPSHOT))
+    $HBT_FOLDER/submit_HBT.sh $HBT_FOLDER/config.txt $MIN_SNAPSHOT $(($MAX_SNAPSHOT)))
 fi
+
+# Submit the sorting of the catalogues, with a dependency on HBT-HERONS
+echo "Submitting catalogue sorting dependency job, running from snapshots $MIN_SNAPSHOT to $(($MAX_SNAPSHOT))"
+sbatch -J "SORT-${1}" \
+  --dependency=afterok:$JOB_ID_HBT \
+  --output ${SORT_LOGS_DIR}/sort_catalogues.%A.%a.out \
+  --error ${SORT_LOGS_DIR}/sort_catalogues.%A.%a.err \
+  --array=$MIN_SNAPSHOT-$(($MAX_SNAPSHOT))%10 \
+  $HBT_FOLDER/submit_sort_catalogues.sh $HBT_FOLDER
