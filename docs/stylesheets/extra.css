@@ -1,0 +1,15 @@
+[data-md-color-scheme="default"] .merger-orange {
+  color: #b35900;
+}
+
+[data-md-color-scheme="default"] .merger-blue {
+  color: #1a5fb4;
+}
+
+[data-md-color-scheme="slate"] .merger-orange {
+  color: #f2a65a;
+}
+
+[data-md-color-scheme="slate"] .merger-blue {
+  color: #7aa2f7;
+}

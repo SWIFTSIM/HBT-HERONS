@@ -34,10 +34,15 @@ sim="${SLURM_JOB_NAME}"
 # Snapshot index to do
 snap_nr=${SLURM_ARRAY_TASK_ID}
 
+# SWIFT virtual snapshot file. Required to read the top level cell structure
+# in order to create the Subhalos/SOAPIndex dataset
+snap_file="${INDIR}/${sim}/snapshots/colibre_{snap_nr:04d}/colibre_{snap_nr:04d}.hdf5"
+
 # Create ordered catalogue
 mpirun -- python -u ./SortCatalogues.py \
  --with-particles \
  --with-potential-energy \
+ --swift-cell-file="${snap_file}" \
  "${INDIR}/${sim}/HBT-HERONS" \
  "${snap_nr}" \
  "${OUTDIR}/${sim}/HBT-HERONS"

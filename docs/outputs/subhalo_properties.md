@@ -105,6 +105,7 @@ The second type of property corresponds to key events in the evolution of a subh
 |          `SnapshotOfSink`          | If the subhalo has sunk, the output when that happened. If it has not sunk, it equals -1. |
 |         `SnapshotOfDeath`          | If the subhalo has sunk or disrupted, the output when that happened. If neither has happened, it equals -1. |
 |     `SnapshotOfLastIsolation`      | If the subhalo has ever been a satellite, the most recent output when this object was a central subhalo. Note that this is not always the same as the output before a subhalo became a satellite for the first time. If it has always been a central subhalo, it equals -1.    |
+|     `SnapshotOfLastSatellite`      | If the subhalo has ever been a satellite, the most recent output when this object was a satellite subhalo. If it has never been a satellite, it equals -1.    |
 |      `SnapshotOfLastMaxVmax`       | The output when the subhalo reached its maximum value of `VmaxPhysical`. |
 |      `SnapshotOfLastMaxMass`       | The output when the subhalo reached its maximum value of `Mbound`.        |
 |              `LastMaxMass`              | The maximum mass that the subhalo has reached so far.                  |

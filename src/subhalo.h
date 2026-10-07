@@ -46,6 +46,8 @@ public:
   int SnapshotOfLastMaxMass; // the snapshot when it has the maximum subhalo mass, only considering past snapshots.
   int SnapshotOfLastIsolation; // The last snapshot when it was a central, only considering past snapshots. -1 if
                                // the subhalo has always been a central
+  int SnapshotOfLastSatellite; // The last snapshot when it was a satellite, only considering past snapshots. -1 if
+                               // the subhalo has never been a satellite
 
   int SnapshotOfBirth; // Snapshot when the subhalo was first resolved.
   int SnapshotOfDeath; // Snapshot when the subhalo became unresolved, or -1 if it is still resolved.
@@ -136,6 +138,7 @@ public:
   {
     TrackId = SpecialConst::NullTrackId;
     SnapshotOfLastIsolation = SpecialConst::NullSnapshotId;
+    SnapshotOfLastSatellite = SpecialConst::NullSnapshotId;
     SnapshotOfLastMaxMass = SpecialConst::NullSnapshotId;
     LastMaxMass = 0.;
     RmaxComovingOfLastMaxVmax = 0.;
