@@ -1087,7 +1087,7 @@ void Gadget4Reader_t::LoadGroups(MpiWorker_t &world, const ParticleSnapshot_t &p
 
   /* We have halo segments of the same FoF group split across MPI ranks. We need
    * to gather each unique FoF group in the same rank and merge each segment. */
-  ExchangeAndMerge(world, Halos);
+  CollectHaloFragments(world, Halos);
 
   global_timer.Tick("halo_comms", world.Communicator);
   HBTConfig.GroupLoadedFullParticle = true;

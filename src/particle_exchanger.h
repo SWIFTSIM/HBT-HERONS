@@ -2,9 +2,11 @@
 #define PARTICLE_EXCHANGER_H_INCLUDED
 
 #include <assert.h>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <forward_list>
+#include <iostream>
 #include <list>
 #include <numeric>
 
@@ -263,11 +265,36 @@ void ParticleExchanger_t<Halo_T>::RestoreParticles()
 template <class Halo_T>
 void ParticleExchanger_t<Halo_T>::Exchange()
 {
+  auto t0 = std::chrono::steady_clock::now();
   CollectParticles();
+  auto t1 = std::chrono::steady_clock::now();
+  if (world.rank() == 0)
+    std::cout << "      CollectParticles. Took " << std::chrono::duration<double>(t1 - t0).count() << " seconds."
+              << std::endl;
+
   SendParticles();
+  auto t2 = std::chrono::steady_clock::now();
+  if (world.rank() == 0)
+    std::cout << "      SendParticles. Took " << std::chrono::duration<double>(t2 - t1).count() << " seconds."
+              << std::endl;
+
   QueryParticles();
+  auto t3 = std::chrono::steady_clock::now();
+  if (world.rank() == 0)
+    std::cout << "      QueryParticles. Took " << std::chrono::duration<double>(t3 - t2).count() << " seconds."
+              << std::endl;
+
   RecvParticles();
+  auto t4 = std::chrono::steady_clock::now();
+  if (world.rank() == 0)
+    std::cout << "      RecvParticles. Took " << std::chrono::duration<double>(t4 - t3).count() << " seconds."
+              << std::endl;
+
   RestoreParticles();
+  auto t5 = std::chrono::steady_clock::now();
+  if (world.rank() == 0)
+    std::cout << "      RestoreParticles. Took " << std::chrono::duration<double>(t5 - t4).count() << " seconds."
+              << std::endl;
 }
 
 template <class Halo_T>
