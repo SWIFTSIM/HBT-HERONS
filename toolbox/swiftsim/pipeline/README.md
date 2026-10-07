@@ -9,7 +9,9 @@ one completing successfully:
 2. HBT-HERONS.
 3. Sorting of the HBT-HERONS catalogues into a single file per output, with subhaloes in
    ascending TrackId (see `../../catalogue_cleanup`). These are saved in
-   `HBT-HERONS/sorted_catalogues`, without particle IDs or potential energies.
+   `HBT-HERONS/sorted_catalogues`, without particle IDs or potential energies. A
+   `Subhalos/SOAPIndex` dataset is added, giving the index of each subhalo in the
+   corresponding SOAP catalogue.
 
 # Usage
 
