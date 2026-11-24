@@ -4,13 +4,10 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
-#include <list>
 #include <numeric>
 #include <set>
-#include <sstream>
 #include <stdexcept>
 #include <string>
-#include <typeinfo>
 #include <unordered_map>
 
 #include "../../halo.h"
@@ -25,15 +22,14 @@ struct HaloFragment_t
   HBTInt NumberParticles;
   double TotalMass;
   HBTxyz ComovingAveragePosition;
-  int OriginalRank;
   int OriginalOrder;
   int TargetRank;
 };
 
-static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
+static void create_MPI_HaloFragment_t(MPI_Datatype &dtype)
 {
   HaloFragment_t p;
-#define NumAttr 7
+#define NumAttr 6
   MPI_Datatype oldtypes[NumAttr];
   int blockcounts[NumAttr];
   MPI_Aint offsets[NumAttr], origin, extent;
@@ -55,7 +51,6 @@ static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
   RegisterAttr(NumberParticles, MPI_HBT_INT, 1);
   RegisterAttr(TotalMass, MPI_DOUBLE, 1);
   RegisterAttr(ComovingAveragePosition[0], MPI_HBT_REAL, 3);
-  RegisterAttr(OriginalRank, MPI_INT, 1);
   RegisterAttr(OriginalOrder, MPI_INT, 1);
   RegisterAttr(TargetRank, MPI_INT, 1);
 #undef RegisterAttr
@@ -95,19 +90,12 @@ static void ComputeMPICounts(MpiWorker_t &world, const std::vector<HaloFragment_
   CompileOffsets(recv_counts, recv_displacement);
 }
 
-inline bool CompHaloFragment_HaloId(const HaloFragment_t &a, const HaloFragment_t &b)
-{
-  return a.HaloId < b.HaloId;
-}
-
-
 inline bool CompHaloFragment_OriginalOrder(const HaloFragment_t &a, const HaloFragment_t &b)
 {
   return a.OriginalOrder < b.OriginalOrder;
 }
 
-
-inline bool CompHaloInfo_TargetRank(const HaloFragment_t &a, const HaloFragment_t &b)
+inline bool CompHaloFragment_TargetRank(const HaloFragment_t &a, const HaloFragment_t &b)
 {
   return a.TargetRank < b.TargetRank;
 }
@@ -135,12 +123,11 @@ static std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const s
                       Halos[fragment_i].Particles.size());
 
     /* Route each fragment to a home rank via HaloId hash for accumulation. */
-    DisjointHaloFragments[fragment_i].OriginalRank = world.rank();
     DisjointHaloFragments[fragment_i].TargetRank = RankFromIdHash(Halos[fragment_i].HaloId, world.size());
   }
 
   /* Sort by target rank for MPI communication. */
-  std::sort(DisjointHaloFragments.begin(), DisjointHaloFragments.end(), CompHaloInfo_TargetRank);
+  std::sort(DisjointHaloFragments.begin(), DisjointHaloFragments.end(), CompHaloFragment_TargetRank);
 
   std::vector<int> SendHaloCounts(world.size()),
                    RecvHaloCounts(world.size()),
@@ -151,7 +138,7 @@ static std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const s
   size_t TotalRecvCount = std::accumulate(RecvHaloCounts.begin(), RecvHaloCounts.end(), 0);
   std::vector<HaloFragment_t> MergedHaloFragments(TotalRecvCount);
   MPI_Datatype MPI_HaloFragment_t;
-  create_MPI_HaloInfo_t(MPI_HaloFragment_t);
+  create_MPI_HaloFragment_t(MPI_HaloFragment_t);
   MPI_Alltoallv(DisjointHaloFragments.data(), SendHaloCounts.data(), SendHaloDisps.data(), MPI_HaloFragment_t,
                 MergedHaloFragments.data(), RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_HaloFragment_t,
                 world.Communicator);
@@ -213,7 +200,7 @@ static std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const s
   return MergedHaloFragments;
 }
 
-/* Assigns each FoF group to an MPI rank. Starts a the spatial cell-based
+/* Assigns each FoF group to an MPI rank. Starts with the spatial cell-based
  * assignment (preserving locality and inter-snapshot stability),
  * then greedily moves FoFs from the most overloaded rank to the most underloaded
  * rank until all ranks are within a tolerance of the mean particle count. */
@@ -250,7 +237,7 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
     GlobalHaloSizes.resize(NHalosTotal);
 
   MPI_Datatype MPI_HaloFragment_t;
-  create_MPI_HaloInfo_t(MPI_HaloFragment_t);
+  create_MPI_HaloFragment_t(MPI_HaloFragment_t);
   MPI_Gatherv(LocalHaloSizes.data() , LocalHaloSizes.size(), MPI_HaloFragment_t,
               GlobalHaloSizes.data(), recv_counts.data(), recv_disps.data(), MPI_HaloFragment_t,
               0, world.Communicator);
@@ -313,8 +300,6 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
 
     HBTInt NumberOfMoves = 0;
     std::string StopReason = "reached tolerance";
-    auto LastHeartbeat = std::chrono::steady_clock::now();
-    const auto HeartbeatInterval = std::chrono::minutes(5);
 
     while (true)
     {
@@ -347,19 +332,6 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
       list.erase(it);
       RankHalos[R_min].emplace(halo_size, halo_idx);
       NumberOfMoves++;
-
-      /* Heartbeat so a long-running loop is still visible in the log, roughly every
-       * 5 minutes. Placed here (after a move) rather than at the top of the loop, so
-       * it also reports progress if a single move is cheap but many moves are needed. */
-      auto Now = std::chrono::steady_clock::now();
-      if (Now - LastHeartbeat >= HeartbeatInterval)
-      {
-        std::cout << "      Greedy rebalancing still running: " << NumberOfMoves
-                  << " moves so far. Current max/mean = " << (double)ParticlesOnRank[R_max] / MeanParticles
-                  << " (rank " << R_max << "), min/mean = " << (double)ParticlesOnRank[R_min] / MeanParticles
-                  << " (rank " << R_min << ")." << std::endl;
-        LastHeartbeat = Now;
-      }
     }
 
     {
@@ -405,7 +377,7 @@ static std::vector<IdRank_t> CommunicateTaskAssignment(MpiWorker_t &world,
   }
 
   /* Sort by target rank for the forward alltoallv. */
-  std::sort(DisjointHaloFragments.begin(), DisjointHaloFragments.end(), CompHaloInfo_TargetRank);
+  std::sort(DisjointHaloFragments.begin(), DisjointHaloFragments.end(), CompHaloFragment_TargetRank);
 
   std::vector<int> SendHaloCounts(world.size()),
                    RecvHaloCounts(world.size()),
@@ -416,7 +388,7 @@ static std::vector<IdRank_t> CommunicateTaskAssignment(MpiWorker_t &world,
   size_t TotalRecvCount = std::accumulate(RecvHaloCounts.begin(), RecvHaloCounts.end(), 0);
   std::vector<HaloFragment_t> ProbingHaloFragments(TotalRecvCount);
   MPI_Datatype MPI_HaloFragment_t;
-  create_MPI_HaloInfo_t(MPI_HaloFragment_t);
+  create_MPI_HaloFragment_t(MPI_HaloFragment_t);
   MPI_Alltoallv(DisjointHaloFragments.data(), SendHaloCounts.data(), SendHaloDisps.data(), MPI_HaloFragment_t,
                 ProbingHaloFragments.data(), RecvHaloCounts.data(), RecvHaloDisps.data(), MPI_HaloFragment_t,
                 world.Communicator);
@@ -613,6 +585,12 @@ void CollectHaloFragments(MpiWorker_t &world, std::vector<Halo_t> &Halos)
   auto start_time = std::chrono::steady_clock::now();
 
   ExchangeHaloFragments(world, Halos);
+  if (world.rank() == 0)
+  {
+    double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
+    std::cout << "    Exchanged FoF fragments. Took " << elapsed << " seconds." << std::endl;
+  }
+
   MergeHaloFragments(Halos);
 
   if (world.rank() == 0)
