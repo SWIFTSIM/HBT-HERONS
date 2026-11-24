@@ -144,7 +144,7 @@ static std::vector<HaloFragment_t> GetTotalHaloSizes(MpiWorker_t &world, const s
                 world.Communicator);
   MPI_Type_free(&MPI_HaloFragment_t);
 
-  /* Accumulate particle counts and particle-count-weighted COMs for unique FoFs.
+  /* Accumulate particle counts and mass-weighted COMs for unique FoFs.
    * For the COM accumulation, offsets relative to the first fragment's position
    * are used to handle periodic boundary conditions. */
   struct HaloAccumulator
@@ -226,8 +226,9 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
   }
 
   if (NHalosTotal > INT_MAX)
-    throw std::runtime_error("Error: in SpatialAssignmentWithRebalancing(). The total number of halos "
-                             "is larger than INT_MAX, causing MPI overflow. Please use more MPI ranks. Aborting.\n");
+    throw std::runtime_error("Error: in SpatialAssignmentWithRebalancing(). The total number of halos across all "
+                             "ranks is larger than INT_MAX. All halos are gathered onto rank 0 for load balancing, "
+                             "so this would cause MPI overflow. Using more MPI ranks will not help. Aborting.\n");
 
   std::vector<int> recv_counts(GlobalNumHalos.begin(), GlobalNumHalos.end());
   std::vector<int> recv_disps(vector_offset.begin(), vector_offset.end());
@@ -298,13 +299,22 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
     for (int i = 0; i < (int)GlobalHaloSizes.size(); i++)
       RankHalos[GlobalHaloSizes[i].TargetRank].emplace(GlobalHaloSizes[i].NumberParticles, i);
 
+    /* Ordered set of (load, rank), so finding the most and least loaded ranks is
+     * O(log NumProc) per move rather than a linear scan over all ranks. Ties are
+     * broken towards the lowest rank index for both R_max and R_min. */
+    using RankLoad_t = std::pair<HBTInt, int>;
+    std::set<RankLoad_t> RankLoads;
+    for (int r = 0; r < NumProc; r++)
+      RankLoads.emplace(ParticlesOnRank[r], r);
+
     HBTInt NumberOfMoves = 0;
     std::string StopReason = "reached tolerance";
 
     while (true)
     {
-      int R_max = std::max_element(ParticlesOnRank.begin(), ParticlesOnRank.end()) - ParticlesOnRank.begin();
-      int R_min = std::min_element(ParticlesOnRank.begin(), ParticlesOnRank.end()) - ParticlesOnRank.begin();
+      int R_min = RankLoads.begin()->second;
+      HBTInt MaxLoad = RankLoads.rbegin()->first;
+      int R_max = RankLoads.lower_bound(RankLoad_t(MaxLoad, std::numeric_limits<int>::min()))->second;
 
       if (ParticlesOnRank[R_max] <= (HBTInt)((1.0 + Tolerance) * MeanParticles))
         break;
@@ -326,8 +336,12 @@ static std::vector<IdRank_t> SpatialAssignmentWithRebalancing(MpiWorker_t &world
       HBTInt halo_size = it->first;
 
       GlobalHaloSizes[halo_idx].TargetRank = R_min;
+      RankLoads.erase(RankLoad_t(ParticlesOnRank[R_max], R_max));
+      RankLoads.erase(RankLoad_t(ParticlesOnRank[R_min], R_min));
       ParticlesOnRank[R_max] -= halo_size;
       ParticlesOnRank[R_min] += halo_size;
+      RankLoads.emplace(ParticlesOnRank[R_max], R_max);
+      RankLoads.emplace(ParticlesOnRank[R_min], R_min);
 
       list.erase(it);
       RankHalos[R_min].emplace(halo_size, halo_idx);
