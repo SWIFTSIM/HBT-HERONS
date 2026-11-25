@@ -122,7 +122,7 @@ Parameters relating to the tracking and merging of subhaloes, as well as the cri
 
 | <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
-| `TracerParticleTypes`                   | 1 4 | Particle types that can be used as subhalo tracers, given as a space-separated list of particle type numbers. We recommend using time-persistent, collisionless particles (e.g. DM & stars).                   |
+| `TracerParticleTypes`                   | 1 4 | Particle types that can be used as subhalo tracers, given as a space-separated list of particle type numbers. Tracer particles must never be removed from the simulation. We recommend using time-persistent, collisionless particles (e.g. DM & stars). |
 | `MinNumPartOfSub`                       | 20 | Minimum number of bound particles required for a subhalo to be resolved, regardless of their particle type.        |
 | `MinNumTracerPartOfSub`                  | 10 |   Minimum number of bound particles required for a subhalo to be resolved, of the chosen tracer particle types. |
 | `NumTracerHostFinding`                  | 10 |   How many most bound tracer particles are used to identify the host FoF group of subhaloes. The weighting of each particle reflects their binding energy ordering in the previous output. |
