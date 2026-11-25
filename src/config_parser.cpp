@@ -379,6 +379,21 @@ void Parameter_t::CheckValidityParameters()
       throw std::invalid_argument(error_message.str());
     }
 
+    /* Subhaloes need tracer particles to be resolved and to find their hosts */
+    if(TracerParticleTypes.empty())
+    {
+      error_message << "TracerParticleTypes: At least one particle type must be given." << std::endl;
+      throw std::invalid_argument(error_message.str());
+    }
+
+    for (int i : TracerParticleTypes)
+      if ((i < 0) || (i >= TypeMax))
+      {
+        error_message << "TracerParticleTypes: " << i << " is not a valid particle type (0 to " << TypeMax - 1 << ")."
+                      << std::endl;
+        throw std::invalid_argument(error_message.str());
+      }
+
     if(ContainsDuplicateValues(TracerParticleTypes))
     {
       error_message << "TracerParticleTypes: There are duplicate values, please remove repeated elements." << std::endl;
@@ -390,6 +405,15 @@ void Parameter_t::CheckValidityParameters()
       error_message << "DoNotSubsampleParticleTypes: There are duplicate values, please remove repeated elements." << std::endl;
       throw std::invalid_argument(error_message.str());
     }
+
+    /* -1 (subsample every type) is also allowed, and was checked to be the only value when parsing */
+    for (int i : DoNotSubsampleParticleTypes)
+      if ((i != -1) && ((i < 0) || (i >= TypeMax)))
+      {
+        error_message << "DoNotSubsampleParticleTypes: " << i << " is not a valid particle type (0 to " << TypeMax - 1
+                      << ", or -1)." << std::endl;
+        throw std::invalid_argument(error_message.str());
+      }
   }
 
   /* Checks relating to SnapshotIdList. */
