@@ -105,8 +105,8 @@ public:
     MinSnapshotIndex = 0;
     MinNumPartOfSub = 20;
     MinNumTracerPartOfSub = 10;
-    NumTracerHostFinding = MinNumTracerPartOfSub;
-    NumTracersForDescendants = MinNumTracerPartOfSub;
+    NumTracerHostFinding = -1;     // Set to MinNumTracerPartOfSub after parsing if unset
+    NumTracersForDescendants = -1; // Set to MinNumTracerPartOfSub after parsing if unset
     GroupParticleIdMask = 0;
     MassInMsunh = 1e10;
     LengthInMpch = 1;

@@ -210,6 +210,12 @@ void Parameter_t::ParseConfigFile(const char *param_file)
       SetParameterValue(line);
   }
 
+  /* Default to MinNumTracerPartOfSub, using its value from the parameter file */
+  if (NumTracerHostFinding == -1)
+    NumTracerHostFinding = MinNumTracerPartOfSub;
+  if (NumTracersForDescendants == -1)
+    NumTracersForDescendants = MinNumTracerPartOfSub;
+
   CheckParameters();
 
   PhysicalConst::G = 43.0071 * (MassInMsunh / 1e10) / VelInKmS / VelInKmS / LengthInMpch;
@@ -320,6 +326,22 @@ void Parameter_t::CheckValidityParameters()
   if (BoundMassPrecision <= 0 || BoundMassPrecision > 1)
   {
     error_message << "BoundMassPrecision must be in (0, 1], got " << BoundMassPrecision << std::endl;
+    throw std::invalid_argument(error_message.str());
+  }
+
+  /* Every resolved subhalo has at least MinNumTracerPartOfSub tracers. Using
+   * more than that for host finding or descendants would mean using fewer
+   * tracers, or non-tracer particles, for some subhaloes. */
+  if ((NumTracerHostFinding < 1) || (NumTracerHostFinding > MinNumTracerPartOfSub))
+  {
+    error_message << "NumTracerHostFinding must be between 1 and MinNumTracerPartOfSub (" << MinNumTracerPartOfSub
+                  << "), got " << NumTracerHostFinding << std::endl;
+    throw std::invalid_argument(error_message.str());
+  }
+  if ((NumTracersForDescendants < 1) || (NumTracersForDescendants > MinNumTracerPartOfSub))
+  {
+    error_message << "NumTracersForDescendants must be between 1 and MinNumTracerPartOfSub (" << MinNumTracerPartOfSub
+                  << "), got " << NumTracersForDescendants << std::endl;
     throw std::invalid_argument(error_message.str());
   }
 
