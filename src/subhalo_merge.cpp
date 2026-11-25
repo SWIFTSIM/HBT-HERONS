@@ -246,4 +246,9 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
 
   /* This function call will set all Mass and Nbound fields (including types) equal to zero */
   CountParticles();
+
+  /* No bound particles remain, so these fields no longer have a meaningful value. */
+  SpecificSelfPotentialEnergy = 0.;
+  SpecificSelfKineticEnergy = 0.;
+  SpecificAngularMomentum[0] = SpecificAngularMomentum[1] = SpecificAngularMomentum[2] = 0.;
 }
