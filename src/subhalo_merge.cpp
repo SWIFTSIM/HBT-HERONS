@@ -45,8 +45,9 @@ void Subhalo_t::SetMergerInformation(const HBTInt &ReferenceTrackId, const int &
   /* Which TrackId it merged with */
   SinkTrackId = ReferenceTrackId;
 
-  /* Death time if this merger caused it. */
-  if (IsAlive())
+  /* Death time if this merger caused it. Without MergeTrappedSubhalos the
+   * subhalo keeps its particles, so it is still alive. */
+  if (IsAlive() && HBTConfig.MergeTrappedSubhalos)
     SnapshotOfDeath = CurrentSnapshotId;
 }
 
