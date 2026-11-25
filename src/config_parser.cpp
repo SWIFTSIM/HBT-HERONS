@@ -400,8 +400,9 @@ void Parameter_t::CheckValidityParameters()
     for (int i : TestParticleTypes)
       TestBitMask += 1 << i;
 
-    /* Is this the same as the mask generated from the user input? */
-    if (TestBitMask == DoNotSubsampleParticleBitMask)
+    /* Does the mask generated from the user input disable subsampling for all
+     * of these types (and possibly others), while subsampling is enabled? */
+    if ((MaxSampleSizeOfPotentialEstimate > 0) && ((DoNotSubsampleParticleBitMask & TestBitMask) == TestBitMask))
     {
 #ifdef DM_ONLY
       error_message << "Cannot enable subsampling (MaxSampleSizeOfPotentialEstimate > 0) and then disable subsampling (DoNotSubsampleParticleTypes 1) in DMO simulations. Disable either of the two options." << std::endl;
