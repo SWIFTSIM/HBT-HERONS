@@ -80,7 +80,7 @@ public:
   bool RefineMostBoundParticle; // whether to further improve mostbound particle accuracy in case a
                                 // MaxSampleSizeOfPotentialEstimate is used. this introduces some overhead if true, but
                                 // leads to more accuracy mostbound particle
-  float BoundFractionCenterRefinement; /* The fraction of most bound particles to use if the most bound particle will be
+  HBTReal BoundFractionCenterRefinement; /* The fraction of most bound particles to use if the most bound particle will be
                                           refined */
 
   int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
