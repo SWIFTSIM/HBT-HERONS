@@ -330,7 +330,7 @@ void Subhalo_t::CountParticleTypes()
 #pragma omp parallel
     {
       std::vector<HBTInt> nboundtype(TypeMax, 0);
-      std::vector<float> mboundtype(TypeMax, 0.);
+      std::vector<double> mboundtype(TypeMax, 0.);
 #pragma omp for reduction(minPair : Tracer_Index_ParticleType)
       for (HBTInt i = 0; i < Nbound; i++)
       {
@@ -436,22 +436,24 @@ HBTInt Subhalo_t::KickNullParticles()
 void Subhalo_t::CountParticles()
 {
 #ifdef DM_ONLY
-  Mbound = 0.;
+  double mbound = 0.;
   for (HBTInt i = 0; i < Nbound; i++)
-    Mbound += Particles[i].Mass;
+    mbound += Particles[i].Mass;
+  Mbound = mbound;
 #else
   for (auto &n : NboundType)
     n = 0;
-  for (auto &m : MboundType)
-    m = 0.;
+  std::vector<double> mboundtype(TypeMax, 0.);
   auto it = Particles.begin(), it_end = Particles.begin() + Nbound;
   for (; it != it_end; ++it)
   {
     int itype = it->Type;
     NboundType[itype]++;
-    MboundType[itype] += it->Mass;
+    mboundtype[itype] += it->Mass;
   }
-  Mbound = std::accumulate(std::begin(MboundType), std::end(MboundType), (HBTReal)0.);
+  for (int itype = 0; itype < TypeMax; itype++)
+    MboundType[itype] = mboundtype[itype];
+  Mbound = std::accumulate(mboundtype.begin(), mboundtype.end(), 0.);
 #endif
 }
 
