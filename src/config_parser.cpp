@@ -262,8 +262,24 @@ void Parameter_t::ReadSnapshotNameList()
       }
     }
   }
-  if (SnapshotNameList.size())
-    assert(SnapshotNameList.size() == MaxSnapshotIndex + 1);
+  /* One name per snapshot index */
+  if (SnapshotNameList.size() && (SnapshotNameList.size() != MaxSnapshotIndex + 1))
+  {
+    std::stringstream error_message;
+    error_message << snaplist_filename << " has " << SnapshotNameList.size()
+                  << " entries, but needs one per snapshot index (MaxSnapshotIndex + 1 = " << MaxSnapshotIndex + 1
+                  << ")" << std::endl;
+    throw std::runtime_error(error_message.str());
+  }
+
+  /* The readers look names up by SnapshotId, which only equals the snapshot
+   * index without SnapshotIdList. */
+  if (SnapshotNameList.size() && SnapshotIdList.size())
+  {
+    std::stringstream error_message;
+    error_message << "Cannot use both SnapshotIdList and " << snaplist_filename << ". Remove one of them." << std::endl;
+    throw std::runtime_error(error_message.str());
+  }
 }
 
 /* Checks whether the all mandatory parameters have been specified */
@@ -347,6 +363,15 @@ void Parameter_t::CheckValidityParameters()
 
   /* Make sure we have not provided duplicate entries for vector input types */
   {
+    /* Every snapshot index up to MaxSnapshotIndex is looked up in SnapshotIdList. */
+    if (SnapshotIdList.size() && (SnapshotIdList.size() < MaxSnapshotIndex + 1))
+    {
+      error_message << "SnapshotIdList has " << SnapshotIdList.size()
+                    << " entries, but needs at least one per snapshot index (MaxSnapshotIndex + 1 = "
+                    << MaxSnapshotIndex + 1 << ")" << std::endl;
+      throw std::invalid_argument(error_message.str());
+    }
+
     /* SnapshotIdList will be empty if no values are passed at runtime. */
     if(SnapshotIdList.size() && ContainsDuplicateValues(SnapshotIdList))
     {

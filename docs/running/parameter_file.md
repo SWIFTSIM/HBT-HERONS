@@ -23,7 +23,13 @@ These parameters set the format of the simulation, how the output of the simulat
 | `SubhaloPath`                           | - | Base directory where the subhalo catalogues will be saved. |
 | `MinSnapshotIndex`                           | 0 | The minimum output number for the HBT-HERONS analysis. |
 | `MaxSnapshotIndex`                           | - | The maximum output number for the HBT-HERONS analysis. This does not equal the number of simulation outputs if only a subset of outputs is being analysed, as indicated by `SnapshotIdList`.  |
-| `SnapshotIdList`                           | - | Space-separated list indicating a subset of simulation outputs to analyse, if applicable. For example, if we only want to analyse every second snapshot of a ten snapshot run: 1 3 5 7 9. |
+| `SnapshotIdList`                           | - | Space-separated list indicating a subset of simulation outputs to analyse, if applicable. For example, if we only want to analyse every second snapshot of a ten snapshot run: 1 3 5 7 9. It needs one entry per snapshot index, i.e. at least `MaxSnapshotIndex` + 1 entries (`MaxSnapshotIndex` = 4 in the example). |
+
+#### Snapshot name list
+
+If the snapshot file names cannot be built from `SnapshotFileBase`, `SnapshotDirBase` and the snapshot number (for example EAGLE-like names that include the redshift, such as `snapshot_028_z000p000`), they can be listed in a file called `snapshotlist.txt` placed in `SubhaloPath`. HBT-HERONS reads this file automatically if it exists, so do not leave one there unless you want it to be used.
+
+The file contains one name per line, without the file extension, in place of the name that HBT-HERONS would otherwise build. Text after a `#` is ignored. There must be exactly one line per snapshot index (`MaxSnapshotIndex` + 1 lines). It cannot be combined with `SnapshotIdList`.
 
 ### File I/O
 
