@@ -683,6 +683,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     /* Sort the particles that were found to be newly unbound. */
     sort(Elist.begin() + Nbound, Elist.begin() + Nlast, CompareEnergy);
     HBTInt Ndiff = Nlast - Nbound;
+    CorrectionLoop = false;
     if (Ndiff < Nbound)
     {
       if (MaxSampleSize <= 0 || Ndiff < MaxSampleSize)
