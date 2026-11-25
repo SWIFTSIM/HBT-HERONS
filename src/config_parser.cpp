@@ -160,15 +160,30 @@ void Parameter_t::SetParameterValue(const std::string &line)
   /* We will try matching the name of the input parameter to those which have
    * been defined in the code. If we find a match, we assign its value. First
    * we try compulsory parameters, and then optional ones */
-  if (TryCompulsoryParameterValue(name, ss))
+  std::stringstream error_message;
+  if (TryCompulsoryParameterValue(name, ss) || TrySingleValueParameter(name, ss) || TryMultipleValueParameter(name, ss))
+  {
+    /* A read that stopped before the end of the line hit a value of the wrong
+     * type, e.g. "abc" or "true" for a number. Reads that consumed everything
+     * stop at the end of the line instead. */
+    if (ss.fail() && !ss.eof())
+    {
+      error_message << "Could not read the value of configuration entry: " << line << std::endl;
+      throw std::runtime_error(error_message.str());
+    }
+
+    /* Anything left over was not read, e.g. "e4" in "1e4" for an integer. */
+    ss.clear();
+    ss >> std::ws;
+    if (!ss.eof())
+    {
+      error_message << "Unexpected extra text in configuration entry: " << line << std::endl;
+      throw std::runtime_error(error_message.str());
+    }
     return;
-  if (TrySingleValueParameter(name, ss))
-    return;
-  if (TryMultipleValueParameter(name, ss))
-    return;
+  }
 
   /* No matching parameter name has been found, throw an error message */
-  std::stringstream error_message;
   error_message << "Unrecognized configuration entry: " << name << std::endl;
   throw std::runtime_error(error_message.str());
 }
@@ -299,6 +314,14 @@ bool ContainsDuplicateValues(const std::vector<int> &InputVectorParameter)
 void Parameter_t::CheckValidityParameters()
 {
   std::stringstream error_message; /* In case we need to raise an error. */
+
+  /* Unbinding stops once Nbound >= BoundMassPrecision * Nlast, which never
+   * happens for values above 1. */
+  if (BoundMassPrecision <= 0 || BoundMassPrecision > 1)
+  {
+    error_message << "BoundMassPrecision must be in (0, 1], got " << BoundMassPrecision << std::endl;
+    throw std::invalid_argument(error_message.str());
+  }
 
   /* Make sure we have not provided duplicate entries for vector input types */
   {
