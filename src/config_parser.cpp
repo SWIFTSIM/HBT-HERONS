@@ -57,6 +57,7 @@ bool Parameter_t::TrySingleValueParameter(std::string ParameterName, std::string
   TrySetPar(SaveBoundParticleBindingEnergies);
   TrySetPar(SaveBoundParticlePotentialEnergies);
   TrySetPar(MergeTrappedSubhalos);
+  TrySetPar(MergerCriterionSymmetric);
   TrySetPar(PotentialEstimateUpscaleMassesPerType);
   TrySetPar(MajorProgenitorMassRatio);
   TrySetPar(BoundMassPrecision);
@@ -463,6 +464,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncBool(SaveBoundParticleBindingEnergies);
   _SyncBool(SaveBoundParticlePotentialEnergies);
   _SyncBool(MergeTrappedSubhalos);
+  _SyncBool(MergerCriterionSymmetric);
   _SyncBool(PotentialEstimateUpscaleMassesPerType);
   _SyncVec(SnapshotIdList, MPI_INT);
   world.SyncVectorString(SnapshotNameList, root);
@@ -628,6 +630,7 @@ void Parameter_t::DumpParameters()
     version_file << std::endl;
   }
   DumpPar(MergeTrappedSubhalos);
+  DumpPar(MergerCriterionSymmetric);
   DumpPar(MajorProgenitorMassRatio);
   DumpPar(ReassignParticles);
   DumpPar(NumNeighboursForReassignment);

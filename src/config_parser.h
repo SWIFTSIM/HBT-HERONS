@@ -57,6 +57,7 @@ public:
   bool SaveBoundParticleBindingEnergies;
   bool SaveBoundParticlePotentialEnergies;
   bool MergeTrappedSubhalos; // whether to MergeTrappedSubhalos, see code paper for more info.
+  bool MergerCriterionSymmetric; // whether the phase-space merger test uses the core dispersion of both subhaloes.
   bool PotentialEstimateUpscaleMassesPerType;
 
   std::vector<int> SnapshotIdList;
@@ -122,6 +123,7 @@ public:
 #else
     MergeTrappedSubhalos = true;
 #endif
+    MergerCriterionSymmetric = true;
     MajorProgenitorMassRatio = 0.8;
     BoundMassPrecision = 0.995;
     SourceSubRelaxFactor = 3.;
