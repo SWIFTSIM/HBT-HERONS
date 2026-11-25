@@ -266,6 +266,27 @@ class HBTReader:
         else:
             subhalo_index = None
 
+        # Sorted catalogues store the bound particles of all subhaloes in a
+        # single array, with the offset to the first particle of each subhalo.
+        if self.__sorted_catalogues:
+            with h5py.File(self.GetFileName(snap_nr), 'r') as subfile:
+                if 'Particles/ParticleIDs' not in subfile:
+                    raise ValueError("This sorted catalogue was created without particle information.")
+
+                if load_single_subhalo:
+                    start = subfile['Subhalos/ParticleOffset'][subhalo_index]
+                    nbound = subfile['Subhalos/Nbound'][subhalo_index]
+                    return subfile['Particles/ParticleIDs'][start:start + nbound]
+
+                offsets = subfile['Subhalos/ParticleOffset'][:]
+                particle_ids = subfile['Particles/ParticleIDs'][:]
+
+            # Return one array per subhalo, as for the unsorted catalogues
+            subhalo_particles = np.empty(len(offsets), dtype=object)
+            for i, ids in enumerate(np.split(particle_ids, offsets[1:])):
+                subhalo_particles[i] = ids
+            return subhalo_particles
+
         # Determine number of files for requested output, only present in SubSnap
         # files.
         with h5py.File(self.GetFileName(snap_nr), 'r') as subfile:
@@ -291,7 +312,7 @@ class HBTReader:
                         continue
 
                 # Load everything
-                subhalo_particles.append(subfile['SubhaloParticles'][:])
+                subhalo_particles.append(subfile[key_to_load][:])
 
         subhalo_particles = np.hstack(subhalo_particles)
 
