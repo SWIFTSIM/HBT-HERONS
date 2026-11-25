@@ -37,7 +37,7 @@ No FoF groups form in the homogenous grid, since there are no overdensities. Som
 The FoF linking length used to analyse cosmological simulations is normally a fraction of the *mean dark matter interparticle separation*, $l_{\rm DM}$. This means that for dark-matter-only simulations $l_{\rm DM}$ equals the mean interparticle separation, but it does not for hydrodynamical simulations:
 
 $$
-l_{\rm DM} = \sqrt{\dfrac{m_{\rm DM}}{\Omega_{\rm DM}\rho_{\rm crit}}}\,,
+l_{\rm DM} = \sqrt[3]{\dfrac{m_{\rm DM}}{\Omega_{\rm DM}\rho_{\rm crit}}}\,,
 $$
 where $m_{\rm DM}$ is the dark matter particle mass, $\Omega_{\rm DM}$ the dark matter density parameter (excluding neutrinos) and $\rho_{\rm crit}$ the critical density of the universe.
 

@@ -42,12 +42,13 @@ These options specify the format of the simulation particle and FoF group data. 
 
 | <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
-| `SnapshotFormat`                   | `gadget3` | The format used by files containing the particle information.                   |
+| `SnapshotFormat`                   | `gadget` | The format used by files containing the particle information. Accepted values are `gadget`, `gadget4`, `apostle` and `swiftsim`. |
 | `GroupFileFormat`                           | `gadget3_int` | The format used by the files containing the FoF memberships of particles. |
-| `ParticleNullGroupId`                           | - | The value in the FoF particle membership catalogue that corresponds to belonging to no FoF group. |
-| `ParticlesSplit`                           | 0 | If particles split in the simulation, in which case their splitting history needs to be provided. Only implemented for `Swift` hydrodynamical  simulations|
+| `ParticlesSplit`                           | 1 for `swiftsim`, 0 otherwise | If particles split in the simulation, in which case their splitting history needs to be provided. Only implemented for `Swift` hydrodynamical simulations, and always 0 for other formats.|
 | `SaveBoundParticleProperties`                           | 0 | If the position, velocity, mass and type of particles bound to subhaloes should be saved alongside the subhalo catalogues. It also includes thermal energy if thermal unbinding is enabled. |
 | `SaveBoundParticleBindingEnergies`                           | 0 | If the internally calculated binding energies of particles bound to subhaloes should be saved alongside the subhalo catalogues. |
+| `SaveBoundParticlePotentialEnergies`                           | 0 | If the internally calculated potential energies of particles bound to subhaloes should be saved alongside the subhalo catalogues. |
+| `MaxConcurrentIO`                           | 10 | Maximum number of MPI ranks that read from the input files at the same time. |
 
 ## Units
 
@@ -99,7 +100,7 @@ Various options that tell the code how to do the unbinding, the subhalo self-bou
 
 | <div style="width:275px">Property</div> | <div style="width:50px">Default</div>       | <div style="width:100px">Description</div>       |
 | :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------- |
-| `BoundMassPrecision`                                | 0.995 | Convergence threshold of the fractional difference in the number of bound particles between two consecutive unbinding iterations.                   |
+| `BoundMassPrecision`                                | 0.995 | Convergence threshold for the iterative unbinding: it stops once the ratio of the number of bound particles between two consecutive unbinding iterations is at least this value. Must be in the range (0, 1]. |
 | `SourceSubRelaxFactor`                              | 3 | How many particles a subhalo can have associated to it, relative to its number of bound particles. |
 | `MaxSampleSizeOfPotentialEstimate`                  | 1000 | Maximum number of particles used to estimate the gravitational potential of particles. If the subhalo has more particles than this value, a randomly selected `MaxSampleSizeOfPotentialEstimate` particles are used as gravity sources. To disable subsampling, set its value equal to 0.|
 | `DoNotSubsampleParticleTypes`                  | 5 | Particle types that will never be subsampled, even if the subhalo is sufficiently large to trigger subsampling. Provide the value(s) as a space-separated list of particle type numbers|
@@ -128,7 +129,8 @@ Parameters relating to the tracking and merging of subhaloes, as well as the cri
 | `NumTracerHostFinding`                  | 10 |   How many most bound tracer particles are used to identify the host FoF group of subhaloes. The weighting of each particle reflects their binding energy ordering in the previous output. |
 | `NumTracersForDescendants`              | 10 |  How many most bound tracer particles are used to identify which subhalo has accreted the core of subhaloes that have disrupted in the current snapshot. |
 | `MajorProgenitorMassRatio`              | 0.8 |  The threshold used to identify which subhaloes are central candidates within a Friends of Friends group. Expressed relative to the previous bound mass of the most massive subhalo in said host FoF group. |
-| `ReassignParticles`              | - |  If gas particles will be re-attached to a new subgroup if they are sufficiently far away from their assigned subhalo. **Defaults to being enabled in hydrodynamical runs.** |
+| `ReassignParticles`              | - |  If particles that are not of a tracer type (e.g. gas and black holes) will be re-attached to a new subgroup if they are sufficiently far away from their assigned subhalo. **Defaults to being enabled in hydrodynamical runs.** |
+| `NumNeighboursForReassignment`              | 10 |  How many nearest tracer particles are used to decide whether a non-tracer particle is re-attached to a different subhalo, if `ReassignParticles` is enabled. |
 
 ## Miscellaneous
 

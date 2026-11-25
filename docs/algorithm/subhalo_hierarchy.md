@@ -3,7 +3,7 @@
 HBT-HERONS organises subhaloes within haloes into a hierarchical tree, with connections that determine how mass is transferred between subhaloes. There are two types of subhaloes, which differ in how they can grow in mass:
 
 *   **Central subhalo**: there is only one central subhalo in a halo at any given time. It is the most massive subhalo and the only one that can acquire diffuse mass recently accreted by the halo. The other two growth modes include [sinking](./subhalo_sinking.md) and [stripping mass](./unbinding.md) from satellite subhaloes.
-*   **Satellite subhaloes**: all of the other subhaloes in the halo. They may be directly connected to the central subhalo, or to other satellite subhaloes if they were associated to them prior to their infall to the current halo. Contrary to central subhaloes, they cannot grow by diffuse mass accretion, but they can still become more massive through sinking and stripping mass from other satellite subhaloes in their hierarchical tree branch.
+*   **Satellite subhaloes**: all of the other subhaloes in the halo. They may be directly connected to the central subhalo, or to other satellite subhaloes if they were associated to them prior to their infall to the current halo. Contrary to central subhaloes, they cannot grow by diffuse mass accretion, but they can still become more massive through sinking and stripping mass from other satellite subhaloes in their hierarchical tree branch. In hydrodynamical simulations, they can also acquire gas through [gas re-attachment](#gas-re-attachment).
 
 The hierarchy in HBT-HERONS is built using the past evolutionary history. When a new subhalo appears in the simulation, it is always a central subhalo. However, neighbouring haloes may coalesce into a single halo with time, meaning that central subhaloes become satellite subhaloes. Identifying which subhaloes are centrals and which are satellites is explained below.
 
@@ -26,3 +26,9 @@ Every subhalo whose bound mass in the previous output is lower than $M_{\rm thre
 The process of identifying at each output time which subhaloes are centrals and which ones are satellites naturally leads to a subhalo hierarchy within a halo. Subhaloes that were centrals in the past had their own satellite systems, which remain connected to it even after they become a satellite subhalo. This means that connections reflect groups of subhaloes that fell in together because they were once their own independent halo.
 
 Several [subhalo properties](../outputs/subhalo_properties.md#hierarchical-relationships) are saved by HBT-HERONS to keep track of the hierarchical relationships between subhaloes.
+
+## Gas re-attachment
+
+The transfer of mass along the hierarchy assumes that particles can only move from a subhalo to the subhaloes higher up in its hierarchical tree branch. This works well for collisionless particles, but gas can be transferred between subhaloes that are not hierarchically connected, e.g. through ram pressure stripping. To account for this, HBT-HERONS re-attaches particles that are not of a tracer type (e.g. gas and black holes) before any subhalo is unbound ([`ReassignParticles`](../running/parameter_file.md#tracking), enabled by default in hydrodynamical runs).
+
+For each such particle in a FoF group, HBT-HERONS finds its `NumNeighboursForReassignment` (10 by default) nearest tracer particles in the same FoF group. If none of them belong to the subhalo the particle is associated to, the particle is removed from the source of that subhalo and added to the source of the subhalo of its nearest tracer particle. This allows any subhalo in the FoF group, including satellites, to acquire gas from subhaloes that are not in its hierarchical tree branch.

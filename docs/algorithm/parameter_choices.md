@@ -449,7 +449,7 @@ We recommend using a non-zero value of $N_{\rm subsample}$ as it speeds up the u
         ![image_title](../images/parameter_changes/MaxSampleSizeOfPotentialEstimate/growth_factors/growth_factor_satellites.png){ width="600" }
         </figure>
 
-#### `MinCoreSize`
+#### `SubCoreSizeMin`
 
 This parameter, which defaults to $N^{\rm min}_{\rm core} = 20$, determines the number of most bound particle tracers used to compute the phase-space coordinates and dispersion of self-bound subhaloes. Increasing the value means that more tracer particles (with lower binding energies) are included in the calculation, which primarily increases the measured phase-space dispersion of the subhalo core. Since the phase-space dispersion is used as a normalising term when determining whether two subhaloes overlap, and hence whether one of the pair will be forcefully disrupted, using larger values makes the condition trigger more frequently.
 
@@ -729,7 +729,7 @@ We recommend using a small value of $N^{\rm min}_{\rm bound}$, as "physical" sel
 
 This parameter, which defaults to $f^{\rm max}_{\rm source} = 3$, determines how many particles a subhalo can have associated to it relative to the number of bound particles it has. Its primary use is to allow particles that were previously bound to a satellite subhalo to be "re-accreted". This can for example happen after a pericentric passage, where the tidal forces may make some amount of mass unbound, which may later found as bound once the tidal perturbations have subsided. This can also happen secularly, since any given particle may be unbound in a single output by pure chance.
 
-We recommend using a value that is larger than $f^{\rm max}_{\rm source} = 1$, to prevent the secular loss of mass over time. Any particle that is momentarily unbound will lose its association the subhalo it belonged to, preventing its reaccretion at a later time. Over time, this leads to the secular decrease of mass of satellites, which stunts their mass growth. Despite the fact that larger values than the default do not affect results based on our tests, we advise using much larger values than the default. First, the computational cost increases. Second, the retention of too many unbound particles in the source can affect the centre of mass estimate of a subhalo. As its position and velocity plays an important role during unbinding, it can lead to premature, artificially-induced disruption.
+We recommend using a value that is larger than $f^{\rm max}_{\rm source} = 1$, to prevent the secular loss of mass over time. Any particle that is momentarily unbound will lose its association the subhalo it belonged to, preventing its reaccretion at a later time. Over time, this leads to the secular decrease of mass of satellites, which stunts their mass growth. Despite the fact that larger values than the default do not affect results based on our tests, we advise against using much larger values than the default. First, the computational cost increases. Second, the retention of too many unbound particles in the source can affect the centre of mass estimate of a subhalo. As its position and velocity plays an important role during unbinding, it can lead to premature, artificially-induced disruption.
 
 === "$M_{\mathrm{200c}}$"
 

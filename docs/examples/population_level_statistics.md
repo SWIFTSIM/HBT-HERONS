@@ -33,7 +33,7 @@ plt.show()
 
 ??? abstract "Bonus: the mass function of hostless subhaloes"
 
-    Hostless subhaloes are a HBT-HERONS-specific population of subhaloes that, as the name implies, are not associated to any host haloes. These are generally close to the resolution limit of the simulation, and arise because the host halo they were associated to in the past has fragmented. You can select hostless subhaloes with `HostHaloId = -1`.
+    Hostless subhaloes are a HBT-HERONS-specific population of subhaloes that, as the name implies, are not associated to any host haloes. These are generally close to the resolution limit of the simulation, and arise because the host halo they were associated to in the past has fragmented. You can select hostless subhaloes with `HostHaloId = -1` and `Nbound > 1`. The second condition is needed because orphan subhaloes whose tracer particle is not part of any FoF group also have `HostHaloId = -1`.
 
     ```python
     import sys
@@ -47,12 +47,13 @@ plt.show()
                         sorted_catalogues=use_sorted_catalogues)
 
     # Load required data
-    subhalo_data = catalogue.LoadSubhaloProperties(properties=["Mbound", "HostHaloId"])
+    subhalo_data = catalogue.LoadSubhaloProperties(properties=["Mbound", "Nbound", "HostHaloId"])
     Mbound     = subhalo_data["Mbound"] * catalogue.GetMassUnits_Msunh()
+    Nbound     = subhalo_data["Nbound"]
     HostHaloId = subhalo_data["HostHaloId"]
 
     # Identify which subhaloes are hostless and get their bound mass
-    hostless_subhaloes_mask = HostHaloId == -1
+    hostless_subhaloes_mask = (HostHaloId == -1) & (Nbound > 1)
     Mbound_hostless = Mbound[hostless_subhaloes_mask]
 
     # Make the plot
@@ -189,7 +190,7 @@ plt.show()
 
     # Only keep orphan subhaloes, but subdivide population into orphans that disrupted and those that sunk.
     sunk_orphan_subhaloes_mask = (SnapshotOfDeath != -1) & (SnapshotOfSink == SnapshotOfDeath)
-    disrupted_orphan_subhaloes_mask = (SnapshotOfDeath != -1) & (SnapshotOfSink == -1)
+    disrupted_orphan_subhaloes_mask = (SnapshotOfDeath != -1) & (SnapshotOfSink != SnapshotOfDeath)
 
     SnapshotOfDeath_sunk_subhaloes      = SnapshotOfDeath[sunk_orphan_subhaloes_mask]
     SnapshotOfDeath_disrupted_subhaloes = SnapshotOfDeath[disrupted_orphan_subhaloes_mask]
