@@ -139,8 +139,7 @@ bool Parameter_t::TryMultipleValueParameter(std::string ParameterName, std::stri
         throw std::runtime_error(error_message.str());
       }
 
-      /* We need a right bit shift, as it is otherwise undefined. */
-      DoNotSubsampleParticleBitMask = -1 >> 1;
+      /* Keep the bitmask as 0 so every particle type can be subsampled. */
       return true;
     }
 
