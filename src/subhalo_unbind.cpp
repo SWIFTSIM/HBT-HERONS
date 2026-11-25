@@ -416,6 +416,9 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
       Einner[i].ParticleIndex = i;
       Einner[i].Energy = tree.BindingEnergy(Particles[index].ComovingPosition, Particles[index].GetPhysicalVelocity(), RefPos,
                                        RefVel, Particles[index].Mass);
+#ifdef UNBIND_WITH_THERMAL_ENERGY
+      Einner[i].Energy += Particles[index].InternalEnergy;
+#endif
     }
 #pragma omp single
     sort(Einner.begin(), Einner.end(), CompareEnergy);
