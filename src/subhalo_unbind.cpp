@@ -494,7 +494,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
 #ifdef MEASURE_UNBINDING_TIME
     LogTime("EndSubhalo");
-  #endif // MEASURE_UNBINDING_TIME
+    FinishTimer();
+#endif // MEASURE_UNBINDING_TIME
 
     return;
   }
