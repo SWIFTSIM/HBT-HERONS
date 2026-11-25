@@ -201,11 +201,13 @@ void Parameter_t::ParseConfigFile(const char *param_file)
   PhysicalConst::G = 43.0071 * (MassInMsunh / 1e10) / VelInKmS / VelInKmS / LengthInMpch;
   PhysicalConst::H0 = 100. * (1. / VelInKmS) / (1. / LengthInMpch);
 
-  /* Make particles split by default in swift (only relevant for hydro runs) */
-  if ((SnapshotFormat == "swiftsim") & (ParticlesSplit == -1))
-    ParticlesSplit = 1;
-  else
+  /* Particle splitting is only implemented for swift, where it is on by
+   * default (only relevant for hydro runs). A value set in the parameter file
+   * is kept. */
+  if (SnapshotFormat != "swiftsim")
     ParticlesSplit = 0;
+  else if (ParticlesSplit == -1)
+    ParticlesSplit = 1;
 
   BoxHalf = BoxSize / 2.;
   TreeNodeResolution = SofteningHalo * 0.1;
