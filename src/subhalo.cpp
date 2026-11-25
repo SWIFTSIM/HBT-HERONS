@@ -230,7 +230,10 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   auto maxprof = max_element(prof.begin(), prof.end(), CompProfVel);
   RmaxComoving = maxprof->r;
   VmaxPhysical = sqrt(maxprof->v * VelocityUnit);
-  RHalfComoving = prof[Nbound / 2].r;
+  HBTInt half_mass_index = 0;
+  while (prof[half_mass_index].m <= 0.5 * prof[Nbound - 1].m)
+    half_mass_index += 1;
+  RHalfComoving = prof[half_mass_index].r;
   REncloseComoving = prof[Nbound - 1].r;
 
   epoch.SphericalOverdensitySize(BoundM200Crit, BoundR200CritComoving, 200., prof);
