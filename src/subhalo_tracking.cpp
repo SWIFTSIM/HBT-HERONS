@@ -4,6 +4,7 @@
 #include <omp.h>
 #include <unordered_set>
 #include <unordered_map>
+#include <map>
 
 #include "datatypes.h"
 #include "snapshot_number.h"
@@ -335,48 +336,48 @@ HBTInt DecideLocalHostId(std::vector<HBTInt>::const_iterator particle_hosts)
  * output. Used during search across multiple tasks.*/
 IdRank_t DecideLocalHostId(std::vector<IdRank_t>::const_iterator particle_hosts)
 {
-  /* To store unique host candidates, their rank, and the matching score. */
-  std::unordered_map<HBTInt, float> CandidateHosts, CandidateHostRank;
+  /* To store unique host candidates and their matching score. FoF indices are
+   * only unique within a rank, so each candidate is a (FoF index, rank) pair.
+   * Tracers outside any FoF (-1) count as one candidate, whatever rank they are
+   * on, which is placed on the rank of the most bound hostless tracer. */
+  std::map<std::pair<HBTInt, int>, float> CandidateHosts;
+  int HostlessRank = -1;
 
   /* Iterate over the particle list, and weight each candidate score by how
    * bound was the particle is */
   for (int BoundRanking = 0; BoundRanking < HBTConfig.NumTracerHostFinding; BoundRanking++)
   {
+    const IdRank_t &Host = particle_hosts[BoundRanking];
+
     // Not a valid tracer (NOTE: should we break or continue here?)
-    if (particle_hosts[BoundRanking].Id == -2)
+    if (Host.Id == -2)
       continue;
 
-    /* If the key is not present, the score gets zero-initialised by default */
-    CandidateHosts[particle_hosts[BoundRanking].Id] += 1.0 / (1 + pow(float(BoundRanking), 0.5));
-
-    /* If we have hostless particles, we assign the rank to be the one where the
-     * most bound hostless particle is present. */
-    if (particle_hosts[BoundRanking].Id == -1)
+    int Rank = Host.Rank;
+    if (Host.Id == -1)
     {
-      auto findit = CandidateHostRank.find(particle_hosts[BoundRanking].Id);
-      if (findit == CandidateHostRank.end()) // First time we find a hostless particle.
-        CandidateHostRank[particle_hosts[BoundRanking].Id] = particle_hosts[BoundRanking].Rank;
+      if (HostlessRank == -1) // First time we find a hostless particle.
+        HostlessRank = Host.Rank;
+      Rank = HostlessRank;
     }
 
-    // Store its rank
-    CandidateHostRank[particle_hosts[BoundRanking].Id] = particle_hosts[BoundRanking].Rank;
+    /* If the key is not present, the score gets zero-initialised by default */
+    CandidateHosts[{Host.Id, Rank}] += 1.0 / (1 + pow(float(BoundRanking), 0.5));
   }
 
-  /* Select candidate host with the highest score. */
-  IdRank_t HostIdRank{-2, -1};
+  /* Select candidate host with the highest score, and the rank where the
+   * subhalo will be moved to. Rank 0 is kept if there is no valid candidate. */
+  IdRank_t HostIdRank{-2, 0};
   float MaximumScore = 0;
 
-  for (auto candidate : CandidateHosts)
+  for (auto &candidate : CandidateHosts)
   {
     if (candidate.second > MaximumScore)
     {
-      HostIdRank.Id = candidate.first;
+      HostIdRank = IdRank_t(candidate.first.first, candidate.first.second);
       MaximumScore = candidate.second;
     }
   }
-
-  /* Assign target rank where the subhalo will be moved to. */
-  HostIdRank.Rank = CandidateHostRank[HostIdRank.Id];
 
   return HostIdRank;
 }
@@ -1517,8 +1518,8 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
         Subhalos[i].HostHaloId = halo_snap.Halos[HostId].HaloId; // restore global haloid
     }
     GlobalizeTrackReferences();
-    SetNestedParentIds();
   }
+  SetNestedParentIds();
 #pragma omp parallel for if (ParallelizeHaloes)
   for (HBTInt i = 0; i < Subhalos.size(); i++)
   {

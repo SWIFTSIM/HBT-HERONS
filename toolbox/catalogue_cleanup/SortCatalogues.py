@@ -17,7 +17,7 @@ def log(message, quiet=False):
     if (not quiet) and (comm_rank == 0):
         print(message)
 
-def read_snapshot(snapshot_file, snap_nr, particle_ids):
+def read_snapshot(snapshot_file, snap_nr, particle_ids, quiet=False):
     """
     Read particle properties for the specified particle IDs.
     Returns a dict of arrays.
@@ -53,7 +53,7 @@ def read_snapshot(snapshot_file, snap_nr, particle_ids):
             continue # skip neutrinos
         # Read the IDs of this particle type
         log(f"Reading snapshot particle IDs for type {ptype}", quiet=quiet)
-        snapshot_ids = Mf.read(f"PartType{ptype}/ParticleIDs")
+        snapshot_ids = mf.read(f"PartType{ptype}/ParticleIDs")
         # For each subhalo particle ID, find matching index in the snapshot (if any)
         ptr = psort.parallel_match(particle_ids, snapshot_ids, comm=comm)
         matched = (ptr>=0)
@@ -364,7 +364,7 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, with_potential_ene
         particle_offset += (comm.scan(nr_local_particles) - nr_local_particles) # convert to global offset
 
     if snapshot_file is not None:
-        particle_data = read_snapshot(snapshot_file, snap_nr, particle_ids)
+        particle_data = read_snapshot(snapshot_file, snap_nr, particle_ids, quiet)
 
     # Write subhalo properties to the output file
     output_filename = f"{outdir}/OrderedSubSnap_{snap_nr:03d}.hdf5"

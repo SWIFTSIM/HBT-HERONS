@@ -21,6 +21,9 @@ The following entries, which are measured in elapsed seconds for the slowest MPI
 `halo_comms`
 :   Time taken to communicate Friends-of-Friends data to their assigned MPI rank, if required.
 
+`read_halo`
+:   Time taken to finish setting up the Friends-of-Friends data after `halo_comms`, e.g. finding the size of the largest FoF group on each MPI rank.
+
 `update_halo`
 :   If the particles are not loaded together with the Friends-of-Friends catalogue, time taken to update the properties of particles associated to each FoF group.
 
@@ -28,7 +31,7 @@ The following entries, which are measured in elapsed seconds for the slowest MPI
 :   Time taken to update the properties of particles associated to pre-existing subhaloes.
 
 `clean_tracks`
-:   Time taken to remove particles from subhaloes that are no longer in the same FoF group as its subhalo.
+:   Time taken to mask the source subhaloes of pre-existing subhaloes, so that no particle is associated to more than one subhalo in the same hierarchy.
 
 `assign_hosts`
 :   Time taken to assign host FoF groups for pre-existing subhaloes.
@@ -37,10 +40,10 @@ The following entries, which are measured in elapsed seconds for the slowest MPI
 :   Time taken to store the IDs of the most bound tracer particles of pre-existing resolved subhaloes. Information is later used for identifying descendant subhaloes of disrupted subhaloes.
 
 `prepare_centrals`
-:   Time taken to decide which subhaloes are the centrals in each FoF group, and assign the associated FoF group particles to their source subhalo.
+:   Time taken to remove particles from subhaloes that are no longer in the same FoF group as their subhalo, decide which subhaloes are the centrals in each FoF group, and assign the associated FoF group particles to their source subhalo.
 
 `reassign_particles`
-:   Time taken to reassign gas particles to different subhaloes based on neighbouring particles. This step only happens if `ReassignParticles = 1`.
+:   Time taken to reassign particles that are not of a tracer type (e.g. gas) to different subhaloes based on neighbouring particles. This step only happens if `ReassignParticles = 1`.
 
 `unbind`
 :   Time taken to subject all of the subhaloes to unbinding.

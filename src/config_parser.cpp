@@ -57,6 +57,7 @@ bool Parameter_t::TrySingleValueParameter(std::string ParameterName, std::string
   TrySetPar(SaveBoundParticleBindingEnergies);
   TrySetPar(SaveBoundParticlePotentialEnergies);
   TrySetPar(MergeTrappedSubhalos);
+  TrySetPar(MergerCriterionSymmetric);
   TrySetPar(PotentialEstimateUpscaleMassesPerType);
   TrySetPar(MajorProgenitorMassRatio);
   TrySetPar(BoundMassPrecision);
@@ -138,8 +139,7 @@ bool Parameter_t::TryMultipleValueParameter(std::string ParameterName, std::stri
         throw std::runtime_error(error_message.str());
       }
 
-      /* We need a right bit shift, as it is otherwise undefined. */
-      DoNotSubsampleParticleBitMask = -1 >> 1;
+      /* Keep the bitmask as 0 so every particle type can be subsampled. */
       return true;
     }
 
@@ -160,15 +160,30 @@ void Parameter_t::SetParameterValue(const std::string &line)
   /* We will try matching the name of the input parameter to those which have
    * been defined in the code. If we find a match, we assign its value. First
    * we try compulsory parameters, and then optional ones */
-  if (TryCompulsoryParameterValue(name, ss))
+  std::stringstream error_message;
+  if (TryCompulsoryParameterValue(name, ss) || TrySingleValueParameter(name, ss) || TryMultipleValueParameter(name, ss))
+  {
+    /* A read that stopped before the end of the line hit a value of the wrong
+     * type, e.g. "abc" or "true" for a number. Reads that consumed everything
+     * stop at the end of the line instead. */
+    if (ss.fail() && !ss.eof())
+    {
+      error_message << "Could not read the value of configuration entry: " << line << std::endl;
+      throw std::runtime_error(error_message.str());
+    }
+
+    /* Anything left over was not read, e.g. "e4" in "1e4" for an integer. */
+    ss.clear();
+    ss >> std::ws;
+    if (!ss.eof())
+    {
+      error_message << "Unexpected extra text in configuration entry: " << line << std::endl;
+      throw std::runtime_error(error_message.str());
+    }
     return;
-  if (TrySingleValueParameter(name, ss))
-    return;
-  if (TryMultipleValueParameter(name, ss))
-    return;
+  }
 
   /* No matching parameter name has been found, throw an error message */
-  std::stringstream error_message;
   error_message << "Unrecognized configuration entry: " << name << std::endl;
   throw std::runtime_error(error_message.str());
 }
@@ -195,16 +210,24 @@ void Parameter_t::ParseConfigFile(const char *param_file)
       SetParameterValue(line);
   }
 
+  /* Default to MinNumTracerPartOfSub, using its value from the parameter file */
+  if (NumTracerHostFinding == -1)
+    NumTracerHostFinding = MinNumTracerPartOfSub;
+  if (NumTracersForDescendants == -1)
+    NumTracersForDescendants = MinNumTracerPartOfSub;
+
   CheckParameters();
 
   PhysicalConst::G = 43.0071 * (MassInMsunh / 1e10) / VelInKmS / VelInKmS / LengthInMpch;
   PhysicalConst::H0 = 100. * (1. / VelInKmS) / (1. / LengthInMpch);
 
-  /* Make particles split by default in swift (only relevant for hydro runs) */
-  if ((SnapshotFormat == "swiftsim") & (ParticlesSplit == -1))
-    ParticlesSplit = 1;
-  else
+  /* Particle splitting is only implemented for swift, where it is on by
+   * default (only relevant for hydro runs). A value set in the parameter file
+   * is kept. */
+  if (SnapshotFormat != "swiftsim")
     ParticlesSplit = 0;
+  else if (ParticlesSplit == -1)
+    ParticlesSplit = 1;
 
   BoxHalf = BoxSize / 2.;
   TreeNodeResolution = SofteningHalo * 0.1;
@@ -239,8 +262,24 @@ void Parameter_t::ReadSnapshotNameList()
       }
     }
   }
-  if (SnapshotNameList.size())
-    assert(SnapshotNameList.size() == MaxSnapshotIndex + 1);
+  /* One name per snapshot index */
+  if (SnapshotNameList.size() && (SnapshotNameList.size() != MaxSnapshotIndex + 1))
+  {
+    std::stringstream error_message;
+    error_message << snaplist_filename << " has " << SnapshotNameList.size()
+                  << " entries, but needs one per snapshot index (MaxSnapshotIndex + 1 = " << MaxSnapshotIndex + 1
+                  << ")" << std::endl;
+    throw std::runtime_error(error_message.str());
+  }
+
+  /* The readers look names up by SnapshotId, which only equals the snapshot
+   * index without SnapshotIdList. */
+  if (SnapshotNameList.size() && SnapshotIdList.size())
+  {
+    std::stringstream error_message;
+    error_message << "Cannot use both SnapshotIdList and " << snaplist_filename << ". Remove one of them." << std::endl;
+    throw std::runtime_error(error_message.str());
+  }
 }
 
 /* Checks whether the all mandatory parameters have been specified */
@@ -298,14 +337,62 @@ void Parameter_t::CheckValidityParameters()
 {
   std::stringstream error_message; /* In case we need to raise an error. */
 
+  /* Unbinding stops once Nbound >= BoundMassPrecision * Nlast, which never
+   * happens for values above 1. */
+  if (BoundMassPrecision <= 0 || BoundMassPrecision > 1)
+  {
+    error_message << "BoundMassPrecision must be in (0, 1], got " << BoundMassPrecision << std::endl;
+    throw std::invalid_argument(error_message.str());
+  }
+
+  /* Every resolved subhalo has at least MinNumTracerPartOfSub tracers. Using
+   * more than that for host finding or descendants would mean using fewer
+   * tracers, or non-tracer particles, for some subhaloes. */
+  if ((NumTracerHostFinding < 1) || (NumTracerHostFinding > MinNumTracerPartOfSub))
+  {
+    error_message << "NumTracerHostFinding must be between 1 and MinNumTracerPartOfSub (" << MinNumTracerPartOfSub
+                  << "), got " << NumTracerHostFinding << std::endl;
+    throw std::invalid_argument(error_message.str());
+  }
+  if ((NumTracersForDescendants < 1) || (NumTracersForDescendants > MinNumTracerPartOfSub))
+  {
+    error_message << "NumTracersForDescendants must be between 1 and MinNumTracerPartOfSub (" << MinNumTracerPartOfSub
+                  << "), got " << NumTracersForDescendants << std::endl;
+    throw std::invalid_argument(error_message.str());
+  }
+
   /* Make sure we have not provided duplicate entries for vector input types */
   {
+    /* Every snapshot index up to MaxSnapshotIndex is looked up in SnapshotIdList. */
+    if (SnapshotIdList.size() && (SnapshotIdList.size() < MaxSnapshotIndex + 1))
+    {
+      error_message << "SnapshotIdList has " << SnapshotIdList.size()
+                    << " entries, but needs at least one per snapshot index (MaxSnapshotIndex + 1 = "
+                    << MaxSnapshotIndex + 1 << ")" << std::endl;
+      throw std::invalid_argument(error_message.str());
+    }
+
     /* SnapshotIdList will be empty if no values are passed at runtime. */
     if(SnapshotIdList.size() && ContainsDuplicateValues(SnapshotIdList))
     {
       error_message << "SnapshotIdList: There are duplicate values, please remove repeated elements." << std::endl;
       throw std::invalid_argument(error_message.str());
     }
+
+    /* Subhaloes need tracer particles to be resolved and to find their hosts */
+    if(TracerParticleTypes.empty())
+    {
+      error_message << "TracerParticleTypes: At least one particle type must be given." << std::endl;
+      throw std::invalid_argument(error_message.str());
+    }
+
+    for (int i : TracerParticleTypes)
+      if ((i < 0) || (i >= TypeMax))
+      {
+        error_message << "TracerParticleTypes: " << i << " is not a valid particle type (0 to " << TypeMax - 1 << ")."
+                      << std::endl;
+        throw std::invalid_argument(error_message.str());
+      }
 
     if(ContainsDuplicateValues(TracerParticleTypes))
     {
@@ -318,6 +405,15 @@ void Parameter_t::CheckValidityParameters()
       error_message << "DoNotSubsampleParticleTypes: There are duplicate values, please remove repeated elements." << std::endl;
       throw std::invalid_argument(error_message.str());
     }
+
+    /* -1 (subsample every type) is also allowed, and was checked to be the only value when parsing */
+    for (int i : DoNotSubsampleParticleTypes)
+      if ((i != -1) && ((i < 0) || (i >= TypeMax)))
+      {
+        error_message << "DoNotSubsampleParticleTypes: " << i << " is not a valid particle type (0 to " << TypeMax - 1
+                      << ", or -1)." << std::endl;
+        throw std::invalid_argument(error_message.str());
+      }
   }
 
   /* Checks relating to SnapshotIdList. */
@@ -375,8 +471,9 @@ void Parameter_t::CheckValidityParameters()
     for (int i : TestParticleTypes)
       TestBitMask += 1 << i;
 
-    /* Is this the same as the mask generated from the user input? */
-    if (TestBitMask == DoNotSubsampleParticleBitMask)
+    /* Does the mask generated from the user input disable subsampling for all
+     * of these types (and possibly others), while subsampling is enabled? */
+    if ((MaxSampleSizeOfPotentialEstimate > 0) && ((DoNotSubsampleParticleBitMask & TestBitMask) == TestBitMask))
     {
 #ifdef DM_ONLY
       error_message << "Cannot enable subsampling (MaxSampleSizeOfPotentialEstimate > 0) and then disable subsampling (DoNotSubsampleParticleTypes 1) in DMO simulations. Disable either of the two options." << std::endl;
@@ -463,6 +560,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncBool(SaveBoundParticleBindingEnergies);
   _SyncBool(SaveBoundParticlePotentialEnergies);
   _SyncBool(MergeTrappedSubhalos);
+  _SyncBool(MergerCriterionSymmetric);
   _SyncBool(PotentialEstimateUpscaleMassesPerType);
   _SyncVec(SnapshotIdList, MPI_INT);
   world.SyncVectorString(SnapshotNameList, root);
@@ -628,6 +726,7 @@ void Parameter_t::DumpParameters()
     version_file << std::endl;
   }
   DumpPar(MergeTrappedSubhalos);
+  DumpPar(MergerCriterionSymmetric);
   DumpPar(MajorProgenitorMassRatio);
   DumpPar(ReassignParticles);
   DumpPar(NumNeighboursForReassignment);

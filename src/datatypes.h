@@ -321,6 +321,11 @@ public:
   HBTInt NumberFound() {
     return neighbours.size();
   }
+  void Clear()
+  {
+    while(neighbours.size() > 0)
+      neighbours.pop();
+  }
 };
 
 

@@ -40,14 +40,10 @@ void SubhaloSnapshot_t::UpdateMostBoundPosition(MpiWorker_t &world, const Partic
       ZeroSizeSubhalo[nr_zero] = sub;
       ZeroSizeSubhalo[nr_zero].Particles.resize(1);
       ZeroSizeSubhalo[nr_zero].Particles[0] = Particle_t(sub.MostBoundParticleId);
-#ifndef NDEBUG
-      // In Debug mode ParticleExchanger_t::QueryParticles() will fail an
-      // assert() if any tracer particle is not found. Here we set Type=TypeMax
-      // to indicate that we don't know the particle type so it's ok if we
-      // can't find it - it might have genuinely disappeared.
 #ifndef DM_ONLY
-      ZeroSizeSubhalo[nr_zero].Particles[0].Type = TypeMax; // Particle type is not known
-#endif
+      // The particle type is not known until the particle is found. Mark it as
+      // unknown (TypeMax) rather than leaving it uninitialised.
+      ZeroSizeSubhalo[nr_zero].Particles[0].Type = TypeMax;
 #endif
       for (int j = 0; j < 3; j += 1)
       {
@@ -72,14 +68,25 @@ void SubhaloSnapshot_t::UpdateMostBoundPosition(MpiWorker_t &world, const Partic
   {
     if (sub.Particles.size() == 0)
     {
-      Particle_t &p = ZeroSizeSubhalo[nr_zero].Particles[0];
-      if (p.Id != SpecialConst::NullParticleId)
+      /* A tracer that was not found is left with a null Id in DMO builds, and is
+       * removed altogether (leaving the vector empty) in hydro builds. Tracer
+       * particles should never disappear, so this means the chosen
+       * TracerParticleTypes are not suitable for this simulation. */
+      auto &particles = ZeroSizeSubhalo[nr_zero].Particles;
+      if (particles.empty() || (particles[0].Id == SpecialConst::NullParticleId))
       {
-        copyXYZ(sub.ComovingMostBoundPosition, p.ComovingPosition);
-        copyXYZ(sub.PhysicalMostBoundVelocity, p.PhysicalVelocity);
-        copyXYZ(sub.ComovingAveragePosition, sub.ComovingMostBoundPosition);
-        copyXYZ(sub.PhysicalAverageVelocity, sub.PhysicalMostBoundVelocity);
+        std::cerr << "Most bound tracer particle " << sub.MostBoundParticleId << " of orphan TrackId " << sub.TrackId
+                  << " was not found in the current snapshot. Tracer particles should never disappear: check "
+                     "TracerParticleTypes."
+                  << std::endl;
+        MPI_Abort(MPI_COMM_WORLD, 1);
       }
+
+      Particle_t &p = particles[0];
+      copyXYZ(sub.ComovingMostBoundPosition, p.ComovingPosition);
+      copyXYZ(sub.PhysicalMostBoundVelocity, p.PhysicalVelocity);
+      copyXYZ(sub.ComovingAveragePosition, sub.ComovingMostBoundPosition);
+      copyXYZ(sub.PhysicalAverageVelocity, sub.PhysicalMostBoundVelocity);
       nr_zero += 1;
     }
   }

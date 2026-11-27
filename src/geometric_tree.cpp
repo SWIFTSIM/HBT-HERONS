@@ -125,6 +125,7 @@ std::vector<HBTInt> GeoTree_t::NearestNeighbours(const HBTxyz &cen, HBTInt max_n
       while (collector.NumberFound() < nr_to_find)
         {
           rguess *= 1.26; // double the guess volume
+          collector.Clear();
           Search(cen, rguess, collector);
         }
     }

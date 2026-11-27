@@ -122,7 +122,7 @@ Each term is intended to provide an idea of how the run is performing, where the
 ### Subhalo statistics
 
 `NumberUnresolvedGroups`
-: The number of FOF groups that do not contain any resolved subhaloes. This number includes two types of FOF group populations. One type corresponds to FOF groups that only have orphan subhaloes. The second type corresponds to FOF groups that do not have any orphan subhalo, i.e. they were a potential seed for new subhaloes but their particles were not self-bound.
+: The number of FOF groups that did not have any pre-existing (resolved or orphan) subhalo, i.e. they were a potential seed for new subhaloes, but whose particles were not self-bound. FOF groups that only contain orphan subhaloes are not counted.
 
 `NumberMergers`
 :   The total number of subhaloes the current simulation output that were manually merged by HBT-HERONS, after identifying a phase-space overlap with another subhalo in its hierarchy.
