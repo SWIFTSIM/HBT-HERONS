@@ -22,3 +22,11 @@ function parse_yaml {
 # Identifies whether a string contains a substring.
 stringContain() { case $2 in *$1* ) return 0;; *) return 1;; esac ;}
 
+# Copies the catalogue sorting submission script into the HBT-HERONS folder, and creates
+# the directories where the sorted catalogues and their logs will be saved.
+function setup_sort_catalogues {
+   local hbt_folder=$1
+   cp ./submission_scripts/submit_sort_catalogues.sh $hbt_folder
+   sed -i "s@CURRENT_PWD@${PWD}@g" $hbt_folder/submit_sort_catalogues.sh
+   mkdir -p $hbt_folder/sorted_catalogues $hbt_folder/logs/sorted_catalogues
+}

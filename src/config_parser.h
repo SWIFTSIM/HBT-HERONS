@@ -57,6 +57,7 @@ public:
   bool SaveBoundParticleBindingEnergies;
   bool SaveBoundParticlePotentialEnergies;
   bool MergeTrappedSubhalos; // whether to MergeTrappedSubhalos, see code paper for more info.
+  bool MergerCriterionSymmetric; // whether the phase-space merger test uses the core dispersion of both subhaloes.
   bool PotentialEstimateUpscaleMassesPerType;
 
   std::vector<int> SnapshotIdList;
@@ -79,7 +80,7 @@ public:
   bool RefineMostBoundParticle; // whether to further improve mostbound particle accuracy in case a
                                 // MaxSampleSizeOfPotentialEstimate is used. this introduces some overhead if true, but
                                 // leads to more accuracy mostbound particle
-  float BoundFractionCenterRefinement; /* The fraction of most bound particles to use if the most bound particle will be
+  HBTReal BoundFractionCenterRefinement; /* The fraction of most bound particles to use if the most bound particle will be
                                           refined */
 
   int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
@@ -104,8 +105,8 @@ public:
     MinSnapshotIndex = 0;
     MinNumPartOfSub = 20;
     MinNumTracerPartOfSub = 10;
-    NumTracerHostFinding = MinNumTracerPartOfSub;
-    NumTracersForDescendants = MinNumTracerPartOfSub;
+    NumTracerHostFinding = -1;     // Set to MinNumTracerPartOfSub after parsing if unset
+    NumTracersForDescendants = -1; // Set to MinNumTracerPartOfSub after parsing if unset
     GroupParticleIdMask = 0;
     MassInMsunh = 1e10;
     LengthInMpch = 1;
@@ -122,6 +123,7 @@ public:
 #else
     MergeTrappedSubhalos = true;
 #endif
+    MergerCriterionSymmetric = true;
     MajorProgenitorMassRatio = 0.8;
     BoundMassPrecision = 0.995;
     SourceSubRelaxFactor = 3.;

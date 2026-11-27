@@ -17,7 +17,7 @@ HBT-HERONS scores all potential host halo candidates using the total sum of the 
 
 <h4>Orphan subhaloes</h4>
 
-The method is the same as for resolved subhaloes, but the difference is that it only uses the most bound tracer particle when the subhalo was last resolved (`SnapshotOfDeath - 1`).
+The method is the same as for resolved subhaloes, but the difference is that it only uses the most bound tracer particle when the subhalo was last resolved. For disrupted subhaloes this is the output before `SnapshotOfDeath`, and for sunk subhaloes it is `SnapshotOfDeath` itself, as they are self-bound at that output before merging.
 
 ## Hostless subhaloes
 

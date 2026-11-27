@@ -16,7 +16,18 @@ float Subhalo_t::PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo)
 {
   float position_offset = PeriodicDistance(ReferenceSubhalo.CoreComovingPosition, CoreComovingPosition);
   float velocity_offset = Distance(ReferenceSubhalo.CorePhysicalVelocity, CorePhysicalVelocity);
-  return position_offset / ReferenceSubhalo.CoreComovingSigmaR + velocity_offset / ReferenceSubhalo.CorePhysicalSigmaV;
+  float distance = position_offset / ReferenceSubhalo.CoreComovingSigmaR + velocity_offset / ReferenceSubhalo.CorePhysicalSigmaV;
+
+  // Symmetric version of the merging criterion. We compute the distance
+  // if we reverse this subhalo and the reference subhalo and use the
+  // smaller value to decide if we have a merger. Orphans don't have a
+  // dispersion so can't be handled this way.
+  if (HBTConfig.MergerCriterionSymmetric && (Nbound > 1))
+  {
+    float reverse_distance = position_offset / CoreComovingSigmaR + velocity_offset / CorePhysicalSigmaV;
+    distance = std::min(distance, reverse_distance);
+  }
+  return distance;
 }
 
 /* Check if the current subhalo satisfies merger criterion with a reference one. */
@@ -34,8 +45,9 @@ void Subhalo_t::SetMergerInformation(const HBTInt &ReferenceTrackId, const int &
   /* Which TrackId it merged with */
   SinkTrackId = ReferenceTrackId;
 
-  /* Death time if this merger caused it. */
-  if (IsAlive())
+  /* Death time if this merger caused it. Without MergeTrappedSubhalos the
+   * subhalo keeps its particles, so it is still alive. */
+  if (IsAlive() && HBTConfig.MergeTrappedSubhalos)
     SnapshotOfDeath = CurrentSnapshotId;
 }
 
@@ -235,4 +247,9 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
 
   /* This function call will set all Mass and Nbound fields (including types) equal to zero */
   CountParticles();
+
+  /* No bound particles remain, so these fields no longer have a meaningful value. */
+  SpecificSelfPotentialEnergy = 0.;
+  SpecificSelfKineticEnergy = 0.;
+  SpecificAngularMomentum[0] = SpecificAngularMomentum[1] = SpecificAngularMomentum[2] = 0.;
 }

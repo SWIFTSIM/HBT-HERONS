@@ -32,6 +32,7 @@ foreach(TEST_NAME
     test_sort_by_hash
     test_neighbour_search
     test_multi_neighbour_search
+    test_decide_host_id
   )
 
   add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
@@ -62,9 +63,6 @@ foreach(TEST_NAME
   set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${HBT_TEST_OMP_NUM_THREADS})
 
 endforeach()
-
-# This test is temporarily broken and expected to fail
-set_tests_properties(test_mergertree PROPERTIES WILL_FAIL TRUE)
 
 # Program to test ID matching code on a large simulation snapshot
 add_executable(match_snapshot_ids match_snapshot_ids.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)

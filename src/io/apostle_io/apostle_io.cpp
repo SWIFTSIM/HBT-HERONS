@@ -494,7 +494,10 @@ void ApostleReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, std::vector
   }
 
   VectorFree(ParticleHosts);
-  ExchangeAndMerge(world, Halos);
+
+  /* We call this function because FoF fragments are spread across MPI ranks. */
+  CollectHaloFragments(world, Halos);
+
   global_timer.Tick("halo_comms", world.Communicator);
 }
 

@@ -252,16 +252,19 @@ public:
    * bound particle. */
    void AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish, float &Mass)
    {
-      Mass = 0;
-#pragma omp parallel for reduction(+:Mass) if ((Nfinish - Nstart) > 1000)
+      /* Sum in double: a float total stops growing once a particle mass is less
+       * than half of its spacing. */
+      double TotalMass = 0;
+#pragma omp parallel for reduction(+:TotalMass) if ((Nfinish - Nstart) > 1000)
       for (HBTInt i = Nstart; i < Nfinish; i++)
-        Mass += GetMass(i);
+        TotalMass += GetMass(i);
+      Mass = TotalMass;
    }
 
 #ifndef DM_ONLY
   /* Accumulates the total mass per particle type between the Nstart and Nfinish
    * most bound particles. */
-   void AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish, float MassPerType[])
+   void AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish, double MassPerType[])
    {
       for(int i = 0; i < TypeMax; i++)
         MassPerType[i] = 0;
@@ -276,12 +279,17 @@ public:
    void AccumulateMass(const HBTInt &Nstart, const HBTInt &Nfinish, float &Mass, float MassPerType[])
    {
       /* Compute mass per type */
-      AccumulateMass(Nstart, Nfinish, MassPerType);
+      double TotalMassPerType[TypeMax];
+      AccumulateMass(Nstart, Nfinish, TotalMassPerType);
 
       /* Sum over all types to get total */
-      Mass = 0;
+      double TotalMass = 0;
       for(int i = 0; i < TypeMax; i++)
-        Mass += MassPerType[i];
+      {
+        MassPerType[i] = TotalMassPerType[i];
+        TotalMass += TotalMassPerType[i];
+      }
+      Mass = TotalMass;
    }
 #endif
 
@@ -294,7 +302,7 @@ public:
     /* Compute the total mass of particles that are not subsampled, to subtract
      * contribution from Mlast and hence get total true mass of subsampled
      * particles. */
-    HBTReal Munsampled = 0;
+    double Munsampled = 0;
     if(Nunsample > 0)
     {
 #pragma omp parallel for if (Nunsample > 100) reduction(+:Munsampled)
@@ -306,7 +314,7 @@ public:
     HBTReal MsubsampleTrue = Mlast - Munsampled;
 
     /* Total mass of the subsampled particle set. */
-    HBTReal Msubsample = 0;
+    double Msubsample = 0;
 #pragma omp parallel for if (MaxSampleSize > 100) reduction(+:Msubsample)
     for (HBTInt i = Nunsample; i < (Nunsample + MaxSampleSize); i++)
     {
@@ -325,11 +333,11 @@ public:
     ResetMassUpscaleFactor(); /* To get true particle mass */
 
     /* Mass of particles in the subsampled set */
-    float MassPerTypeSubsample[TypeMax];
+    double MassPerTypeSubsample[TypeMax];
     AccumulateMass(Nunsample, Nunsample + MaxSampleSize, MassPerTypeSubsample);
 
     /* Compute mass of particles that are not in the subsampled set. */
-    float MassPerTypeTotal[TypeMax];
+    double MassPerTypeTotal[TypeMax];
     AccumulateMass(Nunsample + MaxSampleSize, Nlast, MassPerTypeTotal);
 
     /* Add both together to get **actual** total mass */
@@ -347,7 +355,7 @@ public:
 
     /* Ensure total mass conservation if we are missing a particle type from
      * our subsampled set. */
-    float TotalScaledMass = 0, TotalTrueMass = 0;
+    double TotalScaledMass = 0, TotalTrueMass = 0;
     for(int type = 0; type < TypeMax; type++)
     {
       TotalTrueMass += MassPerTypeTotal[type];
@@ -408,6 +416,9 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
       Einner[i].ParticleIndex = i;
       Einner[i].Energy = tree.BindingEnergy(Particles[index].ComovingPosition, Particles[index].GetPhysicalVelocity(), RefPos,
                                        RefVel, Particles[index].Mass);
+#ifdef UNBIND_WITH_THERMAL_ENERGY
+      Einner[i].Energy += Particles[index].InternalEnergy;
+#endif
     }
 #pragma omp single
     sort(Einner.begin(), Einner.end(), CompareEnergy);
@@ -483,7 +494,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
 #ifdef MEASURE_UNBINDING_TIME
     LogTime("EndSubhalo");
-  #endif // MEASURE_UNBINDING_TIME
+    FinishTimer();
+#endif // MEASURE_UNBINDING_TIME
 
     return;
   }
@@ -672,6 +684,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     /* Sort the particles that were found to be newly unbound. */
     sort(Elist.begin() + Nbound, Elist.begin() + Nlast, CompareEnergy);
     HBTInt Ndiff = Nlast - Nbound;
+    CorrectionLoop = false;
     if (Ndiff < Nbound)
     {
       if (MaxSampleSize <= 0 || Ndiff < MaxSampleSize)

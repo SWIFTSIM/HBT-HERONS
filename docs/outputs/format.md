@@ -36,8 +36,8 @@ The metadata provides information about the run units and cosmology, as well as 
 |             `SnapshotId`             | The (absolute) output number of a simulation corresponding to the current HBT-HERONS (relative) output number. Both numbers are not equal when running HBT-HERONS on a subset of simulation outputs. |
 |                `Cosmology`                 | Information about the cosmology, like the Hubble parameter,  expansion factor, and the density parameters of matter and dark energy.                                                                                                 |
 |              `NumberOfFiles`               | The number of `SubSnap` files in the current HBT-HERONS output, which equals the number of MPI ranks used.                                                     |
-|                `NumberOfFakeHalos`                 | Number of Friends of Friends groups that do not have any self-bound subhaloes in the current output. |
-|              `NumberOfNewSubhalos`               | Number of subhaloes that have been identified for the first time in the current output.                                                       |
+|                `NumberOfFakeHalos`                 | Number of Friends of Friends groups in this file that had no pre-existing subhaloes and whose particles were not found to be self-bound in the current output. Friends of Friends groups that only contain orphan subhaloes are not counted. The value is per file, so it needs to be summed over all files to get the total. |
+|              `NumberOfNewSubhalos`               | Number of subhaloes in this file that have been identified for the first time in the current output. The value is per file, so it needs to be summed over all files to get the total. |
 |             `NumberOfSubhalosInAllFiles`              | Total number of subhaloes across all files in the current output.                                                                             |
 
 ## Subhalo information

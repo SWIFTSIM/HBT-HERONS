@@ -230,7 +230,10 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   auto maxprof = max_element(prof.begin(), prof.end(), CompProfVel);
   RmaxComoving = maxprof->r;
   VmaxPhysical = sqrt(maxprof->v * VelocityUnit);
-  RHalfComoving = prof[Nbound / 2].r;
+  HBTInt half_mass_index = 0;
+  while (prof[half_mass_index].m <= 0.5 * prof[Nbound - 1].m)
+    half_mass_index += 1;
+  RHalfComoving = prof[half_mass_index].r;
   REncloseComoving = prof[Nbound - 1].r;
 
   epoch.SphericalOverdensitySize(BoundM200Crit, BoundR200CritComoving, 200., prof);
@@ -330,7 +333,7 @@ void Subhalo_t::CountParticleTypes()
 #pragma omp parallel
     {
       std::vector<HBTInt> nboundtype(TypeMax, 0);
-      std::vector<float> mboundtype(TypeMax, 0.);
+      std::vector<double> mboundtype(TypeMax, 0.);
 #pragma omp for reduction(minPair : Tracer_Index_ParticleType)
       for (HBTInt i = 0; i < Nbound; i++)
       {
@@ -436,22 +439,24 @@ HBTInt Subhalo_t::KickNullParticles()
 void Subhalo_t::CountParticles()
 {
 #ifdef DM_ONLY
-  Mbound = 0.;
+  double mbound = 0.;
   for (HBTInt i = 0; i < Nbound; i++)
-    Mbound += Particles[i].Mass;
+    mbound += Particles[i].Mass;
+  Mbound = mbound;
 #else
   for (auto &n : NboundType)
     n = 0;
-  for (auto &m : MboundType)
-    m = 0.;
+  std::vector<double> mboundtype(TypeMax, 0.);
   auto it = Particles.begin(), it_end = Particles.begin() + Nbound;
   for (; it != it_end; ++it)
   {
     int itype = it->Type;
     NboundType[itype]++;
-    MboundType[itype] += it->Mass;
+    mboundtype[itype] += it->Mass;
   }
-  Mbound = std::accumulate(std::begin(MboundType), std::end(MboundType), (HBTReal)0.);
+  for (int itype = 0; itype < TypeMax; itype++)
+    MboundType[itype] = mboundtype[itype];
+  Mbound = std::accumulate(mboundtype.begin(), mboundtype.end(), 0.);
 #endif
 }
 

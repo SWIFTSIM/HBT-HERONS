@@ -73,7 +73,8 @@ public:
 HBTReal distance_squared(HBTxyz pos1, HBTxyz pos2) {
 
   if(HBTConfig.PeriodicBoundaryOn) {
-    return PeriodicDistance(pos1, pos2);
+    const HBTReal r = PeriodicDistance(pos1, pos2);
+    return r * r;
   } else {
     return (pos1[0]-pos2[0])*(pos1[0]-pos2[0]) +
       (pos1[1]-pos2[1])*(pos1[1]-pos2[1]) +
@@ -93,7 +94,7 @@ void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTInt nr_ngb, HBTReal boxs
   // Box size and periodicity used by the tree are set in the HBTConfig object
   HBTConfig.BoxSize = boxsize;
   HBTConfig.BoxHalf = boxsize/2;
-  HBTConfig.PeriodicBoundaryOn = false;
+  HBTConfig.PeriodicBoundaryOn = periodic;
 
   // Build the octree
   GeoTree_t tree;
@@ -115,6 +116,16 @@ void test_neighbour_search(HBTInt N, HBTInt Nsearch, HBTInt nr_ngb, HBTReal boxs
   std::cout << "  Finding neighbours using octree" << std::endl;
   for(HBTInt i=0; i<Nsearch; i+=1)
     ngb_idx[i] = tree.NearestNeighbours(centre[i], nr_ngb, 0.01);
+
+  // We should find nr_ngb distinct neighbours, or all N particles if there are
+  // fewer than nr_ngb.
+  std::cout << "  Checking number of distinct neighbours" << std::endl;
+  for(HBTInt i=0; i<Nsearch; i+=1) {
+    std::vector<HBTInt> sorted_idx = ngb_idx[i];
+    std::sort(sorted_idx.begin(), sorted_idx.end());
+    verify(std::adjacent_find(sorted_idx.begin(), sorted_idx.end()) == sorted_idx.end());
+    verify((HBTInt) sorted_idx.size() == std::min(N, nr_ngb));
+  }
 
   // Now check the results by brute force:
   // There should be no points closer than the neighbours we found.

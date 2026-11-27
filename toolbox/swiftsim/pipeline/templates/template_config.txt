@@ -24,6 +24,10 @@ VelInKmS -1
 MinNumPartOfSub 20
 TracerParticleTypes 1 4
 MinNumTracerPartOfSub 10
+# Use the older, one-sided phase-space merger test (core dispersion of the subhalo
+# higher in the hierarchy only), so that all COLIBRE runs are treated consistently.
+# TODO: change to 1 (symmetric test, the code default) once COLIBRE is complete.
+MergerCriterionSymmetric 0
 
 [Additional information]
 SaveBoundParticlePotentialEnergies 1
