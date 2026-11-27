@@ -14,7 +14,7 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 # Load the required modules. Here we assume a cosma-like system.
 module purge
-module load gnu_comp/13.1.0 hdf5/1.12.2 openmpi/4.1.4
+module load gnu_comp/14.1.0 hdf5/1.14.4 openmpi/5.0.3
 
 # Folder to store the logs
 mkdir -p logs
@@ -34,4 +34,4 @@ START_SNAP="<FIRST_SNAP>"
 END_SNAP="<LAST_SNAP>"
 
 # Run!
-mpirun $HBT_executable $HBT_config $START_SNAP $END_SNAP
+mpirun --bind-to none $HBT_executable $HBT_config $START_SNAP $END_SNAP

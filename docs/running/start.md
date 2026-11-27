@@ -35,6 +35,15 @@ last one (`MaxSnapshotIndex`) of the simulation:
 You can specify the number of OMP threads to use per MPI rank using `export OMP_NUM_THREADS=<NUMBER_OMP_THREADS>` before
 running the command above.
 
+!!! note
+
+    When running with both MPI and OpenMP, make sure the MPI library does not pin each rank (and hence all of its OMP
+    threads) to fewer cores than `OMP_NUM_THREADS`. Otherwise, the OMP threads compete for the same cores and the
+    multithreaded parts of the code, such as unbinding, can become several times slower.
+
+    * __Open MPI__: disable process binding with `mpirun --bind-to none -np <NUMBER_MPI_RANKS> ./HBT <PATH_TO_PARAMETER_FILE>`.
+    * __Intel MPI__: give each rank its own set of cores with `export I_MPI_PIN_DOMAIN=auto` before calling `mpirun`.
+
 ## Analyse a subset of outputs
 
 If you are interested in running HBT-HERONS for a subset of the outputs,

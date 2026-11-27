@@ -8,7 +8,7 @@
 #SBATCH -t 00:20:00
 
 module purge
-module load gnu_comp/13.1.0 hdf5/1.12.2 openmpi/4.1.4
+module load gnu_comp/14.1.0 hdf5/1.14.4 openmpi/5.0.3
 module load rockport-settings
 
 set -e # Abort if a command exits with non-zero status
@@ -25,7 +25,7 @@ echo
 sed -i "/.*SubhaloPath.*/c\SubhaloPath ${OUTPUTDIR}" config_test.txt
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-mpirun $RP_OPENMPI_ARGS -np $SLURM_NTASKS ./build/HBT config_test.txt
+mpirun $RP_OPENMPI_ARGS --bind-to none -np $SLURM_NTASKS ./build/HBT config_test.txt
 
 # Revert to the original value of the path
 sed -i '/.*SubhaloPath.*/c\SubhaloPath' config_test.txt
