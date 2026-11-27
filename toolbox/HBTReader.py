@@ -266,6 +266,27 @@ class HBTReader:
         else:
             subhalo_index = None
 
+        # Sorted catalogues store the bound particles of all subhaloes in a
+        # single array, with the offset to the first particle of each subhalo.
+        if self.__sorted_catalogues:
+            with h5py.File(self.GetFileName(snap_nr), 'r') as subfile:
+                if 'Particles/ParticleIDs' not in subfile:
+                    raise ValueError("This sorted catalogue was created without particle information.")
+
+                if load_single_subhalo:
+                    start = subfile['Subhalos/ParticleOffset'][subhalo_index]
+                    nbound = subfile['Subhalos/Nbound'][subhalo_index]
+                    return subfile['Particles/ParticleIDs'][start:start + nbound]
+
+                offsets = subfile['Subhalos/ParticleOffset'][:]
+                particle_ids = subfile['Particles/ParticleIDs'][:]
+
+            # Return one array per subhalo, as for the unsorted catalogues
+            subhalo_particles = np.empty(len(offsets), dtype=object)
+            for i, ids in enumerate(np.split(particle_ids, offsets[1:])):
+                subhalo_particles[i] = ids
+            return subhalo_particles
+
         # Determine number of files for requested output, only present in SubSnap
         # files.
         with h5py.File(self.GetFileName(snap_nr), 'r') as subfile:
@@ -291,13 +312,13 @@ class HBTReader:
                         continue
 
                 # Load everything
-                subhalo_particles.append(subfile['SubhaloParticles'][:])
+                subhalo_particles.append(subfile[key_to_load][:])
 
         subhalo_particles = np.hstack(subhalo_particles)
 
         return subhalo_particles
 
-    def LoadSubhaloEvolution(self, TrackId, properties=None):
+    def LoadSubhaloEvolution(self, TrackId, properties=None, snap_min=None, snap_max=None):
         """
         Load the entire evolution of one or more TrackId, from when they were first
         resolved until the latest snapshot with available catalogues.
@@ -310,6 +331,10 @@ class HBTReader:
         properties: tuple or list of properties, opt
             The properties we are interested in loading. If not defined, we load
             everything.
+        snap_min: int, opt
+            If provided, only load snapshots with snapshot number >= snap_min.
+        snap_max: int, opt
+            If provided, only load snapshots with snapshot number <= snap_max.
 
         Returns
         =======
@@ -318,15 +343,22 @@ class HBTReader:
             after it was first resolved. It has the same order as the input TrackId.
         """
 
+        # Use snap_max as the reference snapshot for birth time and halo selection.
+        ref_snap = snap_max if snap_max is not None else self.SnapshotIdList.max()
+
         # Only load information from when the subhalo was resolved. We try using
         # the old and new dataset name for backwards compatibility.
         try:
-            SnapshotOfBirth = self.LoadSubhaloProperties(self.SnapshotIdList.max(), TrackId)['SnapshotOfBirth']
+            SnapshotOfBirth = self.LoadSubhaloProperties(ref_snap, TrackId)['SnapshotOfBirth']
         except:
-            SnapshotOfBirth = self.LoadSubhaloProperties(self.SnapshotIdList.max(), TrackId)['SnapshotIndexOfBirth']
+            SnapshotOfBirth = self.LoadSubhaloProperties(ref_snap, TrackId)['SnapshotIndexOfBirth']
 
         # We iterate from the earliest forming subhalo of the provided set.
         snapshots_to_load = self.SnapshotIdList[self.SnapshotIdList >= SnapshotOfBirth.min()]
+        if snap_min is not None:
+            snapshots_to_load = snapshots_to_load[snapshots_to_load >= snap_min]
+        if snap_max is not None:
+            snapshots_to_load = snapshots_to_load[snapshots_to_load <= snap_max]
 
         # Load "unprocessed" subhalo information. It is unprocessed because we may
         # have dummy values of -9999 for subhaloes that were not resolved

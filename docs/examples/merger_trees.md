@@ -84,7 +84,7 @@ plt.show()
 
 ### Sunk progenitors
 
-The sinking of a subhalo refers to process of its core becoming indistinguishable in phase-space from the core of another subhalo, whilst both remain self-bound. HBT-HERONS identifies a sinking even when two subhaloes are within a threshold distance in phase-space, flagging the least massive of the two as being sunk and converting it to an orphan subhalo. The `TrackId` of the most massive of the two is assigned as the `SinkTrackId` of the subhalo that sunk.
+The sinking of a subhalo refers to process of its core becoming indistinguishable in phase-space from the core of another subhalo, whilst both remain self-bound. HBT-HERONS identifies a sinking even when two subhaloes are within a threshold distance in phase-space, flagging the one deeper in the subhalo hierarchy as being sunk and converting it to an orphan subhalo. The `TrackId` of the one higher in the hierarchy is assigned as the `SinkTrackId` of the subhalo that sunk. The subhalo that sinks is usually, but not necessarily, the less massive of the two.
 
 Here we show how to identify all subhaloes that sunk and merged with the subhalo used in the [first example](#main-progenitor).
 

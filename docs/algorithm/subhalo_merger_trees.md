@@ -4,7 +4,7 @@ The history-based approach of HBT-HERONS means that the evolution of subhaloes i
 
 ## Main evolutionary branch
 
-For many applications, the only information required to follow the evolution of a subhalo is its **main evolutionary branch**. The main evolutionary branch of a subhalo can be identified by selecting the entries across all simulation outputs that share the same value of `TrackId`. Note that the main evolutionary branch will also provide the evolution of the orphan subhalo, which can be removed by discarding all outputs greater than `SnapshotOfDeath`.
+For many applications, the only information required to follow the evolution of a subhalo is its **main evolutionary branch**. The main evolutionary branch of a subhalo can be identified by selecting the entries across all simulation outputs that share the same value of `TrackId`. Note that the main evolutionary branch will also provide the evolution of the orphan subhalo, which can be removed by discarding all outputs greater than or equal to `SnapshotOfDeath`, the first output at which the subhalo is an orphan.
 
 We provide an example of how this works in practice [in the following page](../examples/merger_trees.md#main-progenitor).
 
@@ -33,7 +33,7 @@ We provide an example of how to use the information that HBT-HERONS outputs to f
 
 At the beginning of the analysis of each simulation output, HBT-HERONS stores for each resolved subhalo the particle IDs of the `NumTracersForDescendants` most bound tracer particles from the last analysed output. If a subhalo becomes an orphan, HBT-HERONS finds which self-bound subhaloes this set of particles is now bound to.
 
-The descendant subhalo, stored in `DescendantTrackId`, is identified as the `TrackId` that contains the largest share of the tagged tracer particles of the now-orphan subhalo. Note that this may result in `DescendantTrackId == -1` if the largest share of particles are unbound.
+The descendant subhalo, stored in `DescendantTrackId`, is identified as the `TrackId` to which the largest number of the tagged tracer particles of the now-orphan subhalo are bound. Tracer particles that are not bound to any subhalo are not counted, so the descendant may only contain a small fraction of them. `DescendantTrackId == -1` only if none of the tagged tracer particles are bound to a subhalo.
 
 The subhaloes where this descendant entry should be used can be identified by `SnapshotOfDeath != SnapshotOfSink == -1`, as well as `SnapshotOfSink > SnapshotOfDeath != -1` (see [unresolved sinking](#unresolved-sinking)).
 
@@ -63,13 +63,13 @@ Although we make specific recommendations of which entry to use depending on how
 
 | <div style="width:75px">Description</div> | <div style="width:70">Mask</div> |<div style="width:100px">Statistics</div> |
 | :-------------------------------------- | :---- | :-------------------------------------------------------------------------------------------------------------- |
-| The subhalo **disrupts** but the majority of its core is not bound to any subhalo. | `DescendantTrackId == -1 &&` <br>`SinkTrackId == -1`                                                      | $20\%$ of all orphan subhaloes. |
-| The subhalo **sinks** but the majority of its core is bound to a different subhalo from the one it sunk to. | `DescendantTrackId != SinkTrackId &&` <br> `DescendantTrackId != -1 && SinkTrackId != -1`                                                      | $0.01\%$ of all orphan subhaloes. |
-| The subhalo **sinks** but the majority of its core is not bound to any subhalo. | `DescendantTrackId == -1 &&`  <br>  `SinkTrackId != -1`                                                      |$0.0001\%$ of all orphan subhaloes.  |
+| The subhalo **disrupts** but none of its tagged tracer particles are bound to any subhalo. | `DescendantTrackId == -1 &&` <br>`SinkTrackId == -1`                                                      | $20\%$ of all orphan subhaloes. |
+| The subhalo **sinks** but most of its bound tagged tracer particles are bound to a different subhalo from the one it sunk to. | `DescendantTrackId != SinkTrackId &&` <br> `DescendantTrackId != -1 && SinkTrackId != -1`                                                      | $0.01\%$ of all orphan subhaloes. |
+| The subhalo **sinks** but none of its tagged tracer particles are bound to any subhalo. | `DescendantTrackId == -1 &&`  <br>  `SinkTrackId != -1`                                                      |$0.0001\%$ of all orphan subhaloes.  |
 
 ### Re-resolving orphans
 
-Orphan subhaloes can re-appear as resolved subhaloes in HBT-HERONS. This happens if the only subhalo in a FoF group is an orphan subhalo, because it is designated as the central subhalo of the halo. All particles in the FoF are consequently added to the source of the orphan subhalo, and if they are found to be self-bound, the orphan is re-classified as a resolved subhalo.
+Orphan subhaloes can re-appear as resolved subhaloes in HBT-HERONS. This happens if a FoF group contains orphan subhaloes but no resolved subhaloes, because one of the orphans is then designated as the central subhalo of the halo. All particles in the FoF are consequently added to the source of that orphan subhalo, and if they are found to be self-bound, the orphan is re-classified as a resolved subhalo. Orphans also remain part of the subhalo hierarchy, so an orphan can also re-appear if enough of the particles that are not bound to its own satellites are bound to it.
 
 This means that some subhaloes, typically those close to the resolution limit of the simulation, may re-appear (and disrupt) several times throughout the simulation. When a orphan subhalo becomes a resolved subhalo again, the entries associated to the disappearance of the subhalo (e.g. `SnapshotOfDeath`, `SnapshotOfSink`) are reset to a value of `-1`.
 

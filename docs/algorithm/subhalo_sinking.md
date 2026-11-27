@@ -28,7 +28,7 @@ $$
 N_{\rm core} = \max(N^{\rm min}_{\rm core}, f_{\rm core}N_{\rm bound}).
 $$
 
-For the reasons provided at the beginning of this section, making $N_{\rm core} = 1$ or $N_{\rm core} \approx N_{\rm bound}$ is discouraged. HBT-HERONS uses a default of $N^{\rm min}_{\rm core} = 20$ and $f_{\rm core} = 0$, but see [here](./parameter_choices.md/#mincoresize) to see the effect of changing $N^{\rm min}_{\rm core}$.
+For the reasons provided at the beginning of this section, making $N_{\rm core} = 1$ or $N_{\rm core} \approx N_{\rm bound}$ is discouraged. HBT-HERONS uses a default of $N^{\rm min}_{\rm core} = 20$ and $f_{\rm core} = 0$, but see [here](./parameter_choices.md/#subcoresizemin) to see the effect of changing $N^{\rm min}_{\rm core}$.
 
 <h4>Orphan subhaloes</h4>
 
@@ -36,7 +36,7 @@ For an orphan subhalo, we use as its phase-space coordinates the comoving positi
 
 ## Flagging overlaps
 
-Two subhaloes ($i$, $j$) with masses $m_{i} \geq m_{j}$ and $m_{i} > 0$ overlap if their centres are separated in phase-space by less than the phase-space dispersion of their cores:
+Two subhaloes ($i$, $j$), where $i$ is a resolved subhalo and $j$ is a subhalo located deeper within its hierarchy tree (see [below](#merging-subhaloes)), overlap if their centres are separated in phase-space by less than the phase-space dispersion of their cores:
 
 $$
 \Delta \equiv \min(\Delta_{ij},\Delta_{ji}) \leq 2,
@@ -48,7 +48,7 @@ $$
 \Delta_{ij} = \dfrac{|\vec{x}_{\mathrm{core}, i} - \vec{x}_{\mathrm{core},j}|}{\sigma_{x,i}} + \dfrac{|\vec{v}_{\mathrm{core},i} - \vec{v}_{\mathrm{core},j}|}{\sigma_{v,i}} \; \;\; \;\mathrm{and}  \; \;\; \; \Delta_{ji} = \dfrac{|\vec{x}_{\mathrm{core}, i} - \vec{x}_{\mathrm{core},j}|}{\sigma_{x,j}} + \dfrac{|\vec{v}_{\mathrm{core},i} - \vec{v}_{\mathrm{core},j}|}{\sigma_{v,j}}.
 $$
 
-The difference between $\Delta_{ij}$ and $\Delta_{ji}$ is that the first expression uses the core dispersion of the most massive subhalo of the pair, whereas the second expression uses the core dispersion of the least massive subhalo of the pair. One may expect the more massive subhalo to have a larger phase-space dispersion that the lower mass one, e.g. the gravitational potential is deeper and the particle velocities are therefore larger. This is indeed typically the case, but there are a small number of cases in which the lower mass subhalo has a larger dispersion, like when it is close to the resolution limit of the simulation. To not miss these cases and delay the merging of overlapping subhaloes, we choose the smallest phase-space offset.
+The difference between $\Delta_{ij}$ and $\Delta_{ji}$ is that the first expression uses the core dispersion of the subhalo higher in the hierarchy, whereas the second expression uses the core dispersion of the subhalo deeper in the hierarchy. The subhalo higher in the hierarchy is usually the more massive of the two, and one may expect it to have a larger phase-space dispersion than the lower mass one, e.g. the gravitational potential is deeper and the particle velocities are therefore larger. This is indeed typically the case, but there are a small number of cases in which the other subhalo has a larger dispersion, like when it is close to the resolution limit of the simulation. To not miss these cases and delay the merging of overlapping subhaloes, we choose the smallest phase-space offset, which makes the test symmetric between the two subhaloes. Earlier versions of HBT-HERONS only used the core dispersion of the subhalo higher in the hierarchy, which can be reproduced by setting `MergerCriterionSymmetric` to 0.
 
 <h4>Orphan subhaloes</h4>
 
@@ -60,7 +60,7 @@ An orphan subhalo that overlaps with a resolved subhalo is part of an **unresolv
 
 HBT-HERONS checks whether subhaloes overlap in phase-space inmediately after subjecting a subhalo to the iterative unbinding procedure. It does so by computing the phase-space offset between the current subhalo and all of the subhaloes contained deeper within its hierarchy tree. This means that subhalo sinking can only happen between subhaloes that fell in as a group, since hierarchical connections need to exist between them.
 
-Any subhalo that satisfies $\Delta \leq 2$, and has not already sunk to another subhalo, is flagged as sunk (`SnapshotOfSink != -1`), and all of its bound particles (if any) are acquired by the most massive subhalo of the pair. To account for the potential accretion of new mass from the sunk subhalo, HBT-HERONS triggers a re-unbinding of the subhalo with which the subhalo sunk to.
+Any subhalo that satisfies $\Delta \leq 2$, and has not already sunk to another subhalo, is flagged as sunk (`SnapshotOfSink != -1`), and all of its bound particles (if any) are acquired by the subhalo higher in the hierarchy. The subhalo that sinks is always the one deeper in the hierarchy, so it is usually, but not necessarily, the less massive of the pair. To account for the potential accretion of new mass from the sunk subhalo, HBT-HERONS triggers a re-unbinding of the subhalo with which the subhalo sunk to.
 
 <h4>Orphan subhaloes</h4>
 

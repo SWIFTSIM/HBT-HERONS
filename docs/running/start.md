@@ -49,7 +49,7 @@ you can specify the range as follows:
 === "Without MPI"
 
     ```bash
-    ./HBT <PATH_TO_PARAMETER_FILE> <PATH_TO_PARAMETER_FILE> <START_OUTPUT> <END_OUTPUT>
+    ./HBT <PATH_TO_PARAMETER_FILE> <START_OUTPUT> <END_OUTPUT>
     ```
 ----
 
